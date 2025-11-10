@@ -1154,13 +1154,11 @@
         </div>
       `).join('');
 
-      // Add lineup size warnings at the bottom
-      const lineupWarnings = [...state.validationErrors, ...state.validationWarnings].filter(
-        issue => issue.type === 'too_many_players' || issue.type === 'too_few_players'
-      );
+      // Add ALL validation issues at the bottom
+      const allIssues = [...state.validationErrors, ...state.validationWarnings];
 
-      if (lineupWarnings.length > 0) {
-        html += lineupWarnings.map(issue => `
+      if (allIssues.length > 0) {
+        html += allIssues.map(issue => `
           <div style="padding:0.75rem;margin-top:0.5rem;background:${issue.severity === 'error' ? '#fee' : '#fef3c7'};color:${issue.severity === 'error' ? '#991b1b' : '#92400e'};border-radius:var(--radius);font-size:0.85rem;border:2px solid ${issue.severity === 'error' ? 'var(--danger)' : '#f59e0b'};">
             <strong>${issue.severity === 'error' ? '❌ Error' : '⚠️ Warning'}:</strong> ${issue.message}
           </div>
@@ -1242,8 +1240,8 @@
       state.selectedPosition = null;
       state.selectedEvent = null;
 
+      validateGameState();
       renderPlayerList();
-
       drawCourt();
     }
 
@@ -1396,6 +1394,7 @@
 
       validateDuplicateJerseys();
       validateLineupSize();
+      validateBenchedPlayerEvents();
 
       updateValidationBanner();
     }
@@ -1442,6 +1441,23 @@
       }
     }
 
+    function validateBenchedPlayerEvents() {
+      // Check most recent event (last 1) for players who are not on court
+      // Only warn about the very last event to avoid persistent warnings
+      const lastEvent = state.events.filter(e => e.team === 'home' && e.playerId).slice(-1)[0];
+
+      if (lastEvent) {
+        const player = state.players.find(p => p.id === lastEvent.playerId);
+        if (player && !player.onCourt) {
+          state.validationWarnings.push({
+            type: 'benched_player_event',
+            message: `You logged to a benched player: #${player.jersey} ${player.firstName}.`,
+            severity: 'warning'
+          });
+        }
+      }
+    }
+
     function validateShotLocation(event) {
       // Only validate shots with coordinates
       if (event.kind !== 'shot' || !event.coordinates || event.points !== 3) {
@@ -1484,27 +1500,9 @@
 
     function updateValidationBanner() {
       const banner = document.getElementById('validationBanner');
-      // Exclude lineup size warnings since they're shown in the roster section
-      const allIssues = [...state.validationErrors, ...state.validationWarnings].filter(
-        issue => issue.type !== 'too_many_players' && issue.type !== 'too_few_players'
-      );
-
-      if (allIssues.length === 0) {
-        banner.style.display = 'none';
-        banner.innerHTML = '';
-        return;
-      }
-
-      const hasErrors = allIssues.some(issue => issue.severity === 'error');
-      banner.className = hasErrors ? 'validation-banner error' : 'validation-banner';
-      banner.style.display = 'flex';
-
-      banner.innerHTML = allIssues.map(issue => `
-        <div class="validation-item">
-          <span>${issue.severity === 'error' ? '❌' : '⚠️'}</span>
-          <span><strong>${issue.severity === 'error' ? 'Error' : 'Warning'}:</strong> ${issue.message}</span>
-        </div>
-      `).join('');
+      // Hide the banner - all validation issues are now shown in the roster section
+      banner.style.display = 'none';
+      banner.innerHTML = '';
     }
 
     // Utility functions
