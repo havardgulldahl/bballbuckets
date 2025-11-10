@@ -73,6 +73,11 @@
       align-items: center;
       gap: 0.4rem;
     }
+    header .controls {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
     header button {
       background: rgba(255,255,255,0.2);
       color: white;
@@ -83,6 +88,7 @@
       font-size: 0.8rem;
       transition: background 0.2s;
       font-family: inherit;
+      white-space: nowrap;
     }
     header button:hover {
       background: rgba(255,255,255,0.3);
@@ -143,15 +149,17 @@
       pointer-events: none;
     }
     
-    #courtCanvas {
+    #courtSVG {
       flex: 1;
       background: var(--court-bg);
       border-radius: var(--radius);
       cursor: crosshair;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      width: 100%;
+      height: 100%;
     }
     
-    #courtCanvas.disabled {
+    #courtSVG.disabled {
       cursor: not-allowed;
       opacity: 0.7;
     }
@@ -321,48 +329,76 @@
         <span id="headerPeriod">P1</span>
       </div>
     </div>
-    <button id="setupGameBtn">Setup Game</button>
+    <div class="controls">
+      <button id="nextPeriodBtn" style="display:none;">Next Period</button>
+      <button id="finishGameBtn" style="display:none;">Finish Game</button>
+      <button id="exportBtn" style="display:none;">Export</button>
+      <button id="setupGameBtn">Setup Game</button>
+    </div>
   </header>
 
   <main>
-    <!-- Left Panel: Basketball Court Canvas -->
+    <!-- Left Panel: Basketball Court SVG -->
     <section id="courtSection">
-      <h2>Court <span style="font-size:0.8em;opacity:0.7;">(Click to select position)</span></h2>
-      <canvas id="courtCanvas"></canvas>
+      <h2>Court <span style="font-size:0.8em;opacity:0.7;">(Click to select position - optional)</span></h2>
+      <svg id="courtSVG" viewBox="0 0 500 940" preserveAspectRatio="xMidYMid meet">
+        <!-- Court will be drawn here -->
+      </svg>
     </section>
 
     <!-- Top Right Panel: Event Selection -->
-    <section id="eventSection" class="disabled">
+    <section id="eventSection">
       <h2>Event Type <span style="font-size:0.8em;opacity:0.7;">(Select event)</span></h2>
       <div class="event-pad">
-        <button type="button" data-kind="shot" data-points="2" data-result="made" disabled>Made 2</button>
-        <button type="button" data-kind="shot" data-points="2" data-result="missed" disabled>Missed 2</button>
-        <button type="button" data-kind="shot" data-points="3" data-result="made" disabled>Made 3</button>
-        <button type="button" data-kind="shot" data-points="3" data-result="missed" disabled>Missed 3</button>
-        <button type="button" data-kind="ft" data-result="made" disabled>Made FT</button>
-        <button type="button" data-kind="ft" data-result="missed" disabled>Missed FT</button>
-        <button type="button" data-kind="rebound" data-subtype="offensive" disabled>Off Reb</button>
-        <button type="button" data-kind="rebound" data-subtype="defensive" disabled>Def Reb</button>
-        <button type="button" data-kind="turnover" data-subtype="liveBall" disabled>Turnover</button>
-        <button type="button" data-kind="foul" data-subtype="personal" disabled>Foul</button>
-        <button type="button" data-kind="assist" disabled>Assist</button>
-        <button type="button" data-kind="block" disabled>Block</button>
-        <button type="button" data-kind="steal" disabled>Steal</button>
-        <button type="button" data-kind="deflection" disabled>Deflection</button>
+        <button type="button" data-kind="shot" data-points="2" data-result="made">Made 2</button>
+        <button type="button" data-kind="shot" data-points="2" data-result="missed">Missed 2</button>
+        <button type="button" data-kind="shot" data-points="3" data-result="made">Made 3</button>
+        <button type="button" data-kind="shot" data-points="3" data-result="missed">Missed 3</button>
+        <button type="button" data-kind="ft" data-result="made">Made FT</button>
+        <button type="button" data-kind="ft" data-result="missed">Missed FT</button>
+        <button type="button" data-kind="rebound" data-subtype="offensive">Off Reb</button>
+        <button type="button" data-kind="rebound" data-subtype="defensive">Def Reb</button>
+        <button type="button" data-kind="turnover" data-subtype="liveBall">Turnover</button>
+        <button type="button" data-kind="foul" data-subtype="personal">Foul</button>
+        <button type="button" data-kind="assist">Assist</button>
+        <button type="button" data-kind="block">Block</button>
+        <button type="button" data-kind="steal">Steal</button>
+        <button type="button" data-kind="deflection">Deflection</button>
       </div>
       <div style="margin-top:1rem;">
-        <button type="button" id="clearPositionBtn" class="secondary" style="width:100%;" disabled>Clear Selection</button>
+        <button type="button" id="clearPositionBtn" class="secondary" style="width:100%;">Clear Selection</button>
       </div>
     </section>
 
     <!-- Bottom Right Panel: Player Roster -->
-    <section id="rosterSection" class="disabled">
+    <section id="rosterSection">
       <h2>Select Player <span style="font-size:0.8em;opacity:0.7;">(Choose player)</span></h2>
       <div class="player-list" id="playerList">
-        <div class="empty-state">Select a position and event type first</div>
+        <div class="empty-state">Select an event type first</div>
       </div>
     </section>
   </main>
+
+  <!-- Export Dialog -->
+  <dialog id="exportDialog">
+    <h3>Export Game Data</h3>
+    <div style="display:flex;flex-direction:column;gap:1rem;">
+      <button type="button" id="exportCSVBtn" style="width:100%;">Export as CSV</button>
+      <button type="button" id="exportTxtBtn" style="width:100%;">Export as Text</button>
+      <button type="button" id="exportJSONBtn" style="width:100%;">Export as JSON</button>
+      <button type="button" class="secondary" id="closeExportBtn" style="width:100%;margin-top:0.5rem;">Close</button>
+    </div>
+  </dialog>
+
+  <!-- Stats Dialog -->
+  <dialog id="statsDialog">
+    <h3>Game Statistics</h3>
+    <div id="statsContent" style="max-height:60vh;overflow-y:auto;"></div>
+    <div style="margin-top:1rem;display:flex;gap:0.5rem;">
+      <button type="button" id="exportStatsBtn" style="flex:1;">Export Stats</button>
+      <button type="button" class="secondary" id="closeStatsBtn" style="flex:1;">Close</button>
+    </div>
+  </dialog>
 
   <!-- Game Setup Dialog -->
   <dialog id="gameSetupDialog">
@@ -423,13 +459,14 @@
       homeScore: 0,
       opponentScore: 0,
       selectedPosition: null,
-      selectedEvent: null
+      selectedEvent: null,
+      gameFinished: false
     };
 
     const dbName = 'hooptrack-db';
     const dbVersion = 1;
     let dbInstance;
-    let canvas, ctx;
+    let courtSVG;
 
     document.addEventListener('DOMContentLoaded', () => {
       init();
@@ -438,7 +475,7 @@
     async function init() {
       await initDB();
       await hydrateState();
-      initCanvas();
+      initCourt();
       bindEventListeners();
       updateUI();
       registerServiceWorker();
@@ -483,111 +520,165 @@
       if (metaPeriod) {
         state.period = metaPeriod.value;
       }
+      const metaGameFinished = await getFromStore('meta', 'gameFinished');
+      if (metaGameFinished) {
+        state.gameFinished = metaGameFinished.value;
+      }
       calculateScores();
     }
 
-    function initCanvas() {
-      canvas = document.getElementById('courtCanvas');
-      ctx = canvas.getContext('2d');
-      
-      // Set canvas size
-      const resizeCanvas = () => {
-        const container = canvas.parentElement;
-        const rect = container.getBoundingClientRect();
-        canvas.width = rect.width - 32; // Account for padding
-        canvas.height = rect.height - 80; // Account for header
-        drawCourt();
-      };
-      
-      resizeCanvas();
-      window.addEventListener('resize', resizeCanvas);
+    function initCourt() {
+      courtSVG = document.getElementById('courtSVG');
+      drawCourt();
     }
 
     function drawCourt() {
-      if (!ctx || !canvas) return;
+      if (!courtSVG) return;
       
-      const w = canvas.width;
-      const h = canvas.height;
+      const lineColor = getComputedStyle(document.documentElement).getPropertyValue('--court-line').trim();
       
-      // Clear canvas
-      ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--court-bg').trim();
-      ctx.fillRect(0, 0, w, h);
+      // Full court dimensions (500 x 940)
+      const w = 500;
+      const h = 940;
       
-      // Set line color
-      ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--court-line').trim();
-      ctx.lineWidth = 2;
+      // Clear SVG
+      courtSVG.innerHTML = '';
       
-      // Draw court lines (half court)
-      // Baseline
-      ctx.beginPath();
-      ctx.moveTo(0, h - 20);
-      ctx.lineTo(w, h - 20);
-      ctx.stroke();
+      // Court background
+      const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      bg.setAttribute('width', w);
+      bg.setAttribute('height', h);
+      bg.setAttribute('fill', 'var(--court-bg)');
+      courtSVG.appendChild(bg);
       
-      // Sidelines
-      ctx.beginPath();
-      ctx.moveTo(20, 0);
-      ctx.lineTo(20, h);
-      ctx.stroke();
+      // Define court elements group
+      const court = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      court.setAttribute('stroke', lineColor);
+      court.setAttribute('stroke-width', '2');
+      court.setAttribute('fill', 'none');
       
-      ctx.beginPath();
-      ctx.moveTo(w - 20, 0);
-      ctx.lineTo(w - 20, h);
-      ctx.stroke();
+      // Outline
+      const outline = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      outline.setAttribute('x', '20');
+      outline.setAttribute('y', '20');
+      outline.setAttribute('width', w - 40);
+      outline.setAttribute('height', h - 40);
+      court.appendChild(outline);
       
-      // Free throw line
-      const ftY = h - h * 0.35;
-      ctx.beginPath();
-      ctx.moveTo(w * 0.2, ftY);
-      ctx.lineTo(w * 0.8, ftY);
-      ctx.stroke();
+      // Half court line
+      const halfCourt = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      halfCourt.setAttribute('x1', '20');
+      halfCourt.setAttribute('y1', h / 2);
+      halfCourt.setAttribute('x2', w - 20);
+      halfCourt.setAttribute('y2', h / 2);
+      court.appendChild(halfCourt);
       
-      // Paint
-      ctx.strokeRect(w * 0.3, ftY, w * 0.4, h * 0.25);
+      // Center circle
+      const centerCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      centerCircle.setAttribute('cx', w / 2);
+      centerCircle.setAttribute('cy', h / 2);
+      centerCircle.setAttribute('r', '60');
+      court.appendChild(centerCircle);
       
-      // 3-point arc
-      ctx.beginPath();
-      ctx.arc(w / 2, h - 20, w * 0.35, Math.PI * 0.8, Math.PI * 0.2, true);
-      ctx.stroke();
-      
-      // Free throw circle
-      ctx.beginPath();
-      ctx.arc(w / 2, ftY, w * 0.08, 0, Math.PI * 2);
-      ctx.stroke();
-      
-      // Hoop
-      ctx.beginPath();
-      ctx.arc(w / 2, h - 20, 8, 0, Math.PI * 2);
-      ctx.fillStyle = ctx.strokeStyle;
-      ctx.fill();
-      
-      // Draw selected position if exists
-      if (state.selectedPosition) {
-        ctx.fillStyle = 'rgba(255, 100, 100, 0.6)';
-        ctx.beginPath();
-        ctx.arc(state.selectedPosition.x, state.selectedPosition.y, 12, 0, Math.PI * 2);
-        ctx.fill();
+      // Draw both hoops (top and bottom)
+      for (let isTop of [true, false]) {
+        const yBase = isTop ? 20 : h - 20;
+        const yDir = isTop ? 1 : -1;
         
-        ctx.strokeStyle = '#c00';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.arc(state.selectedPosition.x, state.selectedPosition.y, 12, 0, Math.PI * 2);
-        ctx.stroke();
+        // Free throw line
+        const ftY = yBase + yDir * 190;
+        const ftLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        ftLine.setAttribute('x1', w * 0.3);
+        ftLine.setAttribute('y1', ftY);
+        ftLine.setAttribute('x2', w * 0.7);
+        ftLine.setAttribute('y2', ftY);
+        court.appendChild(ftLine);
+        
+        // Paint
+        const paint = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        paint.setAttribute('x', w * 0.3);
+        paint.setAttribute('y', isTop ? yBase : ftY);
+        paint.setAttribute('width', w * 0.4);
+        paint.setAttribute('height', Math.abs(ftY - yBase));
+        court.appendChild(paint);
+        
+        // 3-point arc
+        const arc = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        const radius = 180;
+        const arcPath = isTop 
+          ? `M ${w * 0.15} ${yBase + yDir * 70} A ${radius} ${radius} 0 0 1 ${w * 0.85} ${yBase + yDir * 70}`
+          : `M ${w * 0.15} ${yBase + yDir * 70} A ${radius} ${radius} 0 0 0 ${w * 0.85} ${yBase + yDir * 70}`;
+        arc.setAttribute('d', arcPath);
+        court.appendChild(arc);
+        
+        // Free throw circle
+        const ftCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        ftCircle.setAttribute('cx', w / 2);
+        ftCircle.setAttribute('cy', ftY);
+        ftCircle.setAttribute('r', '60');
+        court.appendChild(ftCircle);
+        
+        // Hoop
+        const hoop = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        hoop.setAttribute('cx', w / 2);
+        hoop.setAttribute('cy', yBase);
+        hoop.setAttribute('r', '8');
+        hoop.setAttribute('fill', lineColor);
+        court.appendChild(hoop);
       }
+      
+      courtSVG.appendChild(court);
       
       // Draw previous shots
       state.events.filter(e => e.kind === 'shot' && e.coordinates).forEach(event => {
-        const color = event.result === 'made' ? 'rgba(50, 200, 50, 0.4)' : 'rgba(200, 50, 50, 0.4)';
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.arc(event.coordinates.x, event.coordinates.y, 6, 0, Math.PI * 2);
-        ctx.fill();
+        const color = event.result === 'made' ? 'rgba(50, 200, 50, 0.6)' : 'rgba(200, 50, 50, 0.6)';
+        const shot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        shot.setAttribute('cx', event.coordinates.x);
+        shot.setAttribute('cy', event.coordinates.y);
+        shot.setAttribute('r', '6');
+        shot.setAttribute('fill', color);
+        shot.setAttribute('stroke', 'none');
+        courtSVG.appendChild(shot);
       });
+      
+      // Draw selected position if exists
+      if (state.selectedPosition) {
+        const selected = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        selected.setAttribute('cx', state.selectedPosition.x);
+        selected.setAttribute('cy', state.selectedPosition.y);
+        selected.setAttribute('r', '12');
+        selected.setAttribute('fill', 'rgba(255, 100, 100, 0.6)');
+        selected.setAttribute('stroke', '#c00');
+        selected.setAttribute('stroke-width', '3');
+        courtSVG.appendChild(selected);
+      }
     }
 
     function bindEventListeners() {
       // Game setup button
       document.getElementById('setupGameBtn').addEventListener('click', showGameSetup);
+      
+      // Period and game control buttons
+      document.getElementById('nextPeriodBtn').addEventListener('click', advancePeriod);
+      document.getElementById('finishGameBtn').addEventListener('click', finishGame);
+      document.getElementById('exportBtn').addEventListener('click', showExportDialog);
+      
+      // Export dialog buttons
+      document.getElementById('exportCSVBtn').addEventListener('click', () => exportData('csv'));
+      document.getElementById('exportTxtBtn').addEventListener('click', () => exportData('txt'));
+      document.getElementById('exportJSONBtn').addEventListener('click', () => exportData('json'));
+      document.getElementById('closeExportBtn').addEventListener('click', () => {
+        document.getElementById('exportDialog').close();
+      });
+      
+      // Stats dialog buttons
+      document.getElementById('exportStatsBtn').addEventListener('click', () => {
+        document.getElementById('statsDialog').close();
+        showExportDialog();
+      });
+      document.getElementById('closeStatsBtn').addEventListener('click', () => {
+        document.getElementById('statsDialog').close();
+      });
       
       // Game setup form
       document.getElementById('gameSetupForm').addEventListener('submit', (e) => {
@@ -629,38 +720,38 @@
         showToast('Game setup complete!', 'success');
       });
       
-      // Canvas click for position selection
-      canvas.addEventListener('click', (e) => {
+      // SVG click for position selection (optional)
+      courtSVG.addEventListener('click', (e) => {
         if (!state.game) {
           showToast('Please setup game first', 'error');
           return;
         }
         
-        const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        if (state.gameFinished) {
+          showToast('Game is finished', 'error');
+          return;
+        }
+        
+        const rect = courtSVG.getBoundingClientRect();
+        const x = (e.clientX - rect.left) * (500 / rect.width);
+        const y = (e.clientY - rect.top) * (940 / rect.height);
         
         state.selectedPosition = { x, y };
-        state.selectedEvent = null;
-        
-        // Enable event section
-        document.getElementById('eventSection').classList.remove('disabled');
-        document.querySelectorAll('#eventSection button').forEach(btn => {
-          btn.disabled = false;
-        });
-        
-        // Disable roster section
-        document.getElementById('rosterSection').classList.add('disabled');
         
         drawCourt();
-        showToast('Position selected. Choose an event type.', 'success');
+        showToast('Position selected (optional).', 'success');
       });
       
       // Event buttons
       document.querySelectorAll('.event-pad button').forEach(btn => {
         btn.addEventListener('click', () => {
-          if (!state.selectedPosition) {
-            showToast('Please select a position on court first', 'error');
+          if (!state.game) {
+            showToast('Please setup game first', 'error');
+            return;
+          }
+          
+          if (state.gameFinished) {
+            showToast('Game is finished', 'error');
             return;
           }
           
@@ -671,8 +762,6 @@
             subtype: btn.dataset.subtype || null
           };
           
-          // Enable roster section
-          document.getElementById('rosterSection').classList.remove('disabled');
           renderPlayerList();
           showToast('Event selected. Choose a player.', 'success');
         });
@@ -769,6 +858,11 @@
         return;
       }
       
+      if (!state.selectedEvent) {
+        container.innerHTML = '<div class="empty-state">Select an event type first</div>';
+        return;
+      }
+      
       container.innerHTML = state.players.map(p => `
         <div class="player-chip" onclick="selectPlayer('${p.id}')">
           <span><strong>#${p.jersey}</strong> ${p.firstName} ${p.lastName}</span>
@@ -777,15 +871,15 @@
     }
 
     window.selectPlayer = async function(playerId) {
-      if (!state.selectedPosition || !state.selectedEvent) {
-        showToast('Please select position and event first', 'error');
+      if (!state.selectedEvent) {
+        showToast('Please select event first', 'error');
         return;
       }
       
       const player = state.players.find(p => p.id === playerId);
       if (!player) return;
       
-      // Create event
+      // Create event (coordinates are optional now)
       const event = {
         id: generateId(),
         timestamp: Date.now(),
@@ -797,7 +891,7 @@
         points: state.selectedEvent.points,
         result: state.selectedEvent.result,
         subtype: state.selectedEvent.subtype,
-        coordinates: { ...state.selectedPosition },
+        coordinates: state.selectedPosition ? { ...state.selectedPosition } : null,
         team: 'home'
       };
       
@@ -828,13 +922,7 @@
       state.selectedPosition = null;
       state.selectedEvent = null;
       
-      document.getElementById('eventSection').classList.add('disabled');
-      document.querySelectorAll('#eventSection button').forEach(btn => {
-        btn.disabled = true;
-      });
-      
-      document.getElementById('rosterSection').classList.add('disabled');
-      document.getElementById('playerList').innerHTML = '<div class="empty-state">Select a position and event type first</div>';
+      document.getElementById('playerList').innerHTML = '<div class="empty-state">Select an event type first</div>';
       
       drawCourt();
     }
@@ -847,8 +935,29 @@
         document.getElementById('headerOpponent').textContent = state.game.opponent || '--';
         document.getElementById('headerScore').textContent = `${state.homeScore}-${state.opponentScore}`;
         document.getElementById('headerPeriod').textContent = `P${state.period}`;
+        
+        // Show control buttons
+        document.getElementById('nextPeriodBtn').style.display = state.gameFinished ? 'none' : 'inline-block';
+        document.getElementById('finishGameBtn').style.display = state.gameFinished ? 'none' : 'inline-block';
+        document.getElementById('exportBtn').style.display = 'inline-block';
       } else {
         document.getElementById('gameInfo').style.display = 'none';
+        document.getElementById('nextPeriodBtn').style.display = 'none';
+        document.getElementById('finishGameBtn').style.display = 'none';
+        document.getElementById('exportBtn').style.display = 'none';
+      }
+      
+      // Disable controls if game is finished
+      if (state.gameFinished) {
+        document.querySelectorAll('.event-pad button').forEach(btn => {
+          btn.disabled = true;
+        });
+        courtSVG.style.cursor = 'default';
+      } else {
+        document.querySelectorAll('.event-pad button').forEach(btn => {
+          btn.disabled = false;
+        });
+        courtSVG.style.cursor = 'crosshair';
       }
       
       // Redraw court
@@ -942,6 +1051,249 @@
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js').catch(() => {});
       }
+    }
+
+    // Period and game control functions
+    async function advancePeriod() {
+      state.period++;
+      await persistMeta('currentPeriod', state.period);
+      updateUI();
+      showToast(`Advanced to Period ${state.period}`, 'success');
+    }
+
+    async function finishGame() {
+      if (!confirm('Are you sure you want to finish the game?')) {
+        return;
+      }
+      
+      state.gameFinished = true;
+      await persistMeta('gameFinished', true);
+      updateUI();
+      showToast('Game finished!', 'success');
+      
+      // Show stats
+      setTimeout(() => showStats(), 500);
+    }
+
+    function showExportDialog() {
+      document.getElementById('exportDialog').showModal();
+    }
+
+    function showStats() {
+      const stats = calculateStats();
+      const container = document.getElementById('statsContent');
+      
+      let html = '<div style="font-family:monospace;white-space:pre-wrap;">';
+      html += `<strong>Final Score:</strong> ${state.homeScore} - ${state.opponentScore}\n\n`;
+      html += `<strong>Game Summary:</strong>\n`;
+      html += `Opponent: ${state.game.opponent}\n`;
+      html += `Date: ${state.game.date}\n`;
+      html += `Periods: ${state.period}\n\n`;
+      
+      html += `<strong>Team Stats:</strong>\n`;
+      html += `Total Events: ${state.events.length}\n`;
+      html += `Field Goals: ${stats.team.fgm}/${stats.team.fga} (${stats.team.fgPct}%)\n`;
+      html += `3-Pointers: ${stats.team.threepm}/${stats.team.threepa} (${stats.team.threePct}%)\n`;
+      html += `Free Throws: ${stats.team.ftm}/${stats.team.fta} (${stats.team.ftPct}%)\n`;
+      html += `Rebounds: ${stats.team.rebounds} (O:${stats.team.oreb}, D:${stats.team.dreb})\n`;
+      html += `Assists: ${stats.team.assists}\n`;
+      html += `Steals: ${stats.team.steals}\n`;
+      html += `Blocks: ${stats.team.blocks}\n`;
+      html += `Turnovers: ${stats.team.turnovers}\n`;
+      html += `Fouls: ${stats.team.fouls}\n\n`;
+      
+      html += `<strong>Player Stats:</strong>\n\n`;
+      stats.players.forEach(p => {
+        html += `#${p.jersey} ${p.name}\n`;
+        html += `  PTS: ${p.points}, FG: ${p.fgm}/${p.fga}, 3P: ${p.threepm}/${p.threepa}, FT: ${p.ftm}/${p.fta}\n`;
+        html += `  REB: ${p.rebounds}, AST: ${p.assists}, STL: ${p.steals}, BLK: ${p.blocks}\n`;
+        html += `  TO: ${p.turnovers}, PF: ${p.fouls}\n\n`;
+      });
+      
+      html += '</div>';
+      container.innerHTML = html;
+      
+      document.getElementById('statsDialog').showModal();
+    }
+
+    function calculateStats() {
+      const stats = {
+        team: {
+          fgm: 0, fga: 0, fgPct: 0,
+          threepm: 0, threepa: 0, threePct: 0,
+          ftm: 0, fta: 0, ftPct: 0,
+          rebounds: 0, oreb: 0, dreb: 0,
+          assists: 0, steals: 0, blocks: 0,
+          turnovers: 0, fouls: 0
+        },
+        players: []
+      };
+      
+      // Initialize player stats
+      state.players.forEach(player => {
+        stats.players.push({
+          id: player.id,
+          name: `${player.firstName} ${player.lastName}`,
+          jersey: player.jersey,
+          points: 0,
+          fgm: 0, fga: 0,
+          threepm: 0, threepa: 0,
+          ftm: 0, fta: 0,
+          rebounds: 0,
+          assists: 0, steals: 0, blocks: 0,
+          turnovers: 0, fouls: 0
+        });
+      });
+      
+      // Calculate stats from events
+      state.events.forEach(event => {
+        const playerStat = stats.players.find(p => p.id === event.playerId);
+        if (!playerStat) return;
+        
+        if (event.kind === 'shot') {
+          stats.team.fga++;
+          playerStat.fga++;
+          
+          if (event.points === 3) {
+            stats.team.threepa++;
+            playerStat.threepa++;
+            if (event.result === 'made') {
+              stats.team.threepm++;
+              playerStat.threepm++;
+            }
+          }
+          
+          if (event.result === 'made') {
+            stats.team.fgm++;
+            playerStat.fgm++;
+            playerStat.points += event.points;
+          }
+        } else if (event.kind === 'ft') {
+          stats.team.fta++;
+          playerStat.fta++;
+          if (event.result === 'made') {
+            stats.team.ftm++;
+            playerStat.ftm++;
+            playerStat.points += 1;
+          }
+        } else if (event.kind === 'rebound') {
+          stats.team.rebounds++;
+          playerStat.rebounds++;
+          if (event.subtype === 'offensive') {
+            stats.team.oreb++;
+          } else {
+            stats.team.dreb++;
+          }
+        } else if (event.kind === 'assist') {
+          stats.team.assists++;
+          playerStat.assists++;
+        } else if (event.kind === 'steal') {
+          stats.team.steals++;
+          playerStat.steals++;
+        } else if (event.kind === 'block') {
+          stats.team.blocks++;
+          playerStat.blocks++;
+        } else if (event.kind === 'turnover') {
+          stats.team.turnovers++;
+          playerStat.turnovers++;
+        } else if (event.kind === 'foul') {
+          stats.team.fouls++;
+          playerStat.fouls++;
+        }
+      });
+      
+      // Calculate percentages
+      stats.team.fgPct = stats.team.fga > 0 ? ((stats.team.fgm / stats.team.fga) * 100).toFixed(1) : '0.0';
+      stats.team.threePct = stats.team.threepa > 0 ? ((stats.team.threepm / stats.team.threepa) * 100).toFixed(1) : '0.0';
+      stats.team.ftPct = stats.team.fta > 0 ? ((stats.team.ftm / stats.team.fta) * 100).toFixed(1) : '0.0';
+      
+      return stats;
+    }
+
+    function exportData(format) {
+      const stats = calculateStats();
+      let content = '';
+      let filename = '';
+      let mimeType = '';
+      
+      if (format === 'csv') {
+        // CSV export
+        content = 'Player,Jersey,Points,FGM,FGA,FG%,3PM,3PA,3P%,FTM,FTA,FT%,REB,AST,STL,BLK,TO,PF\n';
+        stats.players.forEach(p => {
+          const fgPct = p.fga > 0 ? ((p.fgm / p.fga) * 100).toFixed(1) : '0.0';
+          const threePct = p.threepa > 0 ? ((p.threepm / p.threepa) * 100).toFixed(1) : '0.0';
+          const ftPct = p.fta > 0 ? ((p.ftm / p.fta) * 100).toFixed(1) : '0.0';
+          content += `"${p.name}",${p.jersey},${p.points},${p.fgm},${p.fga},${fgPct},${p.threepm},${p.threepa},${threePct},${p.ftm},${p.fta},${ftPct},${p.rebounds},${p.assists},${p.steals},${p.blocks},${p.turnovers},${p.fouls}\n`;
+        });
+        filename = `game-${state.game.date}-stats.csv`;
+        mimeType = 'text/csv';
+      } else if (format === 'txt') {
+        // Plain text export
+        content = `B Ball Buckets - Game Statistics\n`;
+        content += `${'='.repeat(50)}\n\n`;
+        content += `Game: vs ${state.game.opponent}\n`;
+        content += `Date: ${state.game.date}\n`;
+        content += `Location: ${state.game.location || 'N/A'}\n`;
+        content += `Final Score: ${state.homeScore} - ${state.opponentScore}\n`;
+        content += `Periods: ${state.period}\n\n`;
+        
+        content += `Team Statistics:\n`;
+        content += `${'-'.repeat(50)}\n`;
+        content += `Field Goals: ${stats.team.fgm}/${stats.team.fga} (${stats.team.fgPct}%)\n`;
+        content += `3-Pointers: ${stats.team.threepm}/${stats.team.threepa} (${stats.team.threePct}%)\n`;
+        content += `Free Throws: ${stats.team.ftm}/${stats.team.fta} (${stats.team.ftPct}%)\n`;
+        content += `Rebounds: ${stats.team.rebounds} (Off: ${stats.team.oreb}, Def: ${stats.team.dreb})\n`;
+        content += `Assists: ${stats.team.assists}\n`;
+        content += `Steals: ${stats.team.steals}\n`;
+        content += `Blocks: ${stats.team.blocks}\n`;
+        content += `Turnovers: ${stats.team.turnovers}\n`;
+        content += `Fouls: ${stats.team.fouls}\n\n`;
+        
+        content += `Player Statistics:\n`;
+        content += `${'-'.repeat(50)}\n`;
+        stats.players.forEach(p => {
+          const fgPct = p.fga > 0 ? ((p.fgm / p.fga) * 100).toFixed(1) : '0.0';
+          const threePct = p.threepa > 0 ? ((p.threepm / p.threepa) * 100).toFixed(1) : '0.0';
+          const ftPct = p.fta > 0 ? ((p.ftm / p.fta) * 100).toFixed(1) : '0.0';
+          
+          content += `\n#${p.jersey} ${p.name}\n`;
+          content += `  Points: ${p.points}\n`;
+          content += `  FG: ${p.fgm}/${p.fga} (${fgPct}%)  3P: ${p.threepm}/${p.threepa} (${threePct}%)  FT: ${p.ftm}/${p.fta} (${ftPct}%)\n`;
+          content += `  REB: ${p.rebounds}  AST: ${p.assists}  STL: ${p.steals}  BLK: ${p.blocks}  TO: ${p.turnovers}  PF: ${p.fouls}\n`;
+        });
+        
+        filename = `game-${state.game.date}-stats.txt`;
+        mimeType = 'text/plain';
+      } else if (format === 'json') {
+        // JSON export
+        const exportData = {
+          game: state.game,
+          finalScore: {
+            home: state.homeScore,
+            opponent: state.opponentScore
+          },
+          periods: state.period,
+          stats: stats,
+          events: state.events
+        };
+        content = JSON.stringify(exportData, null, 2);
+        filename = `game-${state.game.date}-data.json`;
+        mimeType = 'application/json';
+      }
+      
+      // Create download
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      showToast(`Exported as ${format.toUpperCase()}`, 'success');
+      document.getElementById('exportDialog').close();
     }
   </script>
 </body>
