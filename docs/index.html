@@ -604,21 +604,30 @@
         
         // 3-point arc
         const arc = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        const threePointRadius = 237.5; // NFHS 3-point distance is 19'9" which scales to ~237.5 units
-        const cornerDistance = 63; // Distance from corner to where arc starts (3 feet scaled)
-        const basketX = w / 2; // Basket is at center of court width
-        const basketY = yBase + yDir * 5; // Basket is 5 units from baseline
         
-        // Calculate corner positions where 3-point line starts
-        const leftCornerX = w * 0.15;
-        const rightCornerX = w * 0.85;
-        const cornerY = yBase + yDir * cornerDistance;
+        // NFHS rules: 19'9" arc (237.5 units scaled), corners are 5'3" from sideline
+        // Basketball court width is 50 feet, scaled to 500 units = 10 units per foot
+        const threePointRadius = 237.5; // 19'9" from basket center
+        const basketX = w / 2; // Basket at center
+        const basketY = yBase + yDir * 63.5; // Basket 5.25 feet from baseline (63.5 units)
         
-        // Create composite path: straight lines from baseline to corner, then arc
-        // The three-point line is a semi-circle centered on the basket
+        // Corner 3 starts where the arc would be closer than the straight line distance
+        // NFHS: corner 3 is 5'3" from sideline (63 units when scaled)
+        const sidelineX = 20; // Court outline starts at x=20
+        const cornerThreeX = sidelineX + 63; // 5'3" from sideline
+        
+        // Calculate where arc intersects with this X coordinate
+        const dx = Math.abs(basketX - cornerThreeX);
+        const dy = Math.sqrt(Math.max(0, threePointRadius * threePointRadius - dx * dx));
+        const arcStartY = basketY + yDir * dy;
+        
+        // Mirror for right side
+        const rightCornerThreeX = w - cornerThreeX + sidelineX;
+        
+        // Create path: left corner line from baseline to arc start, arc, right corner line to baseline
         const arcPath = isTop
-          ? `M ${leftCornerX} ${yBase} L ${leftCornerX} ${cornerY} A ${threePointRadius} ${threePointRadius} 0 0 1 ${rightCornerX} ${cornerY} L ${rightCornerX} ${yBase}`
-          : `M ${leftCornerX} ${yBase} L ${leftCornerX} ${cornerY} A ${threePointRadius} ${threePointRadius} 0 0 0 ${rightCornerX} ${cornerY} L ${rightCornerX} ${yBase}`;
+          ? `M ${cornerThreeX} ${yBase} L ${cornerThreeX} ${arcStartY} A ${threePointRadius} ${threePointRadius} 0 0 1 ${rightCornerThreeX} ${arcStartY} L ${rightCornerThreeX} ${yBase}`
+          : `M ${cornerThreeX} ${yBase} L ${cornerThreeX} ${arcStartY} A ${threePointRadius} ${threePointRadius} 0 0 0 ${rightCornerThreeX} ${arcStartY} L ${rightCornerThreeX} ${yBase}`;
         arc.setAttribute('d', arcPath);
         court.appendChild(arc);
         
