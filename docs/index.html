@@ -203,6 +203,37 @@
       background: var(--danger);
     }
     
+    .opponent-score-pad {
+      display: grid;
+      gap: 0.5rem;
+      grid-template-columns: repeat(3, 1fr);
+    }
+    .opponent-score-btn {
+      min-height: 48px;
+      background: #d97706;
+      color: white;
+      font-weight: 700;
+      font-size: 1rem;
+    }
+    .opponent-score-btn:hover {
+      background: #ea580c;
+    }
+    .undo-btn {
+      min-height: 48px;
+      background: #7c3aed;
+      color: white;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    .undo-btn:hover {
+      background: #6d28d9;
+    }
+    .undo-btn:disabled {
+      background: var(--accent-soft);
+      color: var(--muted);
+      opacity: 0.6;
+    }
+    
     .player-chip {
       display: flex;
       justify-content: space-between;
@@ -367,6 +398,17 @@
       </div>
       <div style="margin-top:1rem;">
         <button type="button" id="clearPositionBtn" class="secondary" style="width:100%;">Clear Selection</button>
+      </div>
+      <div style="margin-top:1rem;">
+        <h3 style="font-size:0.9em;margin:0 0 0.5rem 0;opacity:0.8;">Opponent Quick Score</h3>
+        <div class="opponent-score-pad">
+          <button type="button" id="opponentPlus1Btn" class="opponent-score-btn">+1</button>
+          <button type="button" id="opponentPlus2Btn" class="opponent-score-btn">+2</button>
+          <button type="button" id="opponentPlus3Btn" class="opponent-score-btn">+3</button>
+        </div>
+      </div>
+      <div style="margin-top:1rem;">
+        <button type="button" id="undoBtn" class="undo-btn" style="width:100%;">↶ Undo Last Event</button>
       </div>
     </section>
 
@@ -769,6 +811,14 @@
       
       // Clear position button
       document.getElementById('clearPositionBtn').addEventListener('click', clearSelection);
+      
+      // Opponent scoring buttons
+      document.getElementById('opponentPlus1Btn').addEventListener('click', () => logOpponentScore(1));
+      document.getElementById('opponentPlus2Btn').addEventListener('click', () => logOpponentScore(2));
+      document.getElementById('opponentPlus3Btn').addEventListener('click', () => logOpponentScore(3));
+      
+      // Undo button
+      document.getElementById('undoBtn').addEventListener('click', undoLastEvent);
     }
 
     function showGameSetup() {
@@ -927,6 +977,70 @@
       drawCourt();
     }
 
+    async function logOpponentScore(points) {
+      if (!state.game) {
+        showToast('Please setup game first', 'error');
+        return;
+      }
+      
+      if (state.gameFinished) {
+        showToast('Game is finished', 'error');
+        return;
+      }
+      
+      // Create opponent scoring event
+      const event = {
+        id: generateId(),
+        timestamp: Date.now(),
+        period: state.period,
+        playerId: null,
+        playerName: state.game.opponent || 'Opponent',
+        playerJersey: '',
+        kind: 'shot',
+        points: points,
+        result: 'made',
+        subtype: null,
+        coordinates: null,
+        team: 'opponent'
+      };
+      
+      state.events.push(event);
+      await putInStore('events', event);
+      
+      // Update opponent score
+      state.opponentScore += points;
+      
+      updateUI();
+      showToast(`Opponent +${points}`, 'success');
+    }
+
+    async function undoLastEvent() {
+      if (!state.game) {
+        showToast('Please setup game first', 'error');
+        return;
+      }
+      
+      if (state.events.length === 0) {
+        showToast('No events to undo', 'error');
+        return;
+      }
+      
+      // Get the last event
+      const lastEvent = state.events[state.events.length - 1];
+      
+      // Remove from state
+      state.events.pop();
+      
+      // Remove from IndexedDB
+      await deleteFromStore('events', lastEvent.id);
+      
+      // Recalculate scores from all events
+      calculateScores();
+      
+      updateUI();
+      showToast('Last event undone', 'success');
+    }
+
     function updateUI() {
       // Update header
       if (state.game) {
@@ -952,12 +1066,24 @@
         document.querySelectorAll('.event-pad button').forEach(btn => {
           btn.disabled = true;
         });
+        document.querySelectorAll('.opponent-score-btn').forEach(btn => {
+          btn.disabled = true;
+        });
         courtSVG.style.cursor = 'default';
       } else {
         document.querySelectorAll('.event-pad button').forEach(btn => {
           btn.disabled = false;
         });
+        document.querySelectorAll('.opponent-score-btn').forEach(btn => {
+          btn.disabled = false;
+        });
         courtSVG.style.cursor = 'crosshair';
+      }
+      
+      // Update undo button state
+      const undoBtn = document.getElementById('undoBtn');
+      if (undoBtn) {
+        undoBtn.disabled = state.events.length === 0;
       }
       
       // Redraw court
