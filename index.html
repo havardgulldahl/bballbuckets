@@ -1,0 +1,1259 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
+  <meta name="theme-color" content="#0b3d91" />
+  <title>HoopTrack Live</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%230b3d91%22 width=%22100%22 height=%22100%22 rx=%2218%22/><path fill=%22white%22 d=%22M50 10a40 40 0 1 1 0 80 40 40 0 0 1 0-80Zm0 8a32 32 0 0 0-28.7 48.1l21-21a4 4 0 0 1 5.7 0l30.7 30.7A32 32 0 0 0 50 18Zm0 64a32 32 0 0 0 28.7-48.1L57.7 55a4 4 0 0 1-5.7 0L21.3 24.3A32 32 0 0 0 50 82Z%22/></svg>" />
+  <meta name="description" content="Offline-first live tagging app for youth basketball game stats." />
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f3f5fb;
+      --bg-alt: #ffffff;
+      --fg: #0b1533;
+      --muted: #5a637a;
+      --accent: #0b3d91;
+      --accent-soft: rgba(11, 61, 145, 0.1);
+      --danger: #d94848;
+      --success: #2e8b57;
+      --font: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --radius: 14px;
+    }
+    :root.dark {
+      --bg: #0b1533;
+      --bg-alt: #121c3f;
+      --fg: #eef1ff;
+      --muted: #b6c1e7;
+      --accent-soft: rgba(59, 111, 214, 0.16);
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--fg);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      padding: 1.1rem clamp(1rem, 4vw, 3rem);
+      background: linear-gradient(135deg, #0b3d91, #1d62d1);
+      color: #fff;
+    }
+    header h1 {
+      margin: 0 0 .25rem;
+      font-size: clamp(1.4rem, 3vw, 2.1rem);
+      letter-spacing: .02em;
+    }
+    header p {
+      margin: 0;
+      opacity: .85;
+      font-size: .95rem;
+    }
+    main {
+      flex: 1;
+      padding: clamp(1rem, 3vw, 2.5rem);
+      display: grid;
+      gap: clamp(1rem, 2vw, 1.5rem);
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      align-content: start;
+    }
+    section {
+      background: var(--bg-alt);
+      border-radius: var(--radius);
+      padding: clamp(1rem, 2vw, 1.5rem);
+      box-shadow: 0 12px 30px -22px rgba(13, 37, 94, 0.7);
+      display: flex;
+      flex-direction: column;
+      gap: .9rem;
+    }
+    h2, h3 {
+      margin: 0;
+      font-size: 1.05rem;
+      letter-spacing: .01em;
+    }
+    form {
+      display: grid;
+      gap: .6rem;
+    }
+    label {
+      font-size: .85rem;
+      font-weight: 600;
+      color: var(--muted);
+      display: flex;
+      flex-direction: column;
+      gap: .35rem;
+    }
+    input, select, textarea {
+      font: inherit;
+      padding: .55rem .65rem;
+      border: 1px solid rgba(11, 61, 145, 0.22);
+      border-radius: 10px;
+      background: transparent;
+      color: inherit;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: 3px solid var(--accent-soft);
+      border-color: var(--accent);
+    }
+    button {
+      font: inherit;
+      border: none;
+      border-radius: 40px;
+      padding: .7rem 1.1rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: .4rem;
+      cursor: pointer;
+      transition: transform .15s ease, box-shadow .2s ease;
+      background: var(--accent);
+      color: white;
+      font-weight: 600;
+    }
+    button:active { transform: scale(.97); }
+    button.secondary {
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+    button.danger {
+      background: var(--danger);
+    }
+    .flex-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .5rem;
+    }
+    .event-pad {
+      display: grid;
+      gap: .75rem;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    }
+    .event-pad button {
+      min-height: 56px;
+      border-radius: 18px;
+      font-size: .95rem;
+    }
+    .event-pad button[data-kind="shot"][data-result="made"] {
+      background: var(--success);
+    }
+    .event-pad button[data-kind="shot"][data-result="missed"] {
+      background: var(--danger);
+    }
+    .active-lineup {
+      display: grid;
+      gap: .5rem;
+    }
+    .player-chip {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: .5rem .7rem;
+      border-radius: 12px;
+      background: rgba(11, 61, 145, 0.08);
+    }
+    .player-chip input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .85rem;
+    }
+    th, td {
+      padding: .5rem;
+      text-align: left;
+      border-bottom: 1px solid rgba(11, 61, 145, 0.08);
+    }
+    .shot-chart-wrapper {
+      width: 100%;
+      aspect-ratio: 94 / 50;
+      background: linear-gradient(180deg, rgba(11,61,145,0.05), rgba(11,61,145,0));
+      border-radius: var(--radius);
+      padding: .6rem;
+    }
+    .shot-chart-wrapper svg {
+      width: 100%;
+      height: 100%;
+      border-radius: var(--radius);
+      background: #fafbff;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: .3rem;
+      border-radius: 999px;
+      padding: .25rem .7rem;
+      font-size: .75rem;
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+    dialog {
+      border: none;
+      border-radius: 16px;
+      padding: 1.2rem;
+      width: min(420px, 92vw);
+      box-shadow: 0 20px 44px -28px rgba(5,16,46,0.7);
+      background: var(--bg-alt);
+      color: inherit;
+    }
+    dialog::backdrop {
+      background: rgba(6, 12, 35, 0.4);
+      backdrop-filter: blur(4px);
+    }
+    .history-list {
+      max-height: 280px;
+      overflow: auto;
+      display: grid;
+      gap: .5rem;
+      padding-right: .3rem;
+    }
+    .history-item {
+      border-radius: 12px;
+      background: rgba(11,61,145,0.06);
+      padding: .55rem .7rem;
+      display: flex;
+      flex-direction: column;
+      gap: .35rem;
+    }
+    .history-item strong {
+      font-size: .9rem;
+    }
+    .scoreboard {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: .85rem 1rem;
+      border-radius: var(--radius);
+      background: rgba(11,61,145,0.08);
+    }
+    .scoreboard .score {
+      font-size: 2.1rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .scoreboard .meta {
+      font-size: .85rem;
+      color: var(--muted);
+    }
+    .tag {
+      font-size: .7rem;
+      background: rgba(255,255,255,0.15);
+      padding: .2rem .6rem;
+      border-radius: 999px;
+    }
+    .stats-table-wrapper {
+      overflow-x: auto;
+      border-radius: 12px;
+    }
+    .empty-state {
+      font-size: .85rem;
+      color: var(--muted);
+    }
+    @media (max-width: 768px) {
+      header {
+        padding-bottom: 1.5rem;
+      }
+      .scoreboard {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>HoopTrack Live</h1>
+    <p>Offline-first live tagging for 15–18 basketball. Track events fast, sync later.</p>
+  </header>
+
+  <main>
+    <section id="gameSetupSection">
+      <h2>Game Setup</h2>
+      <form id="gameForm">
+        <label>Opponent
+          <input type="text" id="opponentInput" name="opponent" placeholder="e.g. Lincoln HS" required />
+        </label>
+        <label>Date
+          <input type="date" id="gameDateInput" name="date" required />
+        </label>
+        <label>Rule Set
+          <select id="ruleSetSelect" name="ruleSet">
+            <option value="NFHS">NFHS (4 x 8)</option>
+            <option value="FIBA">FIBA (4 x 10)</option>
+            <option value="Custom">Custom</option>
+          </select>
+        </label>
+        <label>Notes
+          <textarea id="gameNotes" name="notes" rows="2" placeholder="Tournament, gym, scouting cues…"></textarea>
+        </label>
+        <button type="submit">Start Game</button>
+      </form>
+      <div class="scoreboard" aria-live="polite">
+        <div>
+          <div class="pill">Current Game</div>
+          <div class="meta" id="gameMeta">No game in progress.</div>
+        </div>
+        <div class="score" id="scoreDisplay">0&nbsp;–&nbsp;0</div>
+      </div>
+      <div class="flex-row">
+        <button type="button" class="secondary" id="advancePeriodBtn" disabled>Advance Period</button>
+        <button type="button" class="secondary" id="resetGameBtn" disabled>Reset Game</button>
+      </div>
+    </section>
+
+    <section id="rosterSection">
+      <h2>Roster</h2>
+      <form id="playerForm">
+        <div class="flex-row" style="gap:.6rem;flex-wrap:wrap;">
+          <label style="flex:1 1 120px;">First Name
+            <input type="text" name="firstName" required />
+          </label>
+          <label style="flex:1 1 120px;">Last Name
+            <input type="text" name="lastName" required />
+          </label>
+          <label style="width:92px;">Jersey
+            <input type="text" name="jersey" maxlength="3" required />
+          </label>
+        </div>
+        <div class="flex-row" style="gap:.6rem;flex-wrap:wrap;">
+          <label style="flex:1 1 120px;">Position(s)
+            <input type="text" name="positions" placeholder="e.g. G / F" />
+          </label>
+          <label style="flex:1 1 120px;">Grad Year
+            <input type="number" name="gradYear" min="2024" max="2032" />
+          </label>
+          <label style="flex:1 1 120px;">Dominant Hand
+            <select name="dominantHand">
+              <option value="Right">Right</option>
+              <option value="Left">Left</option>
+              <option value="Both">Both</option>
+            </select>
+          </label>
+        </div>
+        <button type="submit">Add Player</button>
+      </form>
+
+      <div class="stats-table-wrapper">
+        <table aria-label="Team roster">
+          <thead>
+            <tr>
+              <th>Jersey</th>
+              <th>Player</th>
+              <th>Pos</th>
+              <th>Grad</th>
+              <th>Active</th>
+            </tr>
+          </thead>
+          <tbody id="rosterTableBody">
+            <tr><td colspan="5" class="empty-state">Add players to build your roster.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="lineupSection">
+      <h2>Lineup &amp; Rotation</h2>
+      <p class="meta">Toggle active players (max 5). Plus/minus updates automatically.</p>
+      <div class="active-lineup" id="activeLineup"></div>
+      <div class="flex-row">
+        <button type="button" class="secondary" id="clearLineupBtn">Clear Lineup</button>
+      </div>
+    </section>
+
+    <section id="eventTaggingSection">
+      <h2>Live Tag Pad</h2>
+      <div class="event-pad">
+        <button type="button" data-kind="shot" data-points="2" data-result="made">Made 2</button>
+        <button type="button" data-kind="shot" data-points="2" data-result="missed">Missed 2</button>
+        <button type="button" data-kind="shot" data-points="3" data-result="made">Made 3</button>
+        <button type="button" data-kind="shot" data-points="3" data-result="missed">Missed 3</button>
+        <button type="button" data-kind="ft" data-result="made">Made FT</button>
+        <button type="button" data-kind="ft" data-result="missed">Missed FT</button>
+        <button type="button" data-kind="rebound" data-subtype="offensive" class="secondary">Off Reb</button>
+        <button type="button" data-kind="rebound" data-subtype="defensive" class="secondary">Def Reb</button>
+        <button type="button" data-kind="turnover" data-subtype="liveBall" class="secondary">Turnover</button>
+        <button type="button" data-kind="foul" data-subtype="personal" class="secondary">Foul</button>
+        <button type="button" data-kind="assist" class="secondary">Assist</button>
+        <button type="button" data-kind="block" class="secondary">Block</button>
+        <button type="button" data-kind="steal" class="secondary">Steal</button>
+        <button type="button" data-kind="deflection" class="secondary">Deflection</button>
+        <button type="button" data-kind="note" class="secondary">Quick Note</button>
+      </div>
+      <div class="flex-row">
+        <button type="button" id="undoBtn" class="secondary">Undo Last</button>
+        <button type="button" id="exportJsonBtn" class="secondary">Export JSON</button>
+        <button type="button" id="exportCsvBtn" class="secondary">Export CSV</button>
+      </div>
+    </section>
+
+    <section id="shotChartSection">
+      <h2>Shot Chart</h2>
+      <div class="flex-row" style="align-items:center;justify-content:space-between;">
+        <label style="flex:1;">Player Filter
+          <select id="shotPlayerFilter">
+            <option value="all">All Players</option>
+          </select>
+        </label>
+        <div class="pill" id="shotSummary">0 / 0 • 0%</div>
+      </div>
+      <div class="shot-chart-wrapper" id="shotChartWrapper">
+        <svg id="shotChart" viewBox="0 0 94 50" role="img" aria-label="Half court shot chart">
+          <defs>
+            <linearGradient id="courtGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#f5f7ff" />
+              <stop offset="100%" stop-color="#e9edff" />
+            </linearGradient>
+          </defs>
+          <rect x="0" y="0" width="94" height="50" fill="url(#courtGradient)" rx="6" />
+          <path d="M47 0v50" stroke="#0b3d91" stroke-width="0.4" opacity="0.22" />
+          <path d="M0 47h94" stroke="#0b3d91" stroke-width="0.4" opacity="0.22" />
+          <path d="M19 50a28 28 0 0 1 56 0" fill="none" stroke="#0b3d91" stroke-width="0.6" opacity="0.22" />
+          <rect x="20" y="34" width="54" height="16" fill="none" stroke="#0b3d91" stroke-width="0.6" opacity="0.32" />
+          <rect x="31" y="40" width="32" height="10" fill="none" stroke="#0b3d91" stroke-width="0.6" opacity="0.32" />
+          <circle cx="47" cy="40" r="1.3" fill="#0b3d91" opacity="0.35" />
+        </svg>
+      </div>
+    </section>
+
+    <section id="liveStatsSection">
+      <h2>Live Player Stats</h2>
+      <div class="stats-table-wrapper">
+        <table aria-label="Player box score" id="playerStatsTable">
+          <thead>
+            <tr>
+              <th>Player</th>
+              <th>PTS</th>
+              <th>FG</th>
+              <th>3PT</th>
+              <th>FT</th>
+              <th>REB</th>
+              <th>AST</th>
+              <th>STL</th>
+              <th>BLK</th>
+              <th>TO</th>
+              <th>PF</th>
+              <th>+/-</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="12" class="empty-state">Tag events to populate live stats.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="eventHistorySection">
+      <h2>Event History</h2>
+      <div class="history-list" id="eventHistory" aria-live="polite">
+        <div class="empty-state">No events logged yet.</div>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="eventDialog">
+    <form method="dialog" id="eventDialogForm">
+      <h3 id="eventDialogTitle">Log Event</h3>
+      <input type="hidden" name="kind" />
+      <input type="hidden" name="points" />
+      <input type="hidden" name="result" />
+      <input type="hidden" name="subtype" />
+      <input type="hidden" name="shotX" />
+      <input type="hidden" name="shotY" />
+      <label>Team
+        <select name="team" required>
+          <option value="home">Home</option>
+          <option value="opponent">Opponent</option>
+        </select>
+      </label>
+      <label>Player
+        <select name="playerId" id="dialogPlayerSelect">
+          <option value="">-- Select Player --</option>
+        </select>
+      </label>
+      <label>Tags (optional)
+        <input type="text" name="tags" placeholder="Comma separated (e.g. transition,zone)" />
+      </label>
+      <label class="note-field" hidden>Note
+        <textarea name="note" rows="3" placeholder="Quick note or play call"></textarea>
+      </label>
+      <div id="shotLocationPicker" hidden>
+        <p style="font-size:.8rem;color:var(--muted);margin:.4rem 0;">Tap location on court for this shot.</p>
+        <div class="shot-chart-wrapper" style="aspect-ratio:94/50;">
+          <svg id="shotLocationSvg" viewBox="0 0 94 50">
+            <rect x="0" y="0" width="94" height="50" fill="url(#courtGradient)" rx="6" />
+            <path d="M47 0v50" stroke="#0b3d91" stroke-width="0.4" opacity="0.22" />
+            <path d="M0 47h94" stroke="#0b3d91" stroke-width="0.4" opacity="0.22" />
+            <path d="M19 50a28 28 0 0 1 56 0" fill="none" stroke="#0b3d91" stroke-width="0.6" opacity="0.22" />
+            <rect x="20" y="34" width="54" height="16" fill="none" stroke="#0b3d91" stroke-width="0.6" opacity="0.32" />
+            <rect x="31" y="40" width="32" height="10" fill="none" stroke="#0b3d91" stroke-width="0.6" opacity="0.32" />
+            <circle cx="47" cy="40" r="1.3" fill="#0b3d91" opacity="0.35" />
+            <circle id="shotPreview" cx="-10" cy="-10" r="1.6" fill="#0b3d91" opacity="0.7" />
+          </svg>
+        </div>
+      </div>
+      <menu style="display:flex;justify-content:space-between;margin:1rem 0 0 0;padding:0;gap:.5rem;">
+        <button type="reset" class="secondary" id="cancelEventBtn">Cancel</button>
+        <button type="submit">Log Event</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <script>
+    const state = {
+      players: [],
+      events: [],
+      activePlayers: [],
+      game: null,
+      period: 1,
+      plusMinus: {}
+    };
+
+    const dbName = 'hooptrack-db';
+    const dbVersion = 1;
+    let dbInstance;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      init();
+    });
+
+    async function init() {
+      await initDB();
+      await hydrateState();
+      bindEventListeners();
+      updateUI();
+      registerServiceWorker();
+    }
+
+    function initDB() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(dbName, dbVersion);
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+          dbInstance = request.result;
+          resolve();
+        };
+        request.onupgradeneeded = (event) => {
+          const db = event.target.result;
+          if (!db.objectStoreNames.contains('players')) {
+            db.createObjectStore('players', { keyPath: 'id' });
+          }
+          if (!db.objectStoreNames.contains('events')) {
+            db.createObjectStore('events', { keyPath: 'id' });
+          }
+          if (!db.objectStoreNames.contains('meta')) {
+            db.createObjectStore('meta', { keyPath: 'key' });
+          }
+        };
+      });
+    }
+
+    async function hydrateState() {
+      state.players = await getAllFromStore('players');
+      state.events = await getAllFromStore('events');
+      const metaGame = await getFromStore('meta', 'currentGame');
+      if (metaGame) {
+        state.game = metaGame.value;
+      }
+      const metaPeriod = await getFromStore('meta', 'currentPeriod');
+      if (metaPeriod) {
+        state.period = metaPeriod.value;
+      }
+      const active = await getFromStore('meta', 'activePlayers');
+      state.activePlayers = active ? active.value : [];
+      const plusMinus = await getFromStore('meta', 'plusMinus');
+      state.plusMinus = plusMinus ? plusMinus.value : {};
+    }
+
+    function bindEventListeners() {
+      document.getElementById('gameForm').addEventListener('submit', handleStartGame);
+      document.getElementById('playerForm').addEventListener('submit', handleAddPlayer);
+      document.getElementById('clearLineupBtn').addEventListener('click', () => {
+        state.activePlayers = [];
+        persistMeta('activePlayers', state.activePlayers);
+        updateUI();
+      });
+      document.getElementById('advancePeriodBtn').addEventListener('click', () => {
+        state.period += 1;
+        persistMeta('currentPeriod', state.period);
+        updateUI();
+      });
+      document.getElementById('resetGameBtn').addEventListener('click', resetGameConfirm);
+      document.getElementById('undoBtn').addEventListener('click', undoLastEvent);
+      document.getElementById('exportJsonBtn').addEventListener('click', exportJson);
+      document.getElementById('exportCsvBtn').addEventListener('click', exportCsv);
+      document.getElementById('shotPlayerFilter').addEventListener('change', updateShotChart);
+
+      document.querySelectorAll('.event-pad button').forEach(btn => {
+        btn.addEventListener('click', () => openEventDialog(btn.dataset));
+      });
+
+      document.getElementById('cancelEventBtn').addEventListener('click', () => {
+        const dialog = document.getElementById('eventDialog');
+        if (dialog.open) dialog.close('cancel');
+      });
+
+      document.getElementById('eventDialogForm').addEventListener('submit', handleEventDialogSubmit);
+
+      document.getElementById('shotLocationSvg').addEventListener('click', handleShotLocationClick);
+
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', syncColorScheme);
+      syncColorScheme();
+    }
+
+    function syncColorScheme() {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.classList.toggle('dark', prefersDark);
+    }
+
+    async function handleStartGame(event) {
+      event.preventDefault();
+      const form = event.target;
+      const formData = new FormData(form);
+      state.game = {
+        id: crypto.randomUUID(),
+        opponent: formData.get('opponent'),
+        date: formData.get('date'),
+        ruleSet: formData.get('ruleSet'),
+        notes: formData.get('notes'),
+        startedAt: Date.now()
+      };
+      state.events = [];
+      await clearStore('events');
+      state.period = 1;
+      state.plusMinus = {};
+      await persistMeta('currentGame', state.game);
+      await persistMeta('currentPeriod', state.period);
+      await persistMeta('plusMinus', state.plusMinus);
+      updateUI();
+      if ('vibrate' in navigator) navigator.vibrate(20);
+    }
+
+    async function handleAddPlayer(event) {
+      event.preventDefault();
+      const form = event.target;
+      const formData = new FormData(form);
+      const player = {
+        id: crypto.randomUUID(),
+        firstName: formData.get('firstName').trim(),
+        lastName: formData.get('lastName').trim(),
+        jersey: formData.get('jersey').trim(),
+        positions: formData.get('positions').trim(),
+        gradYear: formData.get('gradYear') || '',
+        dominantHand: formData.get('dominantHand') || 'Right',
+        createdAt: Date.now()
+      };
+      await putInStore('players', player);
+      state.players.push(player);
+      state.players.sort((a, b) => (a.jersey || '999').localeCompare(b.jersey || '999'));
+      form.reset();
+      updateUI();
+      if ('vibrate' in navigator) navigator.vibrate(15);
+    }
+
+    function openEventDialog(dataset) {
+      if (!state.game) {
+        alert('Start a game before logging events.');
+        return;
+      }
+      const dialog = document.getElementById('eventDialog');
+      const form = document.getElementById('eventDialogForm');
+      form.reset();
+      form.kind.value = dataset.kind || '';
+      form.points.value = dataset.points || '';
+      form.result.value = dataset.result || '';
+      form.subtype.value = dataset.subtype || '';
+      form.shotX.value = '';
+      form.shotY.value = '';
+
+      const titleMap = {
+        shot: `${capitalize(dataset.result)} ${dataset.points}-PT`,
+        ft: `${capitalize(dataset.result)} Free Throw`,
+        rebound: `${capitalize(dataset.subtype)} Rebound`,
+        turnover: 'Turnover',
+        foul: 'Foul',
+        assist: 'Assist',
+        block: 'Block',
+        steal: 'Steal',
+        deflection: 'Deflection',
+        note: 'Add Quick Note'
+      };
+      document.getElementById('eventDialogTitle').textContent = titleMap[dataset.kind] || 'Log Event';
+
+      const playerSelect = document.getElementById('dialogPlayerSelect');
+      populatePlayerSelect(playerSelect);
+
+      const noteField = form.querySelector('.note-field');
+      const shotPicker = document.getElementById('shotLocationPicker');
+      noteField.hidden = dataset.kind !== 'note';
+      shotPicker.hidden = dataset.kind !== 'shot';
+      if (!shotPicker.hidden) {
+        const preview = document.getElementById('shotPreview');
+        preview.setAttribute('cx', '-10');
+        preview.setAttribute('cy', '-10');
+      }
+
+      if (dataset.kind !== 'note' && state.activePlayers.length && dataset.team !== 'opponent') {
+        playerSelect.value = state.activePlayers[0] || '';
+      }
+
+      dialog.showModal();
+    }
+
+    function populatePlayerSelect(selectEl) {
+      selectEl.innerHTML = '<option value="">-- Select Player --</option>';
+      state.players.forEach(player => {
+        const option = document.createElement('option');
+        option.value = player.id;
+        option.textContent = `${player.jersey ? '#' + player.jersey + ' ' : ''}${player.firstName} ${player.lastName}`;
+        selectEl.appendChild(option);
+      });
+    }
+
+    function handleShotLocationClick(event) {
+      const svg = event.currentTarget;
+      const rect = svg.getBoundingClientRect();
+      const x = ((event.clientX - rect.left) / rect.width) * 94;
+      const y = ((event.clientY - rect.top) / rect.height) * 50;
+      const preview = document.getElementById('shotPreview');
+      preview.setAttribute('cx', x.toFixed(2));
+      preview.setAttribute('cy', y.toFixed(2));
+      const form = document.getElementById('eventDialogForm');
+      form.shotX.value = (x / 94).toFixed(4);
+      form.shotY.value = (y / 50).toFixed(4);
+    }
+
+    async function handleEventDialogSubmit(event) {
+      event.preventDefault();
+      const form = event.target;
+      const kind = form.kind.value;
+      const team = form.team.value;
+      const playerId = form.playerId.value;
+      if (kind !== 'note' && team === 'home' && !playerId) {
+        alert('Select a player for this event.');
+        return;
+      }
+      const newEvent = {
+        id: crypto.randomUUID(),
+        timestamp: Date.now(),
+        gameId: state.game.id,
+        period: state.period,
+        team,
+        playerId: playerId || null,
+        kind,
+        result: form.result.value || null,
+        points: form.points.value ? Number(form.points.value) : 0,
+        subtype: form.subtype.value || null,
+        tags: form.tags.value ? form.tags.value.split(',').map(t => t.trim()).filter(Boolean) : [],
+        note: form.note?.value || null,
+        coordinates: form.shotX.value && form.shotY.value ? {
+          x: Number(form.shotX.value),
+          y: Number(form.shotY.value)
+        } : null
+      };
+
+      state.events.push(newEvent);
+      await putInStore('events', newEvent);
+      updatePlusMinus(newEvent);
+      await persistMeta('plusMinus', state.plusMinus);
+      updateUI();
+      form.closest('dialog').close('submit');
+      if ('vibrate' in navigator) navigator.vibrate(20);
+    }
+
+    function updatePlusMinus(event) {
+      const activeHomePlayers = state.activePlayers;
+      if (!activeHomePlayers.length) return;
+      if (event.kind === 'shot' && event.result === 'made' && event.team === 'home') {
+        activeHomePlayers.forEach(id => {
+          state.plusMinus[id] = (state.plusMinus[id] || 0) + event.points;
+        });
+      }
+      if (event.kind === 'ft' && event.result === 'made' && event.team === 'home') {
+        activeHomePlayers.forEach(id => {
+          state.plusMinus[id] = (state.plusMinus[id] || 0) + 1;
+        });
+      }
+      if (((event.kind === 'shot' && event.result === 'made') || (event.kind === 'ft' && event.result === 'made')) && event.team === 'opponent') {
+        const value = event.kind === 'shot' ? event.points : 1;
+        activeHomePlayers.forEach(id => {
+          state.plusMinus[id] = (state.plusMinus[id] || 0) - value;
+        });
+      }
+    }
+
+    async function undoLastEvent() {
+      if (!state.events.length) return;
+      const lastEvent = state.events.pop();
+      await deleteFromStore('events', lastEvent.id);
+      recalcPlusMinus();
+      await persistMeta('plusMinus', state.plusMinus);
+      updateUI();
+      if ('vibrate' in navigator) navigator.vibrate(15);
+    }
+
+    function recalcPlusMinus() {
+      state.plusMinus = {};
+      const activeMap = {};
+      state.events.forEach(evt => {
+        activeMap[evt.timestamp] = [...state.activePlayers];
+      });
+      state.events.forEach(evt => {
+        const players = state.activePlayers;
+        if (!players.length) return;
+        if (evt.kind === 'shot' && evt.result === 'made' && evt.team === 'home') {
+          players.forEach(id => state.plusMinus[id] = (state.plusMinus[id] || 0) + evt.points);
+        }
+        if (evt.kind === 'ft' && evt.result === 'made' && evt.team === 'home') {
+          players.forEach(id => state.plusMinus[id] = (state.plusMinus[id] || 0) + 1);
+        }
+        if (((evt.kind === 'shot' && evt.result === 'made') || (evt.kind === 'ft' && evt.result === 'made')) && evt.team === 'opponent') {
+          const val = evt.kind === 'shot' ? evt.points : 1;
+          players.forEach(id => state.plusMinus[id] = (state.plusMinus[id] || 0) - val);
+        }
+      });
+    }
+
+    async function resetGameConfirm() {
+      if (!state.game) return;
+      const confirmReset = confirm('Reset current game? All events will be cleared.');
+      if (!confirmReset) return;
+      state.game = null;
+      state.events = [];
+      state.period = 1;
+      state.plusMinus = {};
+      await clearStore('events');
+      await deleteFromStore('meta', 'currentGame');
+      await deleteFromStore('meta', 'currentPeriod');
+      await deleteFromStore('meta', 'plusMinus');
+      updateUI();
+    }
+
+    function updateUI() {
+      renderRoster();
+      renderActiveLineup();
+      renderGameMeta();
+      renderScoreboard();
+      renderEventHistory();
+      renderPlayerStats();
+      updateShotChart();
+    }
+
+    function renderRoster() {
+      const tbody = document.getElementById('rosterTableBody');
+      tbody.innerHTML = '';
+      if (!state.players.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Add players to build your roster.</td></tr>';
+        return;
+      }
+      state.players.forEach(player => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${player.jersey || ''}</td>
+          <td>${player.firstName} ${player.lastName}</td>
+          <td>${player.positions || ''}</td>
+          <td>${player.gradYear || ''}</td>
+          <td>
+            <input type="checkbox" ${state.activePlayers.includes(player.id) ? 'checked' : ''} data-player-id="${player.id}" aria-label="Toggle active" />
+          </td>
+        `;
+        tr.querySelector('input[type="checkbox"]').addEventListener('change', (event) => toggleActivePlayer(event, player.id));
+        tbody.appendChild(tr);
+      });
+
+      const filterSelect = document.getElementById('shotPlayerFilter');
+      const current = filterSelect.value;
+      filterSelect.innerHTML = '<option value="all">All Players</option>';
+      state.players.forEach(player => {
+        const option = document.createElement('option');
+        option.value = player.id;
+        option.textContent = `${player.firstName} ${player.lastName}`;
+        filterSelect.appendChild(option);
+      });
+      if ([...filterSelect.options].some(opt => opt.value === current)) {
+        filterSelect.value = current;
+      }
+    }
+
+    function toggleActivePlayer(event, playerId) {
+      if (event.target.checked) {
+        if (state.activePlayers.length >= 5) {
+          event.target.checked = false;
+          alert('Max 5 players can be active.');
+          return;
+        }
+        state.activePlayers.push(playerId);
+      } else {
+        state.activePlayers = state.activePlayers.filter(id => id !== playerId);
+      }
+      persistMeta('activePlayers', state.activePlayers);
+      renderActiveLineup();
+    }
+
+    function renderActiveLineup() {
+      const container = document.getElementById('activeLineup');
+      container.innerHTML = '';
+      if (!state.activePlayers.length) {
+        container.innerHTML = '<div class="empty-state">Toggle up to 5 active players.</div>';
+        return;
+      }
+      state.activePlayers.forEach(playerId => {
+        const player = state.players.find(p => p.id === playerId);
+        if (!player) return;
+        const div = document.createElement('div');
+        div.className = 'player-chip';
+        div.innerHTML = `
+          <span>${player.jersey ? '#' + player.jersey + ' ' : ''}${player.firstName} ${player.lastName}</span>
+          <span class="pill">+/- ${state.plusMinus[playerId] || 0}</span>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function renderGameMeta() {
+      const meta = document.getElementById('gameMeta');
+      const advanceBtn = document.getElementById('advancePeriodBtn');
+      const resetBtn = document.getElementById('resetGameBtn');
+      if (!state.game) {
+        meta.textContent = 'No game in progress.';
+        advanceBtn.disabled = true;
+        resetBtn.disabled = true;
+        return;
+      }
+      const date = state.game.date ? new Date(state.game.date + 'T00:00').toLocaleDateString() : 'TBD';
+      meta.textContent = `${date} • vs ${state.game.opponent} • Period ${state.period}`;
+      advanceBtn.disabled = false;
+      resetBtn.disabled = false;
+    }
+
+    function renderScoreboard() {
+      const homeScore = totalPoints('home');
+      const oppScore = totalPoints('opponent');
+      document.getElementById('scoreDisplay').innerHTML = `${homeScore}&nbsp;–&nbsp;${oppScore}`;
+    }
+
+    function totalPoints(team) {
+      return state.events.reduce((sum, evt) => {
+        if (evt.team !== team) return sum;
+        if (evt.kind === 'shot' && evt.result === 'made') {
+          return sum + evt.points;
+        }
+        if (evt.kind === 'ft' && evt.result === 'made') {
+          return sum + 1;
+        }
+        return sum;
+      }, 0);
+    }
+
+    function renderEventHistory() {
+      const container = document.getElementById('eventHistory');
+      container.innerHTML = '';
+      if (!state.events.length) {
+        container.innerHTML = '<div class="empty-state">No events logged yet.</div>';
+        return;
+      }
+      const sortedEvents = [...state.events].sort((a, b) => b.timestamp - a.timestamp);
+      sortedEvents.slice(0, 40).forEach(evt => {
+        const div = document.createElement('div');
+        div.className = 'history-item';
+        const player = state.players.find(p => p.id === evt.playerId);
+        const time = new Date(evt.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        div.innerHTML = `
+          <strong>${formatEventName(evt)}</strong>
+          <span>${player ? player.firstName + ' ' + player.lastName : evt.team === 'opponent' ? 'Opponent' : 'Unassigned'}</span>
+          <div class="tags">
+            <span class="tag">${evt.team.toUpperCase()}</span>
+            <span class="tag">P${evt.period}</span>
+            <span class="tag">${time}</span>
+            ${evt.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+          </div>
+          ${evt.note ? `<span style="font-size:.8rem;color:var(--muted);">${evt.note}</span>` : ''}
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function formatEventName(evt) {
+      switch (evt.kind) {
+        case 'shot':
+          return `${capitalize(evt.result)} ${evt.points}-PT`;
+        case 'ft':
+          return `${capitalize(evt.result)} FT`;
+        case 'rebound':
+          return `${capitalize(evt.subtype)} Rebound`;
+        case 'turnover':
+          return `Turnover${evt.subtype ? ' (' + evt.subtype + ')' : ''}`;
+        case 'foul':
+          return `Foul${evt.subtype ? ' (' + evt.subtype + ')' : ''}`;
+        case 'assist':
+          return 'Assist';
+        case 'block':
+          return 'Block';
+        case 'steal':
+          return 'Steal';
+        case 'deflection':
+          return 'Deflection';
+        case 'note':
+          return 'Note';
+        default:
+          return 'Event';
+      }
+    }
+
+    function renderPlayerStats() {
+      const tbody = document.querySelector('#playerStatsTable tbody');
+      tbody.innerHTML = '';
+      if (!state.players.length) {
+        tbody.innerHTML = '<tr><td colspan="12" class="empty-state">Add players to track stats.</td></tr>';
+        return;
+      }
+      const stats = computePlayerStats();
+      if (!stats.length) {
+        tbody.innerHTML = '<tr><td colspan="12" class="empty-state">Tag events to populate live stats.</td></tr>';
+        return;
+      }
+      stats.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${row.playerLabel}</td>
+          <td>${row.points}</td>
+          <td>${row.fgm}-${row.fga}</td>
+          <td>${row.threem}-${row.threea}</td>
+          <td>${row.ftm}-${row.fta}</td>
+          <td>${row.reb}</td>
+          <td>${row.ast}</td>
+          <td>${row.stl}</td>
+          <td>${row.blk}</td>
+          <td>${row.to}</td>
+          <td>${row.fouls}</td>
+          <td>${row.plusMinus}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function computePlayerStats() {
+      const map = new Map();
+      state.players.forEach(player => {
+        map.set(player.id, {
+          playerLabel: `${player.jersey ? '#' + player.jersey + ' ' : ''}${player.firstName} ${player.lastName}`,
+          points: 0,
+          fgm: 0,
+          fga: 0,
+          threem: 0,
+          threea: 0,
+          ftm: 0,
+          fta: 0,
+          reb: 0,
+          ast: 0,
+          stl: 0,
+          blk: 0,
+          to: 0,
+          fouls: 0,
+          plusMinus: state.plusMinus[player.id] || 0
+        });
+      });
+      state.events.forEach(evt => {
+        if (evt.team !== 'home' || !evt.playerId) return;
+        const stat = map.get(evt.playerId);
+        if (!stat) return;
+        switch (evt.kind) {
+          case 'shot':
+            stat.fga += 1;
+            if (evt.result === 'made') {
+              stat.fgm += 1;
+              stat.points += evt.points;
+              if (evt.points === 3) stat.threem += 1;
+            }
+            if (evt.points === 3) stat.threea += 1;
+            break;
+          case 'ft':
+            stat.fta += 1;
+            if (evt.result === 'made') {
+              stat.ftm += 1;
+              stat.points += 1;
+            }
+            break;
+          case 'rebound':
+            stat.reb += 1;
+            break;
+          case 'assist':
+            stat.ast += 1;
+            break;
+          case 'steal':
+            stat.stl += 1;
+            break;
+          case 'block':
+            stat.blk += 1;
+            break;
+          case 'turnover':
+            stat.to += 1;
+            break;
+          case 'foul':
+            stat.fouls += 1;
+            break;
+        }
+      });
+      return [...map.values()].filter(stat => (
+        stat.points || stat.fga || stat.fta || stat.reb || stat.ast || stat.stl || stat.blk || stat.to || stat.fouls
+      ));
+    }
+
+    function updateShotChart() {
+      const svg = document.getElementById('shotChart');
+      const existingShots = Array.from(svg.querySelectorAll('.shot-dot'));
+      existingShots.forEach(el => el.remove());
+      const filter = document.getElementById('shotPlayerFilter').value;
+      const shots = state.events.filter(evt => evt.kind === 'shot' && evt.team === 'home' && evt.coordinates);
+      let made = 0;
+      shots.forEach(evt => {
+        if (filter !== 'all' && evt.playerId !== filter) return;
+        const cx = evt.coordinates.x * 94;
+        const cy = evt.coordinates.y * 50;
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.classList.add('shot-dot');
+        circle.setAttribute('cx', cx);
+        circle.setAttribute('cy', cy);
+        circle.setAttribute('r', 1.8);
+        circle.setAttribute('fill', evt.result === 'made' ? '#2e8b57' : '#d94848');
+        circle.setAttribute('opacity', evt.result === 'made' ? 0.9 : 0.7);
+        svg.appendChild(circle);
+        if (evt.result === 'made') made += 1;
+      });
+      const attempts = shots.filter(evt => filter === 'all' || evt.playerId === filter).length;
+      const summary = document.getElementById('shotSummary');
+      const pct = attempts ? Math.round((made / attempts) * 100) : 0;
+      summary.textContent = `${made} / ${attempts} • ${pct}%`;
+    }
+
+    async function exportJson() {
+      if (!state.events.length) {
+        alert('No events to export.');
+        return;
+      }
+      const payload = {
+        game: state.game,
+        players: state.players,
+        events: state.events
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      downloadFile(url, `${state.game?.opponent || 'game'}-events.json`);
+    }
+
+    async function exportCsv() {
+      if (!state.events.length) {
+        alert('No events to export.');
+        return;
+      }
+      const headers = ['timestamp', 'period', 'team', 'player', 'kind', 'subtype', 'result', 'points', 'tags', 'note', 'shot_x', 'shot_y'];
+      const rows = state.events.map(evt => {
+        const player = state.players.find(p => p.id === evt.playerId);
+        return [
+          new Date(evt.timestamp).toISOString(),
+          evt.period,
+          evt.team,
+          player ? `${player.firstName} ${player.lastName}` : '',
+          evt.kind,
+          evt.subtype || '',
+          evt.result || '',
+          evt.points || 0,
+          evt.tags.join('|'),
+          evt.note ? evt.note.replace(/"/g, '""') : '',
+          evt.coordinates ? evt.coordinates.x : '',
+          evt.coordinates ? evt.coordinates.y : ''
+        ];
+      });
+      const csv = [headers.join(','), ...rows.map(row => row.map(value => `"${value}"`).join(','))].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      downloadFile(url, `${state.game?.opponent || 'game'}-events.csv`);
+    }
+
+    function downloadFile(url, filename) {
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function capitalize(str = '') {
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
+    function getAllFromStore(storeName) {
+      return new Promise((resolve, reject) => {
+        const transaction = dbInstance.transaction(storeName, 'readonly');
+        const store = transaction.objectStore(storeName);
+        const request = store.getAll();
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve(request.result);
+      });
+    }
+
+    function getFromStore(storeName, key) {
+      return new Promise((resolve, reject) => {
+        const transaction = dbInstance.transaction(storeName, 'readonly');
+        const store = transaction.objectStore(storeName);
+        const request = store.get(key);
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve(request.result);
+      });
+    }
+
+    function putInStore(storeName, value) {
+      return new Promise((resolve, reject) => {
+        const transaction = dbInstance.transaction(storeName, 'readwrite');
+        const store = transaction.objectStore(storeName);
+        const request = store.put(value);
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve(request.result);
+      });
+    }
+
+    function deleteFromStore(storeName, key) {
+      return new Promise((resolve, reject) => {
+        const transaction = dbInstance.transaction(storeName, 'readwrite');
+        const store = transaction.objectStore(storeName);
+        const request = store.delete(key);
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve();
+      });
+    }
+
+    function clearStore(storeName) {
+      return new Promise((resolve, reject) => {
+        const transaction = dbInstance.transaction(storeName, 'readwrite');
+        const store = transaction.objectStore(storeName);
+        const request = store.clear();
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve();
+      });
+    }
+
+    function persistMeta(key, value) {
+      return putInStore('meta', { key, value });
+    }
+
+    async function registerServiceWorker() {
+      if (!('serviceWorker' in navigator)) return;
+      try {
+        await navigator.serviceWorker.register('sw.js');
+      } catch (err) {
+        console.warn('Service worker registration failed', err);
+      }
+    }
+  </script>
+</body>
+</html>

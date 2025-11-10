@@ -1,0 +1,19 @@
+<!-- manifest.webmanifest -->
+{
+  "name": "HoopTrack Live",
+  "short_name": "HoopTrack",
+  "description": "Offline-first live tagging app for 15–18 basketball game stats.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b3d91",
+  "theme_color": "#0b3d91",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%230b3d91' width='100' height='100' rx='18'/><path fill='white' d='M50 10a40 40 0 1 1 0 80 40 40 0 0 1 0-80Zm0 8a32 32 0 0 0-28.7 48.1l21-21a4 4 0 0 1 5.7 0l30.7 30.7A32 32 0 0 0 50 18Zm0 64a32 32 0 0 0 28.7-48.1L57.7 55a4 4 0 0 1-5.7 0L21.3 24.3A32 32 0 0 0 50 82Z'/></svg>",
+      "type": "image/svg+xml",
+      "sizes": "100x100"
+    }
+  ]
+}
