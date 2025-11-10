@@ -250,6 +250,64 @@
       padding: .2rem .6rem;
       border-radius: 999px;
     }
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: var(--bg-alt);
+      color: var(--fg);
+      padding: .85rem 1.2rem;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      z-index: 1000;
+      animation: slideIn .2s ease-out;
+      max-width: 320px;
+      border-left: 4px solid var(--accent);
+    }
+    .toast.success {
+      border-left-color: var(--success);
+    }
+    .toast.error {
+      border-left-color: var(--danger);
+    }
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+    .quick-mode-toggle {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .6rem .8rem;
+      background: rgba(11,61,145,0.08);
+      border-radius: 12px;
+      font-size: .85rem;
+      margin-bottom: .5rem;
+    }
+    .quick-mode-toggle input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+    }
+    .kbd {
+      display: inline-block;
+      padding: .15rem .4rem;
+      font-size: .7rem;
+      font-family: monospace;
+      background: rgba(11,61,145,0.1);
+      border: 1px solid rgba(11,61,145,0.2);
+      border-radius: 4px;
+      margin-left: .3rem;
+    }
     .stats-table-wrapper {
       overflow-x: auto;
       border-radius: 12px;
@@ -283,7 +341,7 @@
           <input type="text" id="opponentInput" name="opponent" placeholder="e.g. Lincoln HS" required />
         </label>
         <label>Date
-          <input type="date" id="gameDateInput" name="date" required />
+          <input type="date" id="gameDateInput" name="date" required value="" />
         </label>
         <label>Rule Set
           <select id="ruleSetSelect" name="ruleSet">
@@ -314,31 +372,34 @@
       <h2>Roster</h2>
       <form id="playerForm">
         <div class="flex-row" style="gap:.6rem;flex-wrap:wrap;">
-          <label style="flex:1 1 120px;">First Name
-            <input type="text" name="firstName" required />
+          <label style="flex:1 1 140px;">First Name
+            <input type="text" name="firstName" required autocomplete="off" />
           </label>
-          <label style="flex:1 1 120px;">Last Name
-            <input type="text" name="lastName" required />
+          <label style="flex:1 1 140px;">Last Name
+            <input type="text" name="lastName" required autocomplete="off" />
           </label>
-          <label style="width:92px;">Jersey
-            <input type="text" name="jersey" maxlength="3" required />
-          </label>
-        </div>
-        <div class="flex-row" style="gap:.6rem;flex-wrap:wrap;">
-          <label style="flex:1 1 120px;">Position(s)
-            <input type="text" name="positions" placeholder="e.g. G / F" />
-          </label>
-          <label style="flex:1 1 120px;">Grad Year
-            <input type="number" name="gradYear" min="2024" max="2032" />
-          </label>
-          <label style="flex:1 1 120px;">Dominant Hand
-            <select name="dominantHand">
-              <option value="Right">Right</option>
-              <option value="Left">Left</option>
-              <option value="Both">Both</option>
-            </select>
+          <label style="width:92px;">Jersey #
+            <input type="text" name="jersey" maxlength="3" required autocomplete="off" />
           </label>
         </div>
+        <details style="margin:.5rem 0;">
+          <summary style="cursor:pointer;font-size:.85rem;color:var(--muted);margin-bottom:.6rem;">Optional: Position, Grad Year, Hand</summary>
+          <div class="flex-row" style="gap:.6rem;flex-wrap:wrap;">
+            <label style="flex:1 1 120px;">Position(s)
+              <input type="text" name="positions" placeholder="e.g. G / F" />
+            </label>
+            <label style="flex:1 1 120px;">Grad Year
+              <input type="number" name="gradYear" min="2024" max="2032" placeholder="2026" />
+            </label>
+            <label style="flex:1 1 120px;">Dominant Hand
+              <select name="dominantHand">
+                <option value="Right">Right</option>
+                <option value="Left">Left</option>
+                <option value="Both">Both</option>
+              </select>
+            </label>
+          </div>
+        </details>
         <button type="submit">Add Player</button>
       </form>
 
@@ -371,6 +432,10 @@
 
     <section id="eventTaggingSection">
       <h2>Live Tag Pad</h2>
+      <label class="quick-mode-toggle">
+        <input type="checkbox" id="quickModeCheckbox" />
+        <span>⚡ Quick Mode (skip dialog for shots) <span class="kbd">Q</span></span>
+      </label>
       <div class="event-pad">
         <button type="button" data-kind="shot" data-points="2" data-result="made">Made 2</button>
         <button type="button" data-kind="shot" data-points="2" data-result="missed">Missed 2</button>
@@ -389,7 +454,7 @@
         <button type="button" data-kind="note" class="secondary">Quick Note</button>
       </div>
       <div class="flex-row">
-        <button type="button" id="undoBtn" class="secondary">Undo Last</button>
+        <button type="button" id="undoBtn" class="secondary">Undo Last <span class="kbd">U</span></button>
         <button type="button" id="exportJsonBtn" class="secondary">Export JSON</button>
         <button type="button" id="exportCsvBtn" class="secondary">Export CSV</button>
       </div>
@@ -514,7 +579,9 @@
       activePlayers: [],
       game: null,
       period: 1,
-      plusMinus: {}
+      plusMinus: {},
+      quickMode: false,
+      lastUsedPlayer: null
     };
 
     const dbName = 'hooptrack-db';
@@ -523,6 +590,7 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       init();
+      setTodayAsDefaultDate();
     });
 
     async function init() {
@@ -571,6 +639,13 @@
       state.activePlayers = active ? active.value : [];
       const plusMinus = await getFromStore('meta', 'plusMinus');
       state.plusMinus = plusMinus ? plusMinus.value : {};
+      const quickMode = await getFromStore('meta', 'quickMode');
+      state.quickMode = quickMode ? quickMode.value : false;
+      if (state.quickMode) {
+        document.getElementById('quickModeCheckbox').checked = true;
+      }
+      const lastPlayer = await getFromStore('meta', 'lastUsedPlayer');
+      state.lastUsedPlayer = lastPlayer ? lastPlayer.value : null;
     }
 
     function bindEventListeners() {
@@ -580,11 +655,13 @@
         state.activePlayers = [];
         persistMeta('activePlayers', state.activePlayers);
         updateUI();
+        showToast('Lineup cleared', 'success');
       });
       document.getElementById('advancePeriodBtn').addEventListener('click', () => {
         state.period += 1;
         persistMeta('currentPeriod', state.period);
         updateUI();
+        showToast(`Advanced to Period ${state.period}`, 'success');
       });
       document.getElementById('resetGameBtn').addEventListener('click', resetGameConfirm);
       document.getElementById('undoBtn').addEventListener('click', undoLastEvent);
@@ -592,8 +669,14 @@
       document.getElementById('exportCsvBtn').addEventListener('click', exportCsv);
       document.getElementById('shotPlayerFilter').addEventListener('change', updateShotChart);
 
+      document.getElementById('quickModeCheckbox').addEventListener('change', (e) => {
+        state.quickMode = e.target.checked;
+        persistMeta('quickMode', state.quickMode);
+        showToast(state.quickMode ? '⚡ Quick Mode ON' : 'Quick Mode OFF', 'success');
+      });
+
       document.querySelectorAll('.event-pad button').forEach(btn => {
-        btn.addEventListener('click', () => openEventDialog(btn.dataset));
+        btn.addEventListener('click', () => handleEventPadClick(btn.dataset));
       });
 
       document.getElementById('cancelEventBtn').addEventListener('click', () => {
@@ -607,11 +690,114 @@
 
       window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', syncColorScheme);
       syncColorScheme();
+
+      // Keyboard shortcuts
+      document.addEventListener('keydown', handleKeyboardShortcuts);
     }
 
     function syncColorScheme() {
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       document.documentElement.classList.toggle('dark', prefersDark);
+    }
+
+    function setTodayAsDefaultDate() {
+      const dateInput = document.getElementById('gameDateInput');
+      const today = new Date().toISOString().split('T')[0];
+      dateInput.value = today;
+    }
+
+    function showToast(message, type = 'success') {
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => {
+        toast.style.animation = 'slideIn .2s ease-out reverse';
+        setTimeout(() => toast.remove(), 200);
+      }, 3000);
+    }
+
+    function handleKeyboardShortcuts(event) {
+      // Ignore if typing in input
+      if (event.target.matches('input, textarea, select')) return;
+      
+      const key = event.key.toLowerCase();
+      
+      // Q - Toggle quick mode
+      if (key === 'q') {
+        event.preventDefault();
+        const checkbox = document.getElementById('quickModeCheckbox');
+        checkbox.checked = !checkbox.checked;
+        checkbox.dispatchEvent(new Event('change'));
+      }
+      
+      // U - Undo last event
+      if (key === 'u' && !event.ctrlKey && !event.metaKey) {
+        event.preventDefault();
+        undoLastEvent();
+      }
+      
+      // ESC - Close dialog
+      if (key === 'escape') {
+        const dialog = document.getElementById('eventDialog');
+        if (dialog.open) dialog.close('cancel');
+      }
+    }
+
+    function handleEventPadClick(dataset) {
+      const kind = dataset.kind;
+      
+      // For shots in quick mode, log immediately with smart defaults
+      if (state.quickMode && (kind === 'shot' || kind === 'ft')) {
+        handleQuickLog(dataset);
+      } else {
+        openEventDialog(dataset);
+      }
+    }
+
+    async function handleQuickLog(dataset) {
+      if (!state.game) {
+        showToast('Start a game before logging events', 'error');
+        return;
+      }
+      
+      const playerId = state.lastUsedPlayer || (state.activePlayers.length ? state.activePlayers[0] : null);
+      
+      if (!playerId) {
+        showToast('Select an active player first', 'error');
+        openEventDialog(dataset);
+        return;
+      }
+
+      const newEvent = {
+        id: crypto.randomUUID(),
+        timestamp: Date.now(),
+        gameId: state.game.id,
+        period: state.period,
+        team: 'home',
+        playerId: playerId,
+        kind: dataset.kind,
+        result: dataset.result || null,
+        points: dataset.points ? Number(dataset.points) : 0,
+        subtype: dataset.subtype || null,
+        tags: [],
+        note: null,
+        coordinates: null
+      };
+
+      state.events.push(newEvent);
+      await putInStore('events', newEvent);
+      state.lastUsedPlayer = playerId;
+      await persistMeta('lastUsedPlayer', state.lastUsedPlayer);
+      updatePlusMinus(newEvent);
+      await persistMeta('plusMinus', state.plusMinus);
+      updateUI();
+      
+      const player = state.players.find(p => p.id === playerId);
+      const playerName = player ? `${player.firstName} ${player.lastName}` : 'Player';
+      showToast(`✓ ${formatEventName(newEvent)} - ${playerName}`, 'success');
+      
+      if ('vibrate' in navigator) navigator.vibrate(15);
     }
 
     async function handleStartGame(event) {
@@ -661,7 +847,7 @@
 
     function openEventDialog(dataset) {
       if (!state.game) {
-        alert('Start a game before logging events.');
+        showToast('Start a game before logging events', 'error');
         return;
       }
       const dialog = document.getElementById('eventDialog');
@@ -701,8 +887,10 @@
         preview.setAttribute('cy', '-10');
       }
 
-      if (dataset.kind !== 'note' && state.activePlayers.length && dataset.team !== 'opponent') {
-        playerSelect.value = state.activePlayers[0] || '';
+      // Smart player selection: use last used player, or first active player
+      if (dataset.kind !== 'note' && dataset.team !== 'opponent') {
+        const defaultPlayer = state.lastUsedPlayer || (state.activePlayers.length ? state.activePlayers[0] : '');
+        playerSelect.value = defaultPlayer;
       }
 
       dialog.showModal();
@@ -738,7 +926,7 @@
       const team = form.team.value;
       const playerId = form.playerId.value;
       if (kind !== 'note' && team === 'home' && !playerId) {
-        alert('Select a player for this event.');
+        showToast('Select a player for this event', 'error');
         return;
       }
       const newEvent = {
@@ -762,10 +950,22 @@
 
       state.events.push(newEvent);
       await putInStore('events', newEvent);
+      
+      // Remember last used player for quick access
+      if (playerId) {
+        state.lastUsedPlayer = playerId;
+        await persistMeta('lastUsedPlayer', state.lastUsedPlayer);
+      }
+      
       updatePlusMinus(newEvent);
       await persistMeta('plusMinus', state.plusMinus);
       updateUI();
       form.closest('dialog').close('submit');
+      
+      const player = state.players.find(p => p.id === playerId);
+      const playerName = player ? `${player.firstName} ${player.lastName}` : 'Player';
+      showToast(`✓ ${formatEventName(newEvent)} logged${player ? ' - ' + playerName : ''}`, 'success');
+      
       if ('vibrate' in navigator) navigator.vibrate(20);
     }
 
@@ -791,12 +991,16 @@
     }
 
     async function undoLastEvent() {
-      if (!state.events.length) return;
+      if (!state.events.length) {
+        showToast('No events to undo', 'error');
+        return;
+      }
       const lastEvent = state.events.pop();
       await deleteFromStore('events', lastEvent.id);
       recalcPlusMinus();
       await persistMeta('plusMinus', state.plusMinus);
       updateUI();
+      showToast(`↶ Undone: ${formatEventName(lastEvent)}`, 'success');
       if ('vibrate' in navigator) navigator.vibrate(15);
     }
 
@@ -830,11 +1034,14 @@
       state.events = [];
       state.period = 1;
       state.plusMinus = {};
+      state.lastUsedPlayer = null;
       await clearStore('events');
       await deleteFromStore('meta', 'currentGame');
       await deleteFromStore('meta', 'currentPeriod');
       await deleteFromStore('meta', 'plusMinus');
+      await deleteFromStore('meta', 'lastUsedPlayer');
       updateUI();
+      showToast('Game reset successfully', 'success');
     }
 
     function updateUI() {
@@ -887,10 +1094,14 @@
       if (event.target.checked) {
         if (state.activePlayers.length >= 5) {
           event.target.checked = false;
-          alert('Max 5 players can be active.');
+          showToast('Max 5 players can be active', 'error');
           return;
         }
         state.activePlayers.push(playerId);
+        const player = state.players.find(p => p.id === playerId);
+        if (player) {
+          showToast(`${player.firstName} ${player.lastName} is now active`, 'success');
+        }
       } else {
         state.activePlayers = state.activePlayers.filter(id => id !== playerId);
       }
@@ -1136,7 +1347,7 @@
 
     async function exportJson() {
       if (!state.events.length) {
-        alert('No events to export.');
+        showToast('No events to export', 'error');
         return;
       }
       const payload = {
@@ -1147,11 +1358,12 @@
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       downloadFile(url, `${state.game?.opponent || 'game'}-events.json`);
+      showToast('📥 JSON exported successfully', 'success');
     }
 
     async function exportCsv() {
       if (!state.events.length) {
-        alert('No events to export.');
+        showToast('No events to export', 'error');
         return;
       }
       const headers = ['timestamp', 'period', 'team', 'player', 'kind', 'subtype', 'result', 'points', 'tags', 'note', 'shot_x', 'shot_y'];
@@ -1176,6 +1388,7 @@
       const blob = new Blob([csv], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
       downloadFile(url, `${state.game?.opponent || 'game'}-events.csv`);
+      showToast('📥 CSV exported successfully', 'success');
     }
 
     function downloadFile(url, filename) {
