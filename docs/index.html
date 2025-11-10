@@ -604,10 +604,21 @@
         
         // 3-point arc
         const arc = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        const radius = 180;
-        const arcPath = isTop 
-          ? `M ${w * 0.15} ${yBase + yDir * 70} A ${radius} ${radius} 0 0 1 ${w * 0.85} ${yBase + yDir * 70}`
-          : `M ${w * 0.15} ${yBase + yDir * 70} A ${radius} ${radius} 0 0 0 ${w * 0.85} ${yBase + yDir * 70}`;
+        const threePointRadius = 237.5; // NFHS 3-point distance is 19'9" which scales to ~237.5 units
+        const cornerDistance = 63; // Distance from corner to where arc starts (3 feet scaled)
+        const basketX = w / 2; // Basket is at center of court width
+        const basketY = yBase + yDir * 5; // Basket is 5 units from baseline
+        
+        // Calculate corner positions where 3-point line starts
+        const leftCornerX = w * 0.15;
+        const rightCornerX = w * 0.85;
+        const cornerY = yBase + yDir * cornerDistance;
+        
+        // Create composite path: straight lines from baseline to corner, then arc
+        // The three-point line is a semi-circle centered on the basket
+        const arcPath = isTop
+          ? `M ${leftCornerX} ${yBase} L ${leftCornerX} ${cornerY} A ${threePointRadius} ${threePointRadius} 0 0 1 ${rightCornerX} ${cornerY} L ${rightCornerX} ${yBase}`
+          : `M ${leftCornerX} ${yBase} L ${leftCornerX} ${cornerY} A ${threePointRadius} ${threePointRadius} 0 0 0 ${rightCornerX} ${cornerY} L ${rightCornerX} ${yBase}`;
         arc.setAttribute('d', arcPath);
         court.appendChild(arc);
         
@@ -732,11 +743,13 @@
           return;
         }
         
-        const rect = courtSVG.getBoundingClientRect();
-        const x = (e.clientX - rect.left) * (500 / rect.width);
-        const y = (e.clientY - rect.top) * (940 / rect.height);
+        // Use SVG's native coordinate transformation to handle preserveAspectRatio correctly
+        const pt = courtSVG.createSVGPoint();
+        pt.x = e.clientX;
+        pt.y = e.clientY;
+        const svgPt = pt.matrixTransform(courtSVG.getScreenCTM().inverse());
         
-        state.selectedPosition = { x, y };
+        state.selectedPosition = { x: svgPt.x, y: svgPt.y };
         
         drawCourt();
         showToast('Position selected (optional).', 'success');
