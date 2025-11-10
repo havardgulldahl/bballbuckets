@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**bballbuckets** (also branded as "HoopTrack Live") is an offline-first Progressive Web App (PWA) for capturing and analyzing live basketball game statistics for youth players (ages 15-18). The app focuses on low cognitive load during live play, development-focused analytics, and offline-first functionality.
+**bballbuckets** (also branded as "B Ball Buckets") is an offline-first Progressive Web App (PWA) for capturing and analyzing live basketball game statistics for youth players (ages 15-18). The app focuses on low cognitive load during live play, development-focused analytics, and offline-first functionality.
 
 **Live Demo**: The application is deployed on GitHub Pages at `https://havardgulldahl.github.io/bballbuckets/`
 
@@ -78,7 +78,7 @@ The app uses IndexedDB with three object stores:
 
 - **Cache-first** strategy for static assets (`index.html`, `manifest.webmanifest`)
 - **Network-first** with cache fallback for dynamic requests
-- Version-based cache invalidation (`hooptrack-cache-v1`)
+- Version-based cache invalidation (`bball-cache-v1`)
 
 ## When Making Changes
 

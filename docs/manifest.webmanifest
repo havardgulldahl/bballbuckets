@@ -1,7 +1,7 @@
 <!-- manifest.webmanifest -->
 {
-  "name": "HoopTrack Live",
-  "short_name": "HoopTrack",
+  "name": "B Ball Buckets",
+  "short_name": "bballb",
   "description": "Offline-first live tagging app for 15–18 basketball game stats.",
   "start_url": "./index.html",
   "scope": "./",
