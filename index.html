@@ -316,6 +316,15 @@
       font-size: .85rem;
       color: var(--muted);
     }
+    .help-text {
+      font-size: .8rem;
+      color: var(--muted);
+      margin: .5rem 0;
+      padding: .6rem;
+      background: rgba(11,61,145,0.05);
+      border-radius: 8px;
+      border-left: 3px solid var(--accent);
+    }
     @media (max-width: 768px) {
       header {
         padding-bottom: 1.5rem;
@@ -323,6 +332,13 @@
       .scoreboard {
         flex-direction: column;
         align-items: flex-start;
+      }
+      .event-pad button {
+        min-height: 62px;
+        font-size: 1rem;
+      }
+      main {
+        grid-template-columns: 1fr;
       }
     }
   </style>
@@ -370,6 +386,10 @@
 
     <section id="rosterSection">
       <h2>Roster</h2>
+      <div class="flex-row" style="margin-bottom:.8rem;gap:.5rem;">
+        <button type="button" class="secondary" id="bulkImportBtn">📋 Import Players</button>
+        <button type="button" class="secondary" id="quickStartBtn">⚡ Quick Start (5 Players)</button>
+      </div>
       <form id="playerForm">
         <div class="flex-row" style="gap:.6rem;flex-wrap:wrap;">
           <label style="flex:1 1 140px;">First Name
@@ -436,6 +456,9 @@
         <input type="checkbox" id="quickModeCheckbox" />
         <span>⚡ Quick Mode (skip dialog for shots) <span class="kbd">Q</span></span>
       </label>
+      <div class="help-text" id="quickModeHelp" style="display:none;">
+        💡 <strong>Quick Mode ON:</strong> Shots and free throws log instantly for the last-used player. Other events still open a dialog.
+      </div>
       <div class="event-pad">
         <button type="button" data-kind="shot" data-points="2" data-result="made">Made 2</button>
         <button type="button" data-kind="shot" data-points="2" data-result="missed">Missed 2</button>
@@ -572,6 +595,21 @@
     </form>
   </dialog>
 
+  <dialog id="bulkImportDialog">
+    <form method="dialog" id="bulkImportForm">
+      <h3>Bulk Import Players</h3>
+      <p style="font-size:.85rem;color:var(--muted);margin:.5rem 0;">Enter one player per line: Jersey, FirstName, LastName</p>
+      <p style="font-size:.8rem;color:var(--muted);margin:.3rem 0 .8rem;">Example: 23, John, Smith</p>
+      <label>
+        <textarea name="bulkData" rows="8" placeholder="23, John, Smith&#x0a;10, Sarah, Jones&#x0a;5, Mike, Davis" style="font-family:monospace;font-size:.9rem;"></textarea>
+      </label>
+      <menu style="display:flex;justify-content:space-between;margin:1rem 0 0 0;padding:0;gap:.5rem;">
+        <button type="button" class="secondary" id="cancelBulkImportBtn">Cancel</button>
+        <button type="submit">Import Players</button>
+      </menu>
+    </form>
+  </dialog>
+
   <script>
     const state = {
       players: [],
@@ -643,6 +681,7 @@
       state.quickMode = quickMode ? quickMode.value : false;
       if (state.quickMode) {
         document.getElementById('quickModeCheckbox').checked = true;
+        document.getElementById('quickModeHelp').style.display = 'block';
       }
       const lastPlayer = await getFromStore('meta', 'lastUsedPlayer');
       state.lastUsedPlayer = lastPlayer ? lastPlayer.value : null;
@@ -672,8 +711,23 @@
       document.getElementById('quickModeCheckbox').addEventListener('change', (e) => {
         state.quickMode = e.target.checked;
         persistMeta('quickMode', state.quickMode);
+        const helpText = document.getElementById('quickModeHelp');
+        helpText.style.display = state.quickMode ? 'block' : 'none';
         showToast(state.quickMode ? '⚡ Quick Mode ON' : 'Quick Mode OFF', 'success');
       });
+
+      document.getElementById('bulkImportBtn').addEventListener('click', () => {
+        document.getElementById('bulkImportDialog').showModal();
+      });
+
+      document.getElementById('quickStartBtn').addEventListener('click', handleQuickStart);
+
+      document.getElementById('cancelBulkImportBtn').addEventListener('click', () => {
+        const dialog = document.getElementById('bulkImportDialog');
+        if (dialog.open) dialog.close('cancel');
+      });
+
+      document.getElementById('bulkImportForm').addEventListener('submit', handleBulkImport);
 
       document.querySelectorAll('.event-pad button').forEach(btn => {
         btn.addEventListener('click', () => handleEventPadClick(btn.dataset));
@@ -842,7 +896,89 @@
       state.players.sort((a, b) => (a.jersey || '999').localeCompare(b.jersey || '999'));
       form.reset();
       updateUI();
+      showToast(`✓ Added ${player.firstName} ${player.lastName}`, 'success');
       if ('vibrate' in navigator) navigator.vibrate(15);
+    }
+
+    async function handleBulkImport(event) {
+      event.preventDefault();
+      const form = event.target;
+      const bulkData = form.bulkData.value.trim();
+      
+      if (!bulkData) {
+        showToast('Please enter player data', 'error');
+        return;
+      }
+
+      const lines = bulkData.split('\n').filter(line => line.trim());
+      let imported = 0;
+      let errors = 0;
+
+      for (const line of lines) {
+        const parts = line.split(',').map(p => p.trim());
+        if (parts.length < 3) {
+          errors++;
+          continue;
+        }
+
+        const [jersey, firstName, lastName, ...rest] = parts;
+        const player = {
+          id: crypto.randomUUID(),
+          firstName,
+          lastName,
+          jersey,
+          positions: rest[0] || '',
+          gradYear: '',
+          dominantHand: 'Right',
+          createdAt: Date.now()
+        };
+
+        await putInStore('players', player);
+        state.players.push(player);
+        imported++;
+      }
+
+      state.players.sort((a, b) => (a.jersey || '999').localeCompare(b.jersey || '999'));
+      form.reset();
+      form.closest('dialog').close('submit');
+      updateUI();
+      
+      if (errors > 0) {
+        showToast(`✓ Imported ${imported} players (${errors} errors)`, 'success');
+      } else {
+        showToast(`✓ Imported ${imported} players`, 'success');
+      }
+    }
+
+    async function handleQuickStart() {
+      if (state.players.length > 0) {
+        const confirmed = confirm('This will add 5 sample players. Continue?');
+        if (!confirmed) return;
+      }
+
+      const samplePlayers = [
+        { jersey: '10', firstName: 'Alex', lastName: 'Johnson', positions: 'G' },
+        { jersey: '15', firstName: 'Jordan', lastName: 'Williams', positions: 'G/F' },
+        { jersey: '23', firstName: 'Taylor', lastName: 'Brown', positions: 'F' },
+        { jersey: '30', firstName: 'Morgan', lastName: 'Davis', positions: 'F/C' },
+        { jersey: '42', firstName: 'Casey', lastName: 'Miller', positions: 'C' }
+      ];
+
+      for (const sample of samplePlayers) {
+        const player = {
+          id: crypto.randomUUID(),
+          ...sample,
+          gradYear: '',
+          dominantHand: 'Right',
+          createdAt: Date.now()
+        };
+        await putInStore('players', player);
+        state.players.push(player);
+      }
+
+      state.players.sort((a, b) => (a.jersey || '999').localeCompare(b.jersey || '999'));
+      updateUI();
+      showToast('✓ Added 5 sample players', 'success');
     }
 
     function openEventDialog(dataset) {
