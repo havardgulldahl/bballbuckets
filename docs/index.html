@@ -234,6 +234,31 @@
       opacity: 0.6;
     }
     
+    .validation-banner {
+      padding: 0.75rem 1.5rem;
+      background: #fef3c7;
+      color: #92400e;
+      border-bottom: 2px solid #f59e0b;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      flex-shrink: 0;
+    }
+    .validation-banner.error {
+      background: #fee;
+      color: #991b1b;
+      border-bottom-color: var(--danger);
+    }
+    .validation-banner .validation-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+    }
+    .validation-banner .validation-item strong {
+      font-weight: 600;
+    }
+    
     .player-chip {
       display: flex;
       justify-content: space-between;
@@ -440,6 +465,9 @@
     </div>
   </header>
 
+  <!-- Validation Banner -->
+  <div id="validationBanner" style="display:none;"></div>
+
   <main>
     <!-- Left Panel: Basketball Court SVG -->
     <section id="courtSection">
@@ -574,7 +602,9 @@
       opponentScore: 0,
       selectedPosition: null,
       selectedEvent: null,
-      gameFinished: false
+      gameFinished: false,
+      validationWarnings: [],
+      validationErrors: []
     };
 
     const dbName = 'hooptrack-db';
@@ -964,6 +994,7 @@
       state.players.push(player);
       putInStore('players', player);
       renderRosterPreview();
+      validateGameState();
       e.target.reset();
       showToast(`${player.firstName} ${player.lastName} added`, 'success');
     }
@@ -991,6 +1022,7 @@
       });
       
       renderRosterPreview();
+      validateGameState();
       showToast('5 players added!', 'success');
     }
 
@@ -1054,6 +1086,12 @@
         team: 'home'
       };
       
+      // Validate shot location
+      const shotValidation = validateShotLocation(event);
+      if (shotValidation) {
+        state.validationWarnings.push(shotValidation);
+      }
+      
       state.events.push(event);
       await putInStore('events', event);
       
@@ -1074,6 +1112,7 @@
       state.players = state.players.filter(p => p.id !== playerId);
       deleteFromStore('players', playerId);
       renderRosterPreview();
+      validateGameState();
       showToast('Player removed', 'success');
     };
 
@@ -1084,6 +1123,7 @@
       player.onCourt = !player.onCourt;
       await putInStore('players', player);
       renderPlayerList();
+      validateGameState();
       showToast(`${player.firstName} ${player.lastName} ${player.onCourt ? 'on court' : 'on bench'}`, 'success');
     };
 
@@ -1210,6 +1250,9 @@
       
       // Redraw court
       drawCourt();
+      
+      // Validate game state
+      validateGameState();
     }
 
     function calculateScores() {
@@ -1231,6 +1274,121 @@
           }
         }
       });
+    }
+
+    // Validation functions
+    function validateGameState() {
+      state.validationWarnings = [];
+      state.validationErrors = [];
+      
+      validateDuplicateJerseys();
+      validateLineupSize();
+      
+      updateValidationBanner();
+    }
+
+    function validateDuplicateJerseys() {
+      const jerseyMap = {};
+      const duplicates = [];
+      
+      state.players.forEach(player => {
+        const jersey = player.jersey;
+        if (jerseyMap[jersey]) {
+          if (!duplicates.includes(jersey)) {
+            duplicates.push(jersey);
+          }
+        } else {
+          jerseyMap[jersey] = player;
+        }
+      });
+      
+      if (duplicates.length > 0) {
+        state.validationErrors.push({
+          type: 'duplicate_jersey',
+          message: `Duplicate jersey number${duplicates.length > 1 ? 's' : ''}: ${duplicates.join(', ')}`,
+          severity: 'error'
+        });
+      }
+    }
+
+    function validateLineupSize() {
+      const playersOnCourt = state.players.filter(p => p.onCourt).length;
+      
+      if (playersOnCourt > 5) {
+        state.validationErrors.push({
+          type: 'too_many_players',
+          message: `${playersOnCourt} players on court (maximum is 5)`,
+          severity: 'error'
+        });
+      } else if (playersOnCourt > 0 && playersOnCourt < 5 && state.events.length > 0) {
+        state.validationWarnings.push({
+          type: 'too_few_players',
+          message: `Only ${playersOnCourt} player${playersOnCourt !== 1 ? 's' : ''} on court (normal is 5)`,
+          severity: 'warning'
+        });
+      }
+    }
+
+    function validateShotLocation(event) {
+      // Only validate shots with coordinates
+      if (event.kind !== 'shot' || !event.coordinates || event.points !== 3) {
+        return null;
+      }
+      
+      // Get court dimensions from SVG
+      const w = 500;
+      const h = 940;
+      
+      // Check both baskets (top and bottom)
+      for (let isTop of [true, false]) {
+        const yBase = isTop ? 20 : h - 20;
+        const yDir = isTop ? 1 : -1;
+        
+        const basketX = w / 2;
+        const basketY = yBase + yDir * 63.5; // 5.25 feet from baseline
+        
+        // Calculate distance from shot to basket
+        const dx = event.coordinates.x - basketX;
+        const dy = event.coordinates.y - basketY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        // 3-point line radius is 237.5 units (19'9")
+        const threePointRadius = 237.5;
+        
+        // If shot is inside the arc with some tolerance (10 units ~= 1 foot)
+        if (distance < threePointRadius - 10) {
+          return {
+            type: 'three_inside_arc',
+            message: `3-pointer recorded inside the 3-point line (shot at ${Math.round(distance / 10)}' from basket)`,
+            severity: 'warning',
+            eventId: event.id
+          };
+        }
+      }
+      
+      return null;
+    }
+
+    function updateValidationBanner() {
+      const banner = document.getElementById('validationBanner');
+      const allIssues = [...state.validationErrors, ...state.validationWarnings];
+      
+      if (allIssues.length === 0) {
+        banner.style.display = 'none';
+        banner.innerHTML = '';
+        return;
+      }
+      
+      const hasErrors = state.validationErrors.length > 0;
+      banner.className = hasErrors ? 'validation-banner error' : 'validation-banner';
+      banner.style.display = 'flex';
+      
+      banner.innerHTML = allIssues.map(issue => `
+        <div class="validation-item">
+          <span>${issue.severity === 'error' ? '❌' : '⚠️'}</span>
+          <span><strong>${issue.severity === 'error' ? 'Error' : 'Warning'}:</strong> ${issue.message}</span>
+        </div>
+      `).join('');
     }
 
     // Utility functions
