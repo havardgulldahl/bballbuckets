@@ -1,6 +1,8 @@
 # bballbuckets
 Live logger for Basketball analysis
 
+Runs live on https://havardgulldahl.github.io/bballbuckets/
+
 ## The plan
 
 Here’s a practical blueprint for a modern, mobile-first HTML5 app to capture and analyze live basketball stats for ages 15–18, with feature recommendations grounded in how top apps work and what the literature in youth sport science and coaching suggests.
