@@ -691,9 +691,12 @@
         const rightCornerThreeX = w - cornerThreeX + sidelineX;
         
         // Create path: left corner line from baseline to arc start, arc, right corner line to baseline
+        // Sweep-flag: 0 = counterclockwise, 1 = clockwise
+        // For top basket, arc should sweep away from center (counterclockwise when viewed left-to-right)
+        // For bottom basket, arc should sweep away from center (clockwise when viewed left-to-right)
         const arcPath = isTop
-          ? `M ${cornerThreeX} ${yBase} L ${cornerThreeX} ${arcStartY} A ${threePointRadius} ${threePointRadius} 0 0 1 ${rightCornerThreeX} ${arcStartY} L ${rightCornerThreeX} ${yBase}`
-          : `M ${cornerThreeX} ${yBase} L ${cornerThreeX} ${arcStartY} A ${threePointRadius} ${threePointRadius} 0 0 0 ${rightCornerThreeX} ${arcStartY} L ${rightCornerThreeX} ${yBase}`;
+          ? `M ${cornerThreeX} ${yBase} L ${cornerThreeX} ${arcStartY} A ${threePointRadius} ${threePointRadius} 0 0 0 ${rightCornerThreeX} ${arcStartY} L ${rightCornerThreeX} ${yBase}`
+          : `M ${cornerThreeX} ${yBase} L ${cornerThreeX} ${arcStartY} A ${threePointRadius} ${threePointRadius} 0 0 1 ${rightCornerThreeX} ${arcStartY} L ${rightCornerThreeX} ${yBase}`;
         arc.setAttribute('d', arcPath);
         court.appendChild(arc);
         
