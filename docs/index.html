@@ -1,13 +1,15 @@
 <!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
   <meta name="theme-color" content="#5a5a5a" />
-  <title>B Ball Buckets</title>
+  <title>Balls &amp; Buckets</title>
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%235a5a5a%22 width=%22100%22 height=%22100%22 rx=%2218%22/><path fill=%22white%22 d=%22M50 10a40 40 0 1 1 0 80 40 40 0 0 1 0-80Zm0 8a32 32 0 0 0-28.7 48.1l21-21a4 4 0 0 1 5.7 0l30.7 30.7A32 32 0 0 0 50 18Zm0 64a32 32 0 0 0 28.7-48.1L57.7 55a4 4 0 0 1-5.7 0L21.3 24.3A32 32 0 0 0 50 82Z%22/></svg>" />
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%235a5a5a%22 width=%22100%22 height=%22100%22 rx=%2218%22/><path fill=%22white%22 d=%22M50 10a40 40 0 1 1 0 80 40 40 0 0 1 0-80Zm0 8a32 32 0 0 0-28.7 48.1l21-21a4 4 0 0 1 5.7 0l30.7 30.7A32 32 0 0 0 50 18Zm0 64a32 32 0 0 0 28.7-48.1L57.7 55a4 4 0 0 1-5.7 0L21.3 24.3A32 32 0 0 0 50 82Z%22/></svg>" />
   <meta name="description" content="Offline-first live tagging app for youth basketball game stats." />
   <style>
     :root {
@@ -25,6 +27,7 @@
       --court-bg: #d4d4d4;
       --court-line: #888;
     }
+
     :root.dark {
       --bg: #2a2a2a;
       --bg-alt: #3a3a3a;
@@ -34,7 +37,13 @@
       --court-bg: #3a3a3a;
       --court-line: #6a6a6a;
     }
-    *, *::before, *::after { box-sizing: border-box; }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
       font-family: var(--font);
@@ -45,6 +54,7 @@
       flex-direction: column;
       overflow: hidden;
     }
+
     header {
       padding: 0.75rem 1.5rem;
       background: var(--accent);
@@ -56,11 +66,13 @@
       flex-wrap: wrap;
       flex-shrink: 0;
     }
+
     header h1 {
       margin: 0;
       font-size: 1.35rem;
       letter-spacing: .02em;
     }
+
     header .game-info {
       display: flex;
       gap: 1.5rem;
@@ -68,20 +80,23 @@
       font-size: 0.85rem;
       opacity: 0.95;
     }
+
     header .game-info .item {
       display: flex;
       align-items: center;
       gap: 0.4rem;
     }
+
     header .controls {
       display: flex;
       gap: 0.5rem;
       align-items: center;
     }
+
     header button {
-      background: rgba(255,255,255,0.2);
+      background: rgba(255, 255, 255, 0.2);
       color: white;
-      border: 1px solid rgba(255,255,255,0.3);
+      border: 1px solid rgba(255, 255, 255, 0.3);
       padding: 0.4rem 0.8rem;
       border-radius: 6px;
       cursor: pointer;
@@ -90,80 +105,96 @@
       font-family: inherit;
       white-space: nowrap;
     }
+
     header button:hover {
-      background: rgba(255,255,255,0.3);
+      background: rgba(255, 255, 255, 0.3);
     }
+
     main {
       flex: 1;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      grid-template-rows: 1fr 1fr;
+      display: flex;
       gap: 0;
       overflow: hidden;
     }
-    
+
+    .left-column {
+      flex: 2;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .right-column {
+      flex: 1;
+      overflow: hidden;
+      border-left: 1px solid var(--muted);
+    }
+
     #courtSection {
-      grid-row: 1 / 3;
-      grid-column: 1;
+      flex: 1;
       background: var(--bg);
       padding: 1rem;
       display: flex;
       flex-direction: column;
       overflow: hidden;
+      border-bottom: 1px solid var(--muted);
     }
-    
+
     #eventSection {
-      grid-row: 1;
-      grid-column: 2;
+      flex: 1;
       background: var(--bg-alt);
       padding: 1rem;
-      border-left: 1px solid var(--muted);
+      overflow-y: auto;
+    }
+
+    #opponentScoreSection {
+      flex: 1;
+      background: var(--bg-alt);
+      padding: 1rem;
       border-bottom: 1px solid var(--muted);
       overflow-y: auto;
     }
-    
+
     #rosterSection {
-      grid-row: 2;
-      grid-column: 2;
+      flex: 1;
       background: var(--bg-alt);
       padding: 1rem;
-      border-left: 1px solid var(--muted);
       overflow-y: auto;
     }
-    
+
     section {
       display: flex;
       flex-direction: column;
       gap: 1rem;
     }
-    
+
     section h2 {
       font-size: 1rem;
       font-weight: 600;
       margin: 0 0 0.5rem 0;
       color: var(--fg);
     }
-    
+
     section.disabled {
       opacity: 0.5;
       pointer-events: none;
     }
-    
+
     #courtSVG {
       flex: 1;
       background: var(--court-bg);
       border-radius: var(--radius);
       cursor: crosshair;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
       width: 100%;
       height: 100%;
     }
-    
+
     #courtSVG.disabled {
       cursor: not-allowed;
       opacity: 0.7;
     }
-    
+
     button {
       font: inherit;
       border: none;
@@ -176,38 +207,48 @@
       font-weight: 600;
       touch-action: manipulation;
     }
-    button:active { transform: scale(.97); }
+
+    button:active {
+      transform: scale(.97);
+    }
+
     button.secondary {
       background: var(--accent-soft);
       color: var(--fg);
     }
+
     button:disabled {
       opacity: 0.4;
       cursor: not-allowed;
     }
-    
+
     .event-pad {
       display: grid;
       gap: 0.5rem;
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(4, 1fr);
     }
+
     .event-pad button {
       min-height: 48px;
       border-radius: var(--radius);
       font-size: 0.9rem;
+      max-width: 8em;
     }
+
     .event-pad button[data-kind="shot"][data-result="made"] {
       background: var(--success);
     }
+
     .event-pad button[data-kind="shot"][data-result="missed"] {
       background: var(--danger);
     }
-    
+
     .opponent-score-pad {
       display: grid;
       gap: 0.5rem;
       grid-template-columns: repeat(3, 1fr);
     }
+
     .opponent-score-btn {
       min-height: 48px;
       background: #d97706;
@@ -215,9 +256,11 @@
       font-weight: 700;
       font-size: 1rem;
     }
+
     .opponent-score-btn:hover {
       background: #ea580c;
     }
+
     .undo-btn {
       min-height: 48px;
       background: #7c3aed;
@@ -225,15 +268,17 @@
       font-weight: 600;
       font-size: 0.9rem;
     }
+
     .undo-btn:hover {
       background: #6d28d9;
     }
+
     .undo-btn:disabled {
       background: var(--accent-soft);
       color: var(--muted);
       opacity: 0.6;
     }
-    
+
     .validation-banner {
       padding: 0.75rem 1.5rem;
       background: #fef3c7;
@@ -244,21 +289,24 @@
       gap: 0.5rem;
       flex-shrink: 0;
     }
+
     .validation-banner.error {
       background: #fee;
       color: #991b1b;
       border-bottom-color: var(--danger);
     }
+
     .validation-banner .validation-item {
       display: flex;
       align-items: center;
       gap: 0.5rem;
       font-size: 0.85rem;
     }
+
     .validation-banner .validation-item strong {
       font-weight: 600;
     }
-    
+
     .player-chip {
       display: flex;
       justify-content: space-between;
@@ -270,24 +318,28 @@
       transition: all 0.2s;
       border: 2px solid transparent;
     }
+
     .player-chip:hover:not(.disabled) {
       background: var(--accent);
       color: white;
       border-color: var(--accent);
     }
+
     .player-chip.disabled {
       opacity: 0.4;
       cursor: not-allowed;
     }
+
     .player-chip.on-court {
       background: rgba(106, 170, 106, 0.2);
       border-color: var(--success);
     }
+
     .player-list {
       display: grid;
       gap: 0.5rem;
     }
-    
+
     .court-toggle {
       position: relative;
       display: inline-block;
@@ -295,11 +347,13 @@
       height: 24px;
       flex-shrink: 0;
     }
+
     .court-toggle input {
       opacity: 0;
       width: 0;
       height: 0;
     }
+
     .court-toggle .slider {
       position: absolute;
       cursor: pointer;
@@ -311,6 +365,7 @@
       transition: .3s;
       border-radius: 24px;
     }
+
     .court-toggle .slider:before {
       position: absolute;
       content: "";
@@ -322,16 +377,19 @@
       transition: .3s;
       border-radius: 50%;
     }
-    .court-toggle input:checked + .slider {
+
+    .court-toggle input:checked+.slider {
       background-color: var(--success);
     }
-    .court-toggle input:checked + .slider:before {
+
+    .court-toggle input:checked+.slider:before {
       transform: translateX(20px);
     }
+
     .court-toggle .slider:hover {
       opacity: 0.8;
     }
-    
+
     dialog {
       border: none;
       border-radius: 12px;
@@ -339,19 +397,21 @@
       width: min(500px, 92vw);
       max-height: 85vh;
       overflow-y: auto;
-      box-shadow: 0 20px 44px -28px rgba(0,0,0,0.5);
+      box-shadow: 0 20px 44px -28px rgba(0, 0, 0, 0.5);
       background: var(--bg-alt);
       color: inherit;
     }
+
     dialog::backdrop {
       background: rgba(0, 0, 0, 0.4);
       backdrop-filter: blur(4px);
     }
+
     dialog h3 {
       margin: 0 0 1rem 0;
       font-size: 1.2rem;
     }
-    
+
     label {
       font-size: 0.85rem;
       font-weight: 600;
@@ -361,7 +421,10 @@
       gap: 0.3rem;
       margin-bottom: 0.8rem;
     }
-    input, select, textarea {
+
+    input,
+    select,
+    textarea {
       font: inherit;
       padding: 0.6rem;
       border: 1px solid var(--muted);
@@ -369,18 +432,21 @@
       background: var(--bg);
       color: inherit;
     }
-    input:focus, select:focus, textarea:focus {
+
+    input:focus,
+    select:focus,
+    textarea:focus {
       outline: 2px solid var(--accent);
       border-color: var(--accent);
     }
-    
+
     .empty-state {
       font-size: 0.85rem;
       color: var(--muted);
       text-align: center;
       padding: 1rem;
     }
-    
+
     .toast {
       position: fixed;
       bottom: 2rem;
@@ -389,80 +455,66 @@
       color: var(--fg);
       padding: 0.85rem 1.2rem;
       border-radius: var(--radius);
-      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
       z-index: 1000;
       animation: slideIn 0.2s ease-out;
       border-left: 4px solid var(--accent);
     }
+
     .toast.success {
       border-left-color: var(--success);
     }
+
     .toast.error {
       border-left-color: var(--danger);
     }
+
     @keyframes slideIn {
       from {
         transform: translateX(400px);
         opacity: 0;
       }
+
       to {
         transform: translateX(0);
         opacity: 1;
       }
     }
-    
+
     /* Mobile responsive layout */
     @media (max-width: 767px) {
+
       /* Make header sticky on mobile */
       header {
         position: sticky;
         top: 0;
         z-index: 100;
       }
-      
-      /* Hide section headers on mobile */
-      section h2 {
-        display: none;
+
+      main {
+        flex-direction: column;
       }
-      
-      /* Make event buttons narrower with 3 columns */
+
+      .left-column,
+      .right-column {
+        border-left: none;
+      }
+
       .event-pad {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(2, 1fr);
         gap: 0.4rem;
       }
-      
-      .event-pad button {
-        min-height: 44px;
-        font-size: 0.75rem;
-        padding: 0.3rem 0.4rem;
-      }
-      
-      main {
-        grid-template-columns: 1fr;
-        grid-template-rows: 1fr 1fr;
-      }
-      
+
       #courtSection {
         display: none;
-      }
-      
-      #eventSection {
-        grid-row: 1;
-        grid-column: 1;
-        border-left: none;
-      }
-      
-      #rosterSection {
-        grid-row: 2;
-        grid-column: 1;
-        border-left: none;
       }
     }
   </style>
 </head>
+
 <body>
   <header>
-    <h1>B Ball Buckets</h1>
+    <h1>Balls &amp; Buckets</h1>
     <div class="game-info" id="gameInfo" style="display:none;">
       <div class="item">
         <span>📅</span>
@@ -494,56 +546,63 @@
   <div id="validationBanner" style="display:none;"></div>
 
   <main>
-    <!-- Left Panel: Basketball Court SVG -->
-    <section id="courtSection">
-      <h2>Court <span style="font-size:0.8em;opacity:0.7;">(Click to select position - optional)</span></h2>
-      <svg id="courtSVG" viewBox="0 400 500 540" preserveAspectRatio="xMidYMid meet">
-        <!-- Court will be drawn here -->
-      </svg>
-    </section>
+    <!-- Left Column -->
+    <div class="left-column">
+      <!-- Basketball Court SVG -->
+      <section id="courtSection">
+        <svg id="courtSVG" viewBox="0 400 500 540" preserveAspectRatio="xMidYMid meet">
+          <!-- Court will be drawn here -->
+        </svg>
+      </section>
 
-    <!-- Top Right Panel: Event Selection -->
-    <section id="eventSection">
-      <h2>Event Type <span style="font-size:0.8em;opacity:0.7;">(Select event)</span></h2>
-      <div class="event-pad">
-        <button type="button" data-kind="shot" data-points="2" data-result="made">Made 2</button>
-        <button type="button" data-kind="shot" data-points="2" data-result="missed">Missed 2</button>
-        <button type="button" data-kind="shot" data-points="3" data-result="made">Made 3</button>
-        <button type="button" data-kind="shot" data-points="3" data-result="missed">Missed 3</button>
-        <button type="button" data-kind="ft" data-result="made">Made FT</button>
-        <button type="button" data-kind="ft" data-result="missed">Missed FT</button>
-        <button type="button" data-kind="rebound" data-subtype="offensive">Off Reb</button>
-        <button type="button" data-kind="rebound" data-subtype="defensive">Def Reb</button>
-        <button type="button" data-kind="turnover" data-subtype="liveBall">Turnover</button>
-        <button type="button" data-kind="foul" data-subtype="personal">Foul</button>
-        <button type="button" data-kind="assist">Assist</button>
-        <button type="button" data-kind="block">Block</button>
-        <button type="button" data-kind="steal">Steal</button>
-        <button type="button" data-kind="deflection">Deflection</button>
-      </div>
-      <div style="margin-top:1rem;">
-        <button type="button" id="clearPositionBtn" class="secondary" style="width:100%;">Clear Selection</button>
-      </div>
-      <div style="margin-top:1rem;">
-        <h3 style="font-size:0.9em;margin:0 0 0.5rem 0;opacity:0.8;">Opponent Quick Score</h3>
-        <div class="opponent-score-pad">
-          <button type="button" id="opponentPlus1Btn" class="opponent-score-btn">+1</button>
-          <button type="button" id="opponentPlus2Btn" class="opponent-score-btn">+2</button>
-          <button type="button" id="opponentPlus3Btn" class="opponent-score-btn">+3</button>
+      <!-- Event Selection -->
+      <section id="eventSection">
+        <div class="event-pad">
+          <button type="button" data-kind="shot" data-points="2" data-result="made">Made 2</button>
+          <button type="button" data-kind="shot" data-points="2" data-result="missed">Miss 2</button>
+          <button type="button" data-kind="shot" data-points="3" data-result="made">Made 3</button>
+          <button type="button" data-kind="shot" data-points="3" data-result="missed">Miss 3</button>
+          <button type="button" data-kind="ft" data-result="made">Made FT</button>
+          <button type="button" data-kind="ft" data-result="missed">Miss FT</button>
+          <button type="button" data-kind="rebound" data-subtype="offensive">Off Reb</button>
+          <button type="button" data-kind="rebound" data-subtype="defensive">Def Reb</button>
+          <button type="button" data-kind="turnover" data-subtype="liveBall">Turnover</button>
+          <button type="button" data-kind="foul" data-subtype="personal">Foul</button>
+          <button type="button" data-kind="assist">Assist</button>
+          <button type="button" data-kind="block">Block</button>
+          <!-- button type="button" data-kind="steal">Steal</button -->
+          <!-- button type="button" data-kind="deflection">Deflection</button -->
         </div>
-      </div>
-      <div style="margin-top:1rem;">
-        <button type="button" id="undoBtn" class="undo-btn" style="width:100%;">↶ Undo Last Event</button>
-      </div>
-    </section>
+        <div style="margin-top:1rem;">
+          <button type="button" id="clearPositionBtn" class="secondary" style="width:100%;">Clear Selection</button>
+        </div>
+      </section>
+    </div>
 
-    <!-- Bottom Right Panel: Player Roster -->
-    <section id="rosterSection">
-      <h2>Player Roster <span style="font-size:0.8em;opacity:0.7;">(Toggle = On Court)</span></h2>
-      <div class="player-list" id="playerList">
-        <div class="empty-state">No players in roster</div>
-      </div>
-    </section>
+    <!-- Right Column -->
+    <div class="right-column">
+      <!-- Opponent Quick Score -->
+      <section id="opponentScoreSection">
+        <div style="margin-top:1rem;">
+          <h3 style="font-size:0.9em;margin:0 0 0.5rem 0;opacity:0.8;">Opponent Quick Score</h3>
+          <div class="opponent-score-pad">
+            <button type="button" id="opponentPlus1Btn" class="opponent-score-btn">+1</button>
+            <button type="button" id="opponentPlus2Btn" class="opponent-score-btn">+2</button>
+            <button type="button" id="opponentPlus3Btn" class="opponent-score-btn">+3</button>
+          </div>
+        </div>
+        <div style="margin-top:1rem;">
+          <button type="button" id="undoBtn" class="undo-btn" style="width:100%;">↶ Undo Last Event</button>
+        </div>
+      </section>
+
+      <!-- Player Roster -->
+      <section id="rosterSection">
+        <div class="player-list" id="playerList">
+          <div class="empty-state">No players in roster</div>
+        </div>
+      </section>
+    </div>
   </main>
 
   <!-- Export Dialog -->
@@ -579,8 +638,8 @@
       </label>
       <label>Rule Set
         <select id="ruleSetSelect" name="ruleSet">
-          <option value="NFHS">NFHS (4 x 8)</option>
-          <option value="FIBA">FIBA (4 x 10)</option>
+          <option value="FIBA" selected>FIBA (4 x 10mins)</option>
+          <option value="NFHS">NFHS (4 x 8mins)</option>
           <option value="Custom">Custom</option>
         </select>
       </label>
@@ -592,25 +651,27 @@
         <button type="submit">Continue to Roster</button>
       </div>
     </form>
-    <div id="rosterSetupSection" style="margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid var(--muted);display:none;">
+    <div id="rosterSetupSection"
+      style="margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid var(--muted);display:none;">
       <h3 style="margin-bottom:1rem;">Roster Setup</h3>
       <form id="playerForm">
-        <div style="display:grid;grid-template-columns:2fr 2fr 1fr;gap:0.5rem;margin-bottom:0.5rem;">
-          <input type="text" name="firstName" placeholder="First Name" required autocomplete="off" />
-          <input type="text" name="lastName" placeholder="Last Name" required autocomplete="off" />
-          <input type="text" name="jersey" placeholder="#" maxlength="3" required autocomplete="off" />
-        </div>
-        <button type="submit" style="width:100%;">Add Player</button>
-      </form>
-      <div style="margin-top:1rem;max-height:200px;overflow-y:auto;">
-        <div id="rosterPreview" style="display:grid;gap:0.4rem;">
-          <div class="empty-state">No players added yet</div>
-        </div>
+        <div style="display:grid;grid-template-columns:8em 8em 4em;gap:0.5rem;margin-bottom:0.5rem;"></div>
+        <input type="text" name="firstName" placeholder="First Name" required autocomplete="off" />
+        <input type="text" name="lastName" placeholder="Last Name" required autocomplete="off" />
+        <input type="text" name="jersey" placeholder="#" maxlength="3" required autocomplete="off"
+          style="width:3.5rem;" />
+    </div>
+    <button type="submit" style="width:100%;">Add Player</button>
+    </form>
+    <div style="margin-top:1rem;max-height:200px;overflow-y:auto;">
+      <div id="rosterPreview" style="display:grid;gap:0.4rem;">
+        <div class="empty-state">No players added yet</div>
       </div>
-      <div style="margin-top:1rem;display:flex;gap:0.5rem;">
-        <button type="button" class="secondary" id="quickStartBtn" style="flex:1;">⚡ Quick Start</button>
-        <button type="button" id="finishSetupBtn" style="flex:1;">Finish Setup</button>
-      </div>
+    </div>
+    <div style="margin-top:1rem;display:flex;gap:0.5rem;">
+      <button type="button" class="secondary" id="quickStartBtn" style="flex:1;">⚡ Quick Start</button>
+      <button type="button" id="finishSetupBtn" style="flex:1;">Finish Setup</button>
+    </div>
     </div>
   </dialog>
 
@@ -648,7 +709,7 @@
       bindEventListeners();
       updateUI();
       registerServiceWorker();
-      
+
       // Show game setup dialog if no game exists
       if (!state.game) {
         showGameSetup();
@@ -688,7 +749,7 @@
         }
         return p;
       });
-      
+
       state.events = await getAllFromStore('events');
       const metaGame = await getFromStore('meta', 'currentGame');
       if (metaGame) {
@@ -712,29 +773,29 @@
 
     function drawCourt() {
       if (!courtSVG) return;
-      
+
       const lineColor = getComputedStyle(document.documentElement).getPropertyValue('--court-line').trim();
-      
+
       // Full court dimensions (500 x 940)
       const w = 500;
       const h = 940;
-      
+
       // Clear SVG
       courtSVG.innerHTML = '';
-      
+
       // Court background
       const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
       bg.setAttribute('width', w);
       bg.setAttribute('height', h);
       bg.setAttribute('fill', 'var(--court-bg)');
       courtSVG.appendChild(bg);
-      
+
       // Define court elements group
       const court = document.createElementNS('http://www.w3.org/2000/svg', 'g');
       court.setAttribute('stroke', lineColor);
       court.setAttribute('stroke-width', '2');
       court.setAttribute('fill', 'none');
-      
+
       // Outline
       const outline = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
       outline.setAttribute('x', '20');
@@ -742,7 +803,7 @@
       outline.setAttribute('width', w - 40);
       outline.setAttribute('height', h - 40);
       court.appendChild(outline);
-      
+
       // Half court line
       const halfCourt = document.createElementNS('http://www.w3.org/2000/svg', 'line');
       halfCourt.setAttribute('x1', '20');
@@ -750,19 +811,19 @@
       halfCourt.setAttribute('x2', w - 20);
       halfCourt.setAttribute('y2', h / 2);
       court.appendChild(halfCourt);
-      
+
       // Center circle
       const centerCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
       centerCircle.setAttribute('cx', w / 2);
       centerCircle.setAttribute('cy', h / 2);
       centerCircle.setAttribute('r', '60');
       court.appendChild(centerCircle);
-      
+
       // Draw both hoops (top and bottom)
       for (let isTop of [true, false]) {
         const yBase = isTop ? 20 : h - 20;
         const yDir = isTop ? 1 : -1;
-        
+
         // Free throw line
         const ftY = yBase + yDir * 190;
         const ftLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -771,7 +832,7 @@
         ftLine.setAttribute('x2', w * 0.7);
         ftLine.setAttribute('y2', ftY);
         court.appendChild(ftLine);
-        
+
         // Paint
         const paint = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         paint.setAttribute('x', w * 0.3);
@@ -779,29 +840,29 @@
         paint.setAttribute('width', w * 0.4);
         paint.setAttribute('height', Math.abs(ftY - yBase));
         court.appendChild(paint);
-        
+
         // 3-point arc
         const arc = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        
+
         // NFHS rules: 19'9" arc (237.5 units scaled), corners are 5'3" from sideline
         // Basketball court width is 50 feet, scaled to 500 units = 10 units per foot
         const threePointRadius = 237.5; // 19'9" from basket center
         const basketX = w / 2; // Basket at center
         const basketY = yBase + yDir * 63.5; // Basket 5.25 feet from baseline (63.5 units)
-        
+
         // Corner 3 starts where the arc would be closer than the straight line distance
         // NFHS: corner 3 is 5'3" from sideline (63 units when scaled)
         const sidelineX = 20; // Court outline starts at x=20
         const cornerThreeX = sidelineX + 63; // 5'3" from sideline
-        
+
         // Calculate where arc intersects with this X coordinate
         const dx = Math.abs(basketX - cornerThreeX);
         const dy = Math.sqrt(Math.max(0, threePointRadius * threePointRadius - dx * dx));
         const arcStartY = basketY + yDir * dy;
-        
+
         // Mirror for right side
         const rightCornerThreeX = w - cornerThreeX + sidelineX;
-        
+
         // Create path: left corner line from baseline to arc start, arc, right corner line to baseline
         // Sweep-flag: 0 = counterclockwise, 1 = clockwise
         // For top basket, arc should sweep away from center (counterclockwise when viewed left-to-right)
@@ -811,14 +872,14 @@
           : `M ${cornerThreeX} ${yBase} L ${cornerThreeX} ${arcStartY} A ${threePointRadius} ${threePointRadius} 0 0 1 ${rightCornerThreeX} ${arcStartY} L ${rightCornerThreeX} ${yBase}`;
         arc.setAttribute('d', arcPath);
         court.appendChild(arc);
-        
+
         // Free throw circle
         const ftCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         ftCircle.setAttribute('cx', w / 2);
         ftCircle.setAttribute('cy', ftY);
         ftCircle.setAttribute('r', '60');
         court.appendChild(ftCircle);
-        
+
         // Hoop
         const hoop = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         hoop.setAttribute('cx', w / 2);
@@ -827,9 +888,9 @@
         hoop.setAttribute('fill', lineColor);
         court.appendChild(hoop);
       }
-      
+
       courtSVG.appendChild(court);
-      
+
       // Draw previous shots
       state.events.filter(e => e.kind === 'shot' && e.coordinates).forEach(event => {
         const color = event.result === 'made' ? 'rgba(50, 200, 50, 0.6)' : 'rgba(200, 50, 50, 0.6)';
@@ -841,7 +902,7 @@
         shot.setAttribute('stroke', 'none');
         courtSVG.appendChild(shot);
       });
-      
+
       // Draw selected position if exists
       if (state.selectedPosition) {
         const selected = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
@@ -858,13 +919,13 @@
     function bindEventListeners() {
       // Game setup button
       document.getElementById('setupGameBtn').addEventListener('click', showGameSetup);
-      
+
       // Period and game control buttons
       document.getElementById('nextPeriodBtn').addEventListener('click', advancePeriod);
       document.getElementById('finishGameBtn').addEventListener('click', finishGame);
       document.getElementById('newGameBtn').addEventListener('click', startNewGame);
       document.getElementById('exportBtn').addEventListener('click', showExportDialog);
-      
+
       // Export dialog buttons
       document.getElementById('exportCSVBtn').addEventListener('click', () => exportData('csv'));
       document.getElementById('exportTxtBtn').addEventListener('click', () => exportData('txt'));
@@ -872,7 +933,7 @@
       document.getElementById('closeExportBtn').addEventListener('click', () => {
         document.getElementById('exportDialog').close();
       });
-      
+
       // Stats dialog buttons
       document.getElementById('exportStatsBtn').addEventListener('click', () => {
         document.getElementById('statsDialog').close();
@@ -881,7 +942,7 @@
       document.getElementById('closeStatsBtn').addEventListener('click', () => {
         document.getElementById('statsDialog').close();
       });
-      
+
       // Game setup form
       document.getElementById('gameSetupForm').addEventListener('submit', (e) => {
         e.preventDefault();
@@ -893,24 +954,24 @@
           location: formData.get('location') || ''
         };
         persistMeta('currentGame', state.game);
-        
+
         // Show roster section
         document.getElementById('rosterSetupSection').style.display = 'block';
         e.target.querySelector('button[type="submit"]').textContent = 'Update Game Info';
         showToast('Game info saved! Now add players.', 'success');
       });
-      
+
       document.getElementById('cancelGameSetupBtn').addEventListener('click', () => {
         const dialog = document.getElementById('gameSetupDialog');
         if (dialog.open) dialog.close();
       });
-      
+
       // Player form
       document.getElementById('playerForm').addEventListener('submit', handleAddPlayer);
-      
+
       // Quick start
       document.getElementById('quickStartBtn').addEventListener('click', handleQuickStart);
-      
+
       // Finish setup
       document.getElementById('finishSetupBtn').addEventListener('click', () => {
         if (state.players.length === 0) {
@@ -921,31 +982,31 @@
         updateUI();
         showToast('Game setup complete!', 'success');
       });
-      
+
       // SVG click for position selection (optional)
       courtSVG.addEventListener('click', (e) => {
         if (!state.game) {
           showToast('Please setup game first', 'error');
           return;
         }
-        
+
         if (state.gameFinished) {
           showToast('Game is finished', 'error');
           return;
         }
-        
+
         // Use SVG's native coordinate transformation to handle preserveAspectRatio correctly
         const pt = courtSVG.createSVGPoint();
         pt.x = e.clientX;
         pt.y = e.clientY;
         const svgPt = pt.matrixTransform(courtSVG.getScreenCTM().inverse());
-        
+
         state.selectedPosition = { x: svgPt.x, y: svgPt.y };
-        
+
         drawCourt();
         showToast('Position selected (optional).', 'success');
       });
-      
+
       // Event buttons
       document.querySelectorAll('.event-pad button').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -953,39 +1014,39 @@
             showToast('Please setup game first', 'error');
             return;
           }
-          
+
           if (state.gameFinished) {
             showToast('Game is finished', 'error');
             return;
           }
-          
+
           state.selectedEvent = {
             kind: btn.dataset.kind,
             points: btn.dataset.points ? parseInt(btn.dataset.points) : 0,
             result: btn.dataset.result || null,
             subtype: btn.dataset.subtype || null
           };
-          
+
           renderPlayerList();
           showToast('Event selected. Choose a player.', 'success');
         });
       });
-      
+
       // Clear position button
       document.getElementById('clearPositionBtn').addEventListener('click', clearSelection);
-      
+
       // Opponent scoring buttons
       document.getElementById('opponentPlus1Btn').addEventListener('click', () => logOpponentScore(1));
       document.getElementById('opponentPlus2Btn').addEventListener('click', () => logOpponentScore(2));
       document.getElementById('opponentPlus3Btn').addEventListener('click', () => logOpponentScore(3));
-      
+
       // Undo button
       document.getElementById('undoBtn').addEventListener('click', undoLastEvent);
     }
 
     function showGameSetup() {
       const dialog = document.getElementById('gameSetupDialog');
-      
+
       // Pre-fill if game exists
       if (state.game) {
         document.getElementById('opponentInput').value = state.game.opponent || '';
@@ -997,12 +1058,12 @@
         // Clear form fields and set today's date
         document.getElementById('opponentInput').value = '';
         document.getElementById('locationInput').value = '';
-        document.getElementById('ruleSetSelect').value = 'NFHS';
+        document.getElementById('ruleSetSelect').value = 'FIBA';
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('gameDateInput').value = today;
         document.getElementById('rosterSetupSection').style.display = 'none';
       }
-      
+
       renderRosterPreview();
       dialog.showModal();
     }
@@ -1020,7 +1081,7 @@
         dominantHand: 'Right',
         onCourt: false
       };
-      
+
       state.players.push(player);
       putInStore('players', player);
       renderRosterPreview();
@@ -1035,9 +1096,12 @@
         { firstName: 'Player', lastName: 'Two', jersey: '2' },
         { firstName: 'Player', lastName: 'Three', jersey: '3' },
         { firstName: 'Player', lastName: 'Four', jersey: '4' },
-        { firstName: 'Player', lastName: 'Five', jersey: '5' }
+        { firstName: 'Player', lastName: 'Five', jersey: '5' },
+        { firstName: 'Player', lastName: 'Six', jersey: '6' },
+        { firstName: 'Player', lastName: 'Seven', jersey: '7' },
+        { firstName: 'Player', lastName: 'Eight', jersey: '8' }
       ];
-      
+
       samplePlayers.forEach(p => {
         const player = {
           id: generateId(),
@@ -1050,10 +1114,10 @@
         state.players.push(player);
         putInStore('players', player);
       });
-      
+
       renderRosterPreview();
       validateGameState();
-      showToast('5 players added!', 'success');
+      showToast('8 players added!', 'success');
     }
 
     function renderRosterPreview() {
@@ -1062,7 +1126,7 @@
         container.innerHTML = '<div class="empty-state">No players added yet</div>';
         return;
       }
-      
+
       container.innerHTML = state.players.map(p => `
         <div style="padding:0.4rem 0.6rem;background:var(--accent-soft);border-radius:var(--radius);display:flex;justify-content:space-between;align-items:center;">
           <span>#${p.jersey} ${p.firstName} ${p.lastName}</span>
@@ -1077,10 +1141,10 @@
         container.innerHTML = '<div class="empty-state">No players in roster</div>';
         return;
       }
-      
+
       const hasEvent = !!state.selectedEvent;
-      
-      container.innerHTML = state.players.map(p => `
+
+      let html = state.players.map(p => `
         <div class="player-chip ${!hasEvent ? 'disabled' : ''} ${p.onCourt ? 'on-court' : ''}" ${hasEvent ? `onclick="selectPlayer('${p.id}')"` : ''}>
           <span><strong>#${p.jersey}</strong> ${p.firstName} ${p.lastName}</span>
           <label class="court-toggle" onclick="event.stopPropagation();">
@@ -1089,17 +1153,32 @@
           </label>
         </div>
       `).join('');
+
+      // Add lineup size warnings at the bottom
+      const lineupWarnings = [...state.validationErrors, ...state.validationWarnings].filter(
+        issue => issue.type === 'too_many_players' || issue.type === 'too_few_players'
+      );
+
+      if (lineupWarnings.length > 0) {
+        html += lineupWarnings.map(issue => `
+          <div style="padding:0.75rem;margin-top:0.5rem;background:${issue.severity === 'error' ? '#fee' : '#fef3c7'};color:${issue.severity === 'error' ? '#991b1b' : '#92400e'};border-radius:var(--radius);font-size:0.85rem;border:2px solid ${issue.severity === 'error' ? 'var(--danger)' : '#f59e0b'};">
+            <strong>${issue.severity === 'error' ? '❌ Error' : '⚠️ Warning'}:</strong> ${issue.message}
+          </div>
+        `).join('');
+      }
+
+      container.innerHTML = html;
     }
 
-    window.selectPlayer = async function(playerId) {
+    window.selectPlayer = async function (playerId) {
       if (!state.selectedEvent) {
         showToast('Please select event first', 'error');
         return;
       }
-      
+
       const player = state.players.find(p => p.id === playerId);
       if (!player) return;
-      
+
       // Create event (coordinates are optional now)
       const event = {
         id: generateId(),
@@ -1115,30 +1194,32 @@
         coordinates: state.selectedPosition ? { ...state.selectedPosition } : null,
         team: 'home'
       };
-      
+
       // Validate shot location
       const shotValidation = validateShotLocation(event);
       if (shotValidation) {
         state.validationWarnings.push(shotValidation);
       }
-      
+
       state.events.push(event);
       await putInStore('events', event);
-      
+
       // Update score
       if (event.kind === 'shot' && event.result === 'made') {
         state.homeScore += event.points;
       } else if (event.kind === 'ft' && event.result === 'made') {
         state.homeScore += 1;
       }
-      
+
       // Clear selection
       clearSelection();
       updateUI();
-      showToast(`Event logged for ${player.firstName} ${player.lastName}`, 'success');
+      // Generate a nice message based on event and player
+      const msg = `#${player.jersey} ${player.lastName} - ${event.kind.charAt(0).toUpperCase() + event.kind.slice(1)}${event.points ? ` (+${event.points})` : ''} ${event.result ? `(${event.result})` : ''}`;
+      showToast(msg, 'success');
     };
 
-    window.removePlayer = function(playerId) {
+    window.removePlayer = function (playerId) {
       state.players = state.players.filter(p => p.id !== playerId);
       deleteFromStore('players', playerId);
       renderRosterPreview();
@@ -1146,23 +1227,23 @@
       showToast('Player removed', 'success');
     };
 
-    window.toggleCourt = async function(playerId) {
+    window.toggleCourt = async function (playerId) {
       const player = state.players.find(p => p.id === playerId);
       if (!player) return;
-      
+
       player.onCourt = !player.onCourt;
       await putInStore('players', player);
-      renderPlayerList();
       validateGameState();
-      showToast(`${player.firstName} ${player.lastName} ${player.onCourt ? 'on court' : 'on bench'}`, 'success');
+      renderPlayerList();
+      showToast(`${player.firstName} ${player.lastName} ${player.onCourt ? 'on court' : 'benched'}`, 'success');
     };
 
     function clearSelection() {
       state.selectedPosition = null;
       state.selectedEvent = null;
-      
+
       renderPlayerList();
-      
+
       drawCourt();
     }
 
@@ -1171,12 +1252,12 @@
         showToast('Please setup game first', 'error');
         return;
       }
-      
+
       if (state.gameFinished) {
         showToast('Game is finished', 'error');
         return;
       }
-      
+
       // Create opponent scoring event
       const event = {
         id: generateId(),
@@ -1192,13 +1273,13 @@
         coordinates: null,
         team: 'opponent'
       };
-      
+
       state.events.push(event);
       await putInStore('events', event);
-      
+
       // Update opponent score
       state.opponentScore += points;
-      
+
       updateUI();
       showToast(`Opponent +${points}`, 'success');
     }
@@ -1208,24 +1289,24 @@
         showToast('Please setup game first', 'error');
         return;
       }
-      
+
       if (state.events.length === 0) {
         showToast('No events to undo', 'error');
         return;
       }
-      
+
       // Get the last event
       const lastEvent = state.events[state.events.length - 1];
-      
+
       // Remove from state
       state.events.pop();
-      
+
       // Remove from IndexedDB
       await deleteFromStore('events', lastEvent.id);
-      
+
       // Recalculate scores from all events
       calculateScores();
-      
+
       updateUI();
       showToast('Last event undone', 'success');
     }
@@ -1238,7 +1319,7 @@
         document.getElementById('headerOpponent').textContent = state.game.opponent || '--';
         document.getElementById('headerScore').textContent = `${state.homeScore}-${state.opponentScore}`;
         document.getElementById('headerPeriod').textContent = `P${state.period}`;
-        
+
         // Show control buttons
         document.getElementById('nextPeriodBtn').style.display = state.gameFinished ? 'none' : 'inline-block';
         document.getElementById('finishGameBtn').style.display = state.gameFinished ? 'none' : 'inline-block';
@@ -1251,7 +1332,7 @@
         document.getElementById('newGameBtn').style.display = 'none';
         document.getElementById('exportBtn').style.display = 'none';
       }
-      
+
       // Disable controls if game is finished
       if (state.gameFinished) {
         document.querySelectorAll('.event-pad button').forEach(btn => {
@@ -1270,19 +1351,19 @@
         });
         courtSVG.style.cursor = 'crosshair';
       }
-      
+
       // Update undo button state
       const undoBtn = document.getElementById('undoBtn');
       if (undoBtn) {
         undoBtn.disabled = state.events.length === 0;
       }
-      
+
       // Update player roster
       renderPlayerList();
-      
+
       // Redraw court
       drawCourt();
-      
+
       // Validate game state
       validateGameState();
     }
@@ -1290,7 +1371,7 @@
     function calculateScores() {
       state.homeScore = 0;
       state.opponentScore = 0;
-      
+
       state.events.forEach(event => {
         if (event.team === 'home') {
           if (event.kind === 'shot' && event.result === 'made') {
@@ -1312,17 +1393,17 @@
     function validateGameState() {
       state.validationWarnings = [];
       state.validationErrors = [];
-      
+
       validateDuplicateJerseys();
       validateLineupSize();
-      
+
       updateValidationBanner();
     }
 
     function validateDuplicateJerseys() {
       const jerseyMap = {};
       const duplicates = [];
-      
+
       state.players.forEach(player => {
         const jersey = player.jersey;
         if (jerseyMap[jersey]) {
@@ -1333,7 +1414,7 @@
           jerseyMap[jersey] = player;
         }
       });
-      
+
       if (duplicates.length > 0) {
         state.validationErrors.push({
           type: 'duplicate_jersey',
@@ -1345,7 +1426,7 @@
 
     function validateLineupSize() {
       const playersOnCourt = state.players.filter(p => p.onCourt).length;
-      
+
       if (playersOnCourt > 5) {
         state.validationErrors.push({
           type: 'too_many_players',
@@ -1366,27 +1447,27 @@
       if (event.kind !== 'shot' || !event.coordinates || event.points !== 3) {
         return null;
       }
-      
+
       // Get court dimensions from SVG
       const w = 500;
       const h = 940;
-      
+
       // Check both baskets (top and bottom)
       for (let isTop of [true, false]) {
         const yBase = isTop ? 20 : h - 20;
         const yDir = isTop ? 1 : -1;
-        
+
         const basketX = w / 2;
         const basketY = yBase + yDir * 63.5; // 5.25 feet from baseline
-        
+
         // Calculate distance from shot to basket
         const dx = event.coordinates.x - basketX;
         const dy = event.coordinates.y - basketY;
         const distance = Math.sqrt(dx * dx + dy * dy);
-        
+
         // 3-point line radius is 237.5 units (19'9")
         const threePointRadius = 237.5;
-        
+
         // If shot is inside the arc with some tolerance (10 units ~= 1 foot)
         if (distance < threePointRadius - 10) {
           return {
@@ -1397,24 +1478,27 @@
           };
         }
       }
-      
+
       return null;
     }
 
     function updateValidationBanner() {
       const banner = document.getElementById('validationBanner');
-      const allIssues = [...state.validationErrors, ...state.validationWarnings];
-      
+      // Exclude lineup size warnings since they're shown in the roster section
+      const allIssues = [...state.validationErrors, ...state.validationWarnings].filter(
+        issue => issue.type !== 'too_many_players' && issue.type !== 'too_few_players'
+      );
+
       if (allIssues.length === 0) {
         banner.style.display = 'none';
         banner.innerHTML = '';
         return;
       }
-      
-      const hasErrors = state.validationErrors.length > 0;
+
+      const hasErrors = allIssues.some(issue => issue.severity === 'error');
       banner.className = hasErrors ? 'validation-banner error' : 'validation-banner';
       banner.style.display = 'flex';
-      
+
       banner.innerHTML = allIssues.map(issue => `
         <div class="validation-item">
           <span>${issue.severity === 'error' ? '❌' : '⚠️'}</span>
@@ -1431,12 +1515,12 @@
     function showToast(message, type = 'success') {
       const existing = document.querySelector('.toast');
       if (existing) existing.remove();
-      
+
       const toast = document.createElement('div');
       toast.className = `toast ${type}`;
       toast.textContent = message;
       document.body.appendChild(toast);
-      
+
       setTimeout(() => toast.remove(), 3000);
     }
 
@@ -1497,7 +1581,7 @@
 
     function registerServiceWorker() {
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js').catch(() => {});
+        navigator.serviceWorker.register('sw.js').catch(() => { });
       }
     }
 
@@ -1513,12 +1597,12 @@
       if (!confirm('Are you sure you want to finish the game?')) {
         return;
       }
-      
+
       state.gameFinished = true;
       await persistMeta('gameFinished', true);
       updateUI();
       showToast('Game finished!', 'success');
-      
+
       // Show stats
       setTimeout(() => showStats(), 500);
     }
@@ -1527,12 +1611,12 @@
       if (!confirm('Are you sure you want to start a new game? All current game data will be cleared.')) {
         return;
       }
-      
+
       // Clear all stores
       await clearStore('players');
       await clearStore('events');
       await clearStore('meta');
-      
+
       // Reset state to initial values
       state.players = [];
       state.events = [];
@@ -1543,13 +1627,13 @@
       state.selectedPosition = null;
       state.selectedEvent = null;
       state.gameFinished = false;
-      
+
       // Update UI
       updateUI();
-      
+
       // Show game setup dialog
       showGameSetup();
-      
+
       showToast('Ready to start a new game!', 'success');
     }
 
@@ -1560,14 +1644,14 @@
     function showStats() {
       const stats = calculateStats();
       const container = document.getElementById('statsContent');
-      
+
       let html = '<div style="font-family:monospace;white-space:pre-wrap;">';
       html += `<strong>Final Score:</strong> ${state.homeScore} - ${state.opponentScore}\n\n`;
       html += `<strong>Game Summary:</strong>\n`;
       html += `Opponent: ${state.game.opponent}\n`;
       html += `Date: ${state.game.date}\n`;
       html += `Periods: ${state.period}\n\n`;
-      
+
       html += `<strong>Team Stats:</strong>\n`;
       html += `Total Events: ${state.events.length}\n`;
       html += `Field Goals: ${stats.team.fgm}/${stats.team.fga} (${stats.team.fgPct}%)\n`;
@@ -1579,7 +1663,7 @@
       html += `Blocks: ${stats.team.blocks}\n`;
       html += `Turnovers: ${stats.team.turnovers}\n`;
       html += `Fouls: ${stats.team.fouls}\n\n`;
-      
+
       html += `<strong>Player Stats:</strong>\n\n`;
       stats.players.forEach(p => {
         html += `#${p.jersey} ${p.name}\n`;
@@ -1587,10 +1671,10 @@
         html += `  REB: ${p.rebounds}, AST: ${p.assists}, STL: ${p.steals}, BLK: ${p.blocks}\n`;
         html += `  TO: ${p.turnovers}, PF: ${p.fouls}\n\n`;
       });
-      
+
       html += '</div>';
       container.innerHTML = html;
-      
+
       document.getElementById('statsDialog').showModal();
     }
 
@@ -1606,7 +1690,7 @@
         },
         players: []
       };
-      
+
       // Initialize player stats
       state.players.forEach(player => {
         stats.players.push({
@@ -1622,16 +1706,16 @@
           turnovers: 0, fouls: 0
         });
       });
-      
+
       // Calculate stats from events
       state.events.forEach(event => {
         const playerStat = stats.players.find(p => p.id === event.playerId);
         if (!playerStat) return;
-        
+
         if (event.kind === 'shot') {
           stats.team.fga++;
           playerStat.fga++;
-          
+
           if (event.points === 3) {
             stats.team.threepa++;
             playerStat.threepa++;
@@ -1640,7 +1724,7 @@
               playerStat.threepm++;
             }
           }
-          
+
           if (event.result === 'made') {
             stats.team.fgm++;
             playerStat.fgm++;
@@ -1679,12 +1763,12 @@
           playerStat.fouls++;
         }
       });
-      
+
       // Calculate percentages
       stats.team.fgPct = stats.team.fga > 0 ? ((stats.team.fgm / stats.team.fga) * 100).toFixed(1) : '0.0';
       stats.team.threePct = stats.team.threepa > 0 ? ((stats.team.threepm / stats.team.threepa) * 100).toFixed(1) : '0.0';
       stats.team.ftPct = stats.team.fta > 0 ? ((stats.team.ftm / stats.team.fta) * 100).toFixed(1) : '0.0';
-      
+
       return stats;
     }
 
@@ -1693,7 +1777,7 @@
       let content = '';
       let filename = '';
       let mimeType = '';
-      
+
       if (format === 'csv') {
         // CSV export
         content = 'Player,Jersey,Points,FGM,FGA,FG%,3PM,3PA,3P%,FTM,FTA,FT%,REB,AST,STL,BLK,TO,PF\n';
@@ -1707,14 +1791,14 @@
         mimeType = 'text/csv';
       } else if (format === 'txt') {
         // Plain text export
-        content = `B Ball Buckets - Game Statistics\n`;
+        content = `Balls & Buckets - Game Statistics\n`;
         content += `${'='.repeat(50)}\n\n`;
         content += `Game: vs ${state.game.opponent}\n`;
         content += `Date: ${state.game.date}\n`;
         content += `Location: ${state.game.location || 'N/A'}\n`;
         content += `Final Score: ${state.homeScore} - ${state.opponentScore}\n`;
         content += `Periods: ${state.period}\n\n`;
-        
+
         content += `Team Statistics:\n`;
         content += `${'-'.repeat(50)}\n`;
         content += `Field Goals: ${stats.team.fgm}/${stats.team.fga} (${stats.team.fgPct}%)\n`;
@@ -1726,20 +1810,20 @@
         content += `Blocks: ${stats.team.blocks}\n`;
         content += `Turnovers: ${stats.team.turnovers}\n`;
         content += `Fouls: ${stats.team.fouls}\n\n`;
-        
+
         content += `Player Statistics:\n`;
         content += `${'-'.repeat(50)}\n`;
         stats.players.forEach(p => {
           const fgPct = p.fga > 0 ? ((p.fgm / p.fga) * 100).toFixed(1) : '0.0';
           const threePct = p.threepa > 0 ? ((p.threepm / p.threepa) * 100).toFixed(1) : '0.0';
           const ftPct = p.fta > 0 ? ((p.ftm / p.fta) * 100).toFixed(1) : '0.0';
-          
+
           content += `\n#${p.jersey} ${p.name}\n`;
           content += `  Points: ${p.points}\n`;
           content += `  FG: ${p.fgm}/${p.fga} (${fgPct}%)  3P: ${p.threepm}/${p.threepa} (${threePct}%)  FT: ${p.ftm}/${p.fta} (${ftPct}%)\n`;
           content += `  REB: ${p.rebounds}  AST: ${p.assists}  STL: ${p.steals}  BLK: ${p.blocks}  TO: ${p.turnovers}  PF: ${p.fouls}\n`;
         });
-        
+
         filename = `game-${state.game.date}-stats.txt`;
         mimeType = 'text/plain';
       } else if (format === 'json') {
@@ -1758,7 +1842,7 @@
         filename = `game-${state.game.date}-data.json`;
         mimeType = 'application/json';
       }
-      
+
       // Create download
       const blob = new Blob([content], { type: mimeType });
       const url = URL.createObjectURL(blob);
@@ -1769,10 +1853,11 @@
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
+
       showToast(`Exported as ${format.toUpperCase()}`, 'success');
       document.getElementById('exportDialog').close();
     }
   </script>
 </body>
+
 </html>
