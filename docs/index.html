@@ -413,6 +413,30 @@
     
     /* Mobile responsive layout */
     @media (max-width: 767px) {
+      /* Make header sticky on mobile */
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+      
+      /* Hide section headers on mobile */
+      section h2 {
+        display: none;
+      }
+      
+      /* Make event buttons narrower with 3 columns */
+      .event-pad {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.4rem;
+      }
+      
+      .event-pad button {
+        min-height: 44px;
+        font-size: 0.75rem;
+        padding: 0.3rem 0.4rem;
+      }
+      
       main {
         grid-template-columns: 1fr;
         grid-template-rows: 1fr 1fr;
