@@ -306,6 +306,30 @@
         opacity: 1;
       }
     }
+    
+    /* Mobile responsive layout */
+    @media (max-width: 767px) {
+      main {
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr 1fr;
+      }
+      
+      #courtSection {
+        display: none;
+      }
+      
+      #eventSection {
+        grid-row: 1;
+        grid-column: 1;
+        border-left: none;
+      }
+      
+      #rosterSection {
+        grid-row: 2;
+        grid-column: 1;
+        border-left: none;
+      }
+    }
   </style>
 </head>
 <body>
