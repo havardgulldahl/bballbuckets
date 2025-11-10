@@ -18,9 +18,12 @@
 
 ```
 /
-├── index.html              # Main application file (1600+ lines of HTML/CSS/JS)
-├── manifest.webmanifest    # PWA manifest configuration
-├── sw.js                   # Service Worker for offline caching
+├── docs/                   # Application files (deployed via GitHub Pages)
+│   ├── index.html         # Main application file (1600+ lines of HTML/CSS/JS)
+│   ├── app.js             # Service Worker registration and update management
+│   ├── db.js              # IndexedDB wrapper functions (ES6 module)
+│   ├── manifest.webmanifest  # PWA manifest configuration
+│   └── sw.js              # Service Worker for offline caching
 ├── README.md              # Comprehensive project documentation
 ├── LICENSE                # Project license
 └── .gitignore            # Git ignore patterns (Python-focused template)
@@ -32,8 +35,8 @@ The application is deployed via **GitHub Pages** and is accessible at:
 - **Live URL**: `https://havardgulldahl.github.io/bballbuckets/`
 
 Since this is a static PWA with no build process:
-- Deployment is automatic from the main branch (or configured branch)
-- All changes to `index.html`, `manifest.webmanifest`, or `sw.js` are immediately reflected after merge
+- Deployment is automatic from the `docs/` directory on the main branch (or configured branch)
+- All changes to files in `docs/` directory are immediately reflected after merge
 - The Service Worker caching strategy ensures offline functionality for users
 - No server-side rendering or backend services are required
 
@@ -41,10 +44,15 @@ Since this is a static PWA with no build process:
 
 ### Code Organization
 
-The application is a **single-page application** with all code in `index.html`:
-- **HTML structure**: Semantic markup with data attributes for dynamic content
-- **CSS**: Embedded in `<style>` tag with CSS custom properties for theming
-- **JavaScript**: Embedded in `<script>` tag at the end of `<body>`
+The application is a **single-page application** with code organized across multiple files in the `docs/` directory:
+- **index.html**: Main HTML structure with embedded CSS and JavaScript
+  - **HTML structure**: Semantic markup with data attributes for dynamic content
+  - **CSS**: Embedded in `<style>` tag with CSS custom properties for theming
+  - **JavaScript**: Embedded in `<script>` tag at the end of `<body>`
+- **app.js**: Service Worker registration and update management logic
+- **db.js**: IndexedDB wrapper functions exported as ES6 module
+- **sw.js**: Service Worker for offline caching strategy
+- **manifest.webmanifest**: PWA manifest for app installation
 
 ### Key Application Features
 
@@ -93,7 +101,7 @@ The app uses IndexedDB with three object stores:
 ### Testing Approach
 
 - **No automated tests**: The project has no test framework or test files
-- **Manual testing**: Test changes by opening `index.html` in a browser
+- **Manual testing**: Test changes by serving the `docs/` directory and opening the app in a browser
 - **Testing checklist**:
   - Test in both light and dark mode (toggle via theme switcher)
   - Test offline functionality (use browser DevTools → Network → Offline)
@@ -103,10 +111,10 @@ The app uses IndexedDB with three object stores:
 
 ### Development Workflow
 
-1. **Edit directly**: Modify `index.html`, `sw.js`, or `manifest.webmanifest` as needed
+1. **Edit directly**: Modify files in the `docs/` directory (`index.html`, `app.js`, `db.js`, `sw.js`, or `manifest.webmanifest`) as needed
 2. **No build step**: Changes are immediately reflected on page refresh
 3. **Service Worker**: Hard refresh (Ctrl+Shift+R) or unregister SW in DevTools when testing SW changes
-4. **Testing**: Open `index.html` in a browser (can use `python -m http.server` or similar for local server)
+4. **Testing**: Serve the `docs/` directory with a local server (e.g., `cd docs && python -m http.server`)
 
 ### Common Patterns
 
