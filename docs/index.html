@@ -460,6 +460,7 @@
     <div class="controls">
       <button id="nextPeriodBtn" style="display:none;">Next Period</button>
       <button id="finishGameBtn" style="display:none;">Finish Game</button>
+      <button id="newGameBtn" style="display:none;">New Game</button>
       <button id="exportBtn" style="display:none;">Export</button>
       <button id="setupGameBtn">Setup Game</button>
     </div>
@@ -837,6 +838,7 @@
       // Period and game control buttons
       document.getElementById('nextPeriodBtn').addEventListener('click', advancePeriod);
       document.getElementById('finishGameBtn').addEventListener('click', finishGame);
+      document.getElementById('newGameBtn').addEventListener('click', startNewGame);
       document.getElementById('exportBtn').addEventListener('click', showExportDialog);
       
       // Export dialog buttons
@@ -968,9 +970,13 @@
         document.getElementById('locationInput').value = state.game.location || '';
         document.getElementById('rosterSetupSection').style.display = 'block';
       } else {
-        // Set today's date
+        // Clear form fields and set today's date
+        document.getElementById('opponentInput').value = '';
+        document.getElementById('locationInput').value = '';
+        document.getElementById('ruleSetSelect').value = 'NFHS';
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('gameDateInput').value = today;
+        document.getElementById('rosterSetupSection').style.display = 'none';
       }
       
       renderRosterPreview();
@@ -1212,11 +1218,13 @@
         // Show control buttons
         document.getElementById('nextPeriodBtn').style.display = state.gameFinished ? 'none' : 'inline-block';
         document.getElementById('finishGameBtn').style.display = state.gameFinished ? 'none' : 'inline-block';
+        document.getElementById('newGameBtn').style.display = state.gameFinished ? 'inline-block' : 'none';
         document.getElementById('exportBtn').style.display = 'inline-block';
       } else {
         document.getElementById('gameInfo').style.display = 'none';
         document.getElementById('nextPeriodBtn').style.display = 'none';
         document.getElementById('finishGameBtn').style.display = 'none';
+        document.getElementById('newGameBtn').style.display = 'none';
         document.getElementById('exportBtn').style.display = 'none';
       }
       
@@ -1449,6 +1457,16 @@
       });
     }
 
+    function clearStore(storeName) {
+      return new Promise((resolve, reject) => {
+        const tx = dbInstance.transaction(storeName, 'readwrite');
+        const store = tx.objectStore(storeName);
+        const request = store.clear();
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
+    }
+
     function persistMeta(key, value) {
       return putInStore('meta', { key, value });
     }
@@ -1479,6 +1497,36 @@
       
       // Show stats
       setTimeout(() => showStats(), 500);
+    }
+
+    async function startNewGame() {
+      if (!confirm('Are you sure you want to start a new game? All current game data will be cleared.')) {
+        return;
+      }
+      
+      // Clear all stores
+      await clearStore('players');
+      await clearStore('events');
+      await clearStore('meta');
+      
+      // Reset state to initial values
+      state.players = [];
+      state.events = [];
+      state.game = null;
+      state.period = 1;
+      state.homeScore = 0;
+      state.opponentScore = 0;
+      state.selectedPosition = null;
+      state.selectedEvent = null;
+      state.gameFinished = false;
+      
+      // Update UI
+      updateUI();
+      
+      // Show game setup dialog
+      showGameSetup();
+      
+      showToast('Ready to start a new game!', 'success');
     }
 
     function showExportDialog() {
