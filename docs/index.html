@@ -254,9 +254,57 @@
       opacity: 0.4;
       cursor: not-allowed;
     }
+    .player-chip.on-court {
+      background: rgba(106, 170, 106, 0.2);
+      border-color: var(--success);
+    }
     .player-list {
       display: grid;
       gap: 0.5rem;
+    }
+    
+    .court-toggle {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+    .court-toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .court-toggle .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: var(--muted);
+      transition: .3s;
+      border-radius: 24px;
+    }
+    .court-toggle .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+    .court-toggle input:checked + .slider {
+      background-color: var(--success);
+    }
+    .court-toggle input:checked + .slider:before {
+      transform: translateX(20px);
+    }
+    .court-toggle .slider:hover {
+      opacity: 0.8;
     }
     
     dialog {
@@ -438,9 +486,9 @@
 
     <!-- Bottom Right Panel: Player Roster -->
     <section id="rosterSection">
-      <h2>Select Player <span style="font-size:0.8em;opacity:0.7;">(Choose player)</span></h2>
+      <h2>Player Roster <span style="font-size:0.8em;opacity:0.7;">(Toggle = On Court)</span></h2>
       <div class="player-list" id="playerList">
-        <div class="empty-state">Select an event type first</div>
+        <div class="empty-state">No players in roster</div>
       </div>
     </section>
   </main>
@@ -577,6 +625,15 @@
 
     async function hydrateState() {
       state.players = await getAllFromStore('players');
+      // Migrate existing players to have onCourt property
+      state.players = state.players.map(p => {
+        if (p.onCourt === undefined) {
+          p.onCourt = false;
+          putInStore('players', p); // Update in DB
+        }
+        return p;
+      });
+      
       state.events = await getAllFromStore('events');
       const metaGame = await getFromStore('meta', 'currentGame');
       if (metaGame) {
@@ -900,7 +957,8 @@
         jersey: formData.get('jersey'),
         positions: '',
         gradYear: null,
-        dominantHand: 'Right'
+        dominantHand: 'Right',
+        onCourt: false
       };
       
       state.players.push(player);
@@ -925,7 +983,8 @@
           ...p,
           positions: '',
           gradYear: null,
-          dominantHand: 'Right'
+          dominantHand: 'Right',
+          onCourt: false
         };
         state.players.push(player);
         putInStore('players', player);
@@ -957,14 +1016,15 @@
         return;
       }
       
-      if (!state.selectedEvent) {
-        container.innerHTML = '<div class="empty-state">Select an event type first</div>';
-        return;
-      }
+      const hasEvent = !!state.selectedEvent;
       
       container.innerHTML = state.players.map(p => `
-        <div class="player-chip" onclick="selectPlayer('${p.id}')">
+        <div class="player-chip ${!hasEvent ? 'disabled' : ''} ${p.onCourt ? 'on-court' : ''}" ${hasEvent ? `onclick="selectPlayer('${p.id}')"` : ''}>
           <span><strong>#${p.jersey}</strong> ${p.firstName} ${p.lastName}</span>
+          <label class="court-toggle" onclick="event.stopPropagation();">
+            <input type="checkbox" ${p.onCourt ? 'checked' : ''} onchange="toggleCourt('${p.id}')" />
+            <span class="slider"></span>
+          </label>
         </div>
       `).join('');
     }
@@ -1017,11 +1077,21 @@
       showToast('Player removed', 'success');
     };
 
+    window.toggleCourt = async function(playerId) {
+      const player = state.players.find(p => p.id === playerId);
+      if (!player) return;
+      
+      player.onCourt = !player.onCourt;
+      await putInStore('players', player);
+      renderPlayerList();
+      showToast(`${player.firstName} ${player.lastName} ${player.onCourt ? 'on court' : 'on bench'}`, 'success');
+    };
+
     function clearSelection() {
       state.selectedPosition = null;
       state.selectedEvent = null;
       
-      document.getElementById('playerList').innerHTML = '<div class="empty-state">Select an event type first</div>';
+      renderPlayerList();
       
       drawCourt();
     }
@@ -1134,6 +1204,9 @@
       if (undoBtn) {
         undoBtn.disabled = state.events.length === 0;
       }
+      
+      // Update player roster
+      renderPlayerList();
       
       // Redraw court
       drawCourt();
