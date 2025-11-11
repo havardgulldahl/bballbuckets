@@ -1,0 +1,10 @@
+{
+  "name": "bballbuckets-proxy",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-11-11",
+  "observability": {
+    // Wrangler sends anonymous usage telemetry unless disabled.
+    // See: https://github.com/cloudflare/workers-sdk/blob/main/packages/wrangler/telemetry.md
+    "enabled": true
+  }
+}
