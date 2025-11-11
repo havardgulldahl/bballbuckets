@@ -57,13 +57,12 @@ export default {
       // - getTeamMembers(teamId) -> /TeamMembers/{teamId}
 
       let nifPath: string;
-      let cacheKey: string;
+      let nifUrl: string;
 
       if (path.startsWith('/api/seasons')) {
         // GET /api/seasons?year=2025
         const year = url.searchParams.get('year') || new Date().getFullYear().toString();
         nifPath = `/Seasons/?sportId=${BASKETBALL_SPORT_ID}&year=${year}`;
-        cacheKey = `seasons:${year}`;
       } else if (path.startsWith('/api/tournaments/')) {
         // GET /api/tournaments/{seasonId}
         const seasonId = path.split('/')[3];
@@ -71,7 +70,6 @@ export default {
           return corsResponse(new Response('Missing seasonId', { status: 400 }));
         }
         nifPath = `/Tournament/Season/${seasonId}`;
-        cacheKey = `tournaments:${seasonId}`;
       } else if (path.startsWith('/api/teams/')) {
         // GET /api/teams/{tournamentId}
         const tournamentId = path.split('/')[3];
@@ -79,7 +77,6 @@ export default {
           return corsResponse(new Response('Missing tournamentId', { status: 400 }));
         }
         nifPath = `/TournamentTeams/?tournamentId=${tournamentId}`;
-        cacheKey = `teams:${tournamentId}`;
       } else if (path.startsWith('/api/matches/')) {
         // GET /api/matches/{tournamentId}
         const tournamentId = path.split('/')[3];
@@ -87,7 +84,6 @@ export default {
           return corsResponse(new Response('Missing tournamentId', { status: 400 }));
         }
         nifPath = `/TournamentMatches/?tournamentId=${tournamentId}`;
-        cacheKey = `matches:${tournamentId}`;
       } else if (path.startsWith('/api/members/')) {
         // GET /api/members/{teamId}
         const teamId = path.split('/')[3];
@@ -95,7 +91,6 @@ export default {
           return corsResponse(new Response('Missing teamId', { status: 400 }));
         }
         nifPath = `/TeamMembers/${teamId}`;
-        cacheKey = `members:${teamId}`;
       } else {
         return corsResponse(
           new Response('Not Found. Available endpoints: /api/seasons, /api/tournaments/{seasonId}, /api/teams/{tournamentId}, /api/matches/{tournamentId}, /api/members/{teamId}', 
@@ -104,18 +99,23 @@ export default {
         );
       }
 
-      // Check cache first (Cloudflare Workers Cache API)
+      // Construct the full NIF URL
+      nifUrl = `${NIF_API_BASE}${nifPath}`;
+
+      // Cache key must be a Request object for Cloudflare Workers Cache API
       const cache = (caches as any).default;
+      const cacheKey = new Request(nifUrl, { method: 'GET' });
+      
+      // Check cache first
       const cachedResponse = await cache.match(cacheKey);
       if (cachedResponse) {
-        console.log(`Cache HIT: ${cacheKey}`);
-        return corsResponse(cachedResponse);
+        console.log(`Cache HIT: ${nifUrl}`);
+        return corsResponse(cachedResponse.clone());
       }
 
-      console.log(`Cache MISS: ${cacheKey}, fetching from NIF API`);
+      console.log(`Cache MISS: ${nifUrl}, fetching from NIF API`);
 
       // Fetch from NIF API
-      const nifUrl = `${NIF_API_BASE}${nifPath}`;
       const nifResponse = await fetch(nifUrl, {
         method: 'GET',
         headers: NIF_HEADERS,
@@ -150,7 +150,7 @@ export default {
         },
       });
 
-      // Cache the response
+      // Cache the response (must clone before caching)
       ctx.waitUntil(cache.put(cacheKey, response.clone()));
 
       return corsResponse(response);
