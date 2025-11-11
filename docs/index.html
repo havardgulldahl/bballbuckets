@@ -1729,6 +1729,7 @@
 
       state.players.forEach(player => {
         const jersey = player.jersey;
+        if (!jersey) return; // Skip empty jerseys
         if (jerseyMap[jersey]) {
           if (!duplicates.includes(jersey)) {
             duplicates.push(jersey);
