@@ -1,22 +1,17 @@
 /**
  * NIF (Norwegian Basketball Federation) API Integration
  * Functions to fetch season, tournament, team, and match data
+ * Now using CORS proxy to avoid cross-origin issues
  */
 
-const NIF_API_BASE = 'https://sf14-terminlister-prod-app.azurewebsites.net/ta';
-const BASKETBALL_SPORT_ID = 199;
+const NIF_API_BASE = 'https://baskets-and-buckets.havard-085.workers.dev';
 
 /**
- * Common headers for NIF API requests
+ * Common headers for proxy API requests
+ * Note: The proxy handles NIF-specific headers internally
  */
 const NIF_HEADERS = {
-  'Accept': 'application/json, text/plain, */*',
-  'Accept-Language': 'en-US,en;q=0.9',
-  'Origin': 'https://kamper.basket.no',
-  'Sec-Fetch-Dest': 'empty',
-  'Sec-Fetch-Mode': 'cors',
-  'Sec-Fetch-Site': 'cross-site',
-  'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15'
+  'Accept': 'application/json',
 };
 
 /**
@@ -25,7 +20,7 @@ const NIF_HEADERS = {
  * @returns {Promise<Object>} - Season data including seasonId
  */
 async function getSeasons(year) {
-  const url = `${NIF_API_BASE}/Seasons/?sportId=${BASKETBALL_SPORT_ID}&year=${year}`;
+  const url = `${NIF_API_BASE}/api/seasons?year=${year}`;
   
   try {
     const response = await fetch(url, {
@@ -48,7 +43,7 @@ async function getSeasons(year) {
  * @returns {Promise<Object>} - Tournament data including tournamentId for each tournament
  */
 async function getTournamentsBySeason(seasonId) {
-  const url = `${NIF_API_BASE}/Tournament/Season/${seasonId}`;
+  const url = `${NIF_API_BASE}/api/tournaments/${seasonId}`;
   
   try {
     const response = await fetch(url, {
@@ -71,7 +66,7 @@ async function getTournamentsBySeason(seasonId) {
  * @returns {Promise<Object>} - Team data including teamId, team names, and club info
  */
 async function getTeamsByTournament(tournamentId) {
-  const url = `${NIF_API_BASE}/TournamentTeams/?tournamentId=${tournamentId}`;
+  const url = `${NIF_API_BASE}/api/teams/${tournamentId}`;
   
   try {
     const response = await fetch(url, {
@@ -94,7 +89,7 @@ async function getTeamsByTournament(tournamentId) {
  * @returns {Promise<Object>} - Match data including matchId, teams, dates, venues, and results
  */
 async function getMatchesByTournament(tournamentId) {
-  const url = `${NIF_API_BASE}/TournamentMatches/?tournamentId=${tournamentId}`;
+  const url = `${NIF_API_BASE}/api/matches/${tournamentId}`;
   
   try {
     const response = await fetch(url, {
@@ -185,7 +180,7 @@ async function getCurrentSeason() {
  * @returns {Promise<Array>} - Array of team members with personId, name, number, position, etc.
  */
 async function getTeamMembers(teamId) {
-  const url = `${NIF_API_BASE}/TeamMembers/${teamId}`;
+  const url = `${NIF_API_BASE}/api/members/${teamId}`;
   
   try {
     const response = await fetch(url, {
