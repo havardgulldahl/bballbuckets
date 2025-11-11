@@ -628,59 +628,154 @@
 
   <!-- Game Setup Dialog -->
   <dialog id="gameSetupDialog">
-    <form method="dialog" id="gameSetupForm">
+    <!-- Step 1: Choose setup method -->
+    <div id="setupMethodSection">
       <h3>Game Setup</h3>
-      <label>Opponent
-        <input type="text" id="opponentInput" name="opponent" placeholder="e.g. Lincoln HS" required />
-      </label>
-      <label>Date
-        <input type="date" id="gameDateInput" name="date" required value="" />
-      </label>
-      <label>Rule Set
-        <select id="ruleSetSelect" name="ruleSet">
-          <option value="FIBA" selected>FIBA (4 x 10mins)</option>
-          <option value="NFHS">NFHS (4 x 8mins)</option>
-          <option value="Custom">Custom</option>
-        </select>
-      </label>
-      <label>Location (optional)
-        <input type="text" id="locationInput" name="location" placeholder="e.g. Main Gym" />
-      </label>
-      <div style="display:flex;justify-content:space-between;margin-top:1rem;gap:0.5rem;">
-        <button type="button" class="secondary" id="cancelGameSetupBtn">Cancel</button>
-        <button type="submit">Continue to Roster</button>
+      <p style="color:var(--muted);font-size:0.9rem;margin-bottom:1.5rem;">Choose how to set up your game:</p>
+      <div style="display:flex;flex-direction:column;gap:1rem;">
+        <button type="button" id="nifSetupBtn" style="padding:1.5rem;text-align:left;">
+          <div style="font-size:1.1rem;margin-bottom:0.3rem;">🏀 NIF Basketball Federation</div>
+          <div style="font-size:0.85rem;opacity:0.8;font-weight:normal;">Import official match and roster from NIF</div>
+        </button>
+        <button type="button" id="manualSetupBtn" class="secondary" style="padding:1.5rem;text-align:left;">
+          <div style="font-size:1.1rem;margin-bottom:0.3rem;">✏️ Manual Setup</div>
+          <div style="font-size:0.85rem;opacity:0.8;font-weight:normal;">Enter opponent and roster manually</div>
+        </button>
       </div>
-    </form>
+      <div style="margin-top:1rem;">
+        <button type="button" class="secondary" id="cancelSetupMethodBtn" style="width:100%;">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Step 2a: NIF Import Flow -->
+    <div id="nifImportSection" style="display:none;">
+      <h3>Import from NIF</h3>
+      <div style="margin-bottom:1rem;">
+        <button type="button" class="secondary" id="backToMethodBtn" style="padding:0.4rem 0.8rem;font-size:0.85rem;">←
+          Back</button>
+      </div>
+
+      <div id="nifLoadingState" style="display:none;text-align:center;padding:2rem;">
+        <div style="font-size:2rem;margin-bottom:0.5rem;">⏳</div>
+        <div>Loading...</div>
+      </div>
+
+      <div id="nifSelectSeason" style="display:none;">
+        <label>Season
+          <select id="seasonSelect" size="5" style="width:100%;"></select>
+        </label>
+        <button type="button" id="loadTournamentsBtn" style="width:100%;margin-top:0.5rem;">Next: Select
+          Tournament</button>
+      </div>
+
+      <div id="nifSelectTournament" style="display:none;">
+        <label>Tournament
+          <select id="tournamentSelect" size="8" style="width:100%;"></select>
+        </label>
+        <button type="button" id="loadTeamsBtn" style="width:100%;margin-top:0.5rem;">Next: Select Team</button>
+      </div>
+
+      <div id="nifSelectTeam" style="display:none;">
+        <label>Your Team
+          <select id="teamSelect" size="6" style="width:100%;"></select>
+        </label>
+        <button type="button" id="loadMatchesBtn" style="width:100%;margin-top:0.5rem;">Next: Select Match</button>
+      </div>
+
+      <div id="nifSelectMatch" style="display:none;">
+        <label>Select Match
+          <select id="matchSelect" size="6" style="width:100%;"></select>
+        </label>
+        <button type="button" id="importMatchBtn" style="width:100%;margin-top:0.5rem;">Import Match & Roster</button>
+      </div>
+    </div>
+
+    <!-- Step 2b: Manual Setup Flow -->
+    <div id="manualSetupSection" style="display:none;">
+      <form method="dialog" id="gameSetupForm">
+        <h3>Manual Game Setup</h3>
+        <div style="margin-bottom:1rem;">
+          <button type="button" class="secondary" id="backToMethodBtn2"
+            style="padding:0.4rem 0.8rem;font-size:0.85rem;">← Back</button>
+        </div>
+        <label>Opponent
+          <input type="text" id="opponentInput" name="opponent" placeholder="e.g. Lincoln HS" required />
+        </label>
+        <label>Date
+          <input type="date" id="gameDateInput" name="date" required value="" />
+        </label>
+        <label>Rule Set
+          <select id="ruleSetSelect" name="ruleSet">
+            <option value="FIBA" selected>FIBA (4 x 10mins)</option>
+            <option value="NFHS">NFHS (4 x 8mins)</option>
+            <option value="Custom">Custom</option>
+          </select>
+        </label>
+        <label>Location (optional)
+          <input type="text" id="locationInput" name="location" placeholder="e.g. Main Gym" />
+        </label>
+        <div style="display:flex;justify-content:space-between;margin-top:1rem;gap:0.5rem;">
+          <button type="button" class="secondary" id="cancelGameSetupBtn">Cancel</button>
+          <button type="submit">Continue to Roster</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Step 3: Roster Setup (common for both flows) -->
     <div id="rosterSetupSection"
       style="margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid var(--muted);display:none;">
       <h3 style="margin-bottom:1rem;">Roster Setup</h3>
       <form id="playerForm">
-        <div style="display:grid;grid-template-columns:8em 8em 4em;gap:0.5rem;margin-bottom:0.5rem;"></div>
-        <input type="text" name="firstName" placeholder="First Name" required autocomplete="off" />
-        <input type="text" name="lastName" placeholder="Last Name" required autocomplete="off" />
-        <input type="text" name="jersey" placeholder="#" maxlength="3" required autocomplete="off"
-          style="width:3.5rem;" />
-    </div>
-    <button type="submit" style="width:100%;">Add Player</button>
-    </form>
-    <div style="margin-top:1rem;max-height:200px;overflow-y:auto;">
-      <div id="rosterPreview" style="display:grid;gap:0.4rem;">
-        <div class="empty-state">No players added yet</div>
+        <div style="display:grid;grid-template-columns:8em 8em 4em;gap:0.5rem;margin-bottom:0.5rem;">
+          <input type="text" name="firstName" placeholder="First Name" required autocomplete="off" />
+          <input type="text" name="lastName" placeholder="Last Name" required autocomplete="off" />
+          <input type="text" name="jersey" placeholder="#" maxlength="3" required autocomplete="off" />
+        </div>
+        <button type="submit" style="width:100%;">Add Player</button>
+      </form>
+      <div style="margin-top:1rem;max-height:200px;overflow-y:auto;">
+        <div id="rosterPreview" style="display:grid;gap:0.4rem;">
+          <div class="empty-state">No players added yet</div>
+        </div>
       </div>
-    </div>
-    <div style="margin-top:1rem;display:flex;gap:0.5rem;">
-      <button type="button" class="secondary" id="quickStartBtn" style="flex:1;">⚡ Quick Start</button>
-      <button type="button" id="finishSetupBtn" style="flex:1;">Finish Setup</button>
-    </div>
+      <div style="margin-top:1rem;display:flex;gap:0.5rem;">
+        <button type="button" class="secondary" id="quickStartBtn" style="flex:1;">⚡ Quick Start</button>
+        <button type="button" id="finishSetupBtn" style="flex:1;">Finish Setup</button>
+      </div>
     </div>
   </dialog>
 
   <script type="module" src="db.js"></script>
   <script src="app.js"></script>
+  <script type="module">
+    // Import NIF API functions
+    import {
+      getCurrentSeason,
+      getTournamentsBySeason,
+      getTeamsByTournament,
+      getMatchesByTournament,
+      getTeamPlayersForApp
+    } from './nif.js';
+
+    // Make NIF functions available globally
+    window.nifAPI = {
+      getCurrentSeason,
+      getTournamentsBySeason,
+      getTeamsByTournament,
+      getMatchesByTournament,
+      getTeamPlayersForApp
+    };
+  </script>
   <script>
     // State management
     const state = {
       players: [],
+      nifData: {
+        selectedSeasonId: null,
+        selectedTournamentId: null,
+        selectedTeamId: null,
+        selectedMatch: null
+      },
       events: [],
       game: null,
       period: 1,
@@ -966,6 +1061,21 @@
         if (dialog.open) dialog.close();
       });
 
+      // Setup method selection
+      document.getElementById('nifSetupBtn').addEventListener('click', startNIFSetup);
+      document.getElementById('manualSetupBtn').addEventListener('click', startManualSetup);
+      document.getElementById('cancelSetupMethodBtn').addEventListener('click', () => {
+        document.getElementById('gameSetupDialog').close();
+      });
+
+      // NIF flow navigation
+      document.getElementById('backToMethodBtn').addEventListener('click', showSetupMethod);
+      document.getElementById('backToMethodBtn2').addEventListener('click', showSetupMethod);
+      document.getElementById('loadTournamentsBtn').addEventListener('click', loadTournaments);
+      document.getElementById('loadTeamsBtn').addEventListener('click', loadTeams);
+      document.getElementById('loadMatchesBtn').addEventListener('click', loadMatches);
+      document.getElementById('importMatchBtn').addEventListener('click', importFromNIF);
+
       // Player form
       document.getElementById('playerForm').addEventListener('submit', handleAddPlayer);
 
@@ -1066,6 +1176,220 @@
 
       renderRosterPreview();
       dialog.showModal();
+    }
+
+    // NIF Setup Functions
+    function showSetupMethod() {
+      document.getElementById('setupMethodSection').style.display = 'block';
+      document.getElementById('nifImportSection').style.display = 'none';
+      document.getElementById('manualSetupSection').style.display = 'none';
+      document.getElementById('rosterSetupSection').style.display = 'none';
+    }
+
+    async function startNIFSetup() {
+      document.getElementById('setupMethodSection').style.display = 'none';
+      document.getElementById('nifImportSection').style.display = 'block';
+      document.getElementById('nifLoadingState').style.display = 'block';
+
+      try {
+        // Load current season
+        const seasonData = await window.nifAPI.getCurrentSeason();
+
+        const select = document.getElementById('seasonSelect');
+        select.innerHTML = '';
+
+        seasonData.seasons.forEach(season => {
+          const option = document.createElement('option');
+          option.value = season.seasonId;
+          option.textContent = `${season.seasonName} (${season.seasonDateFrom.split(' ')[0]} - ${season.seasonDateTo.split(' ')[0]})`;
+          select.appendChild(option);
+        });
+
+        // Auto-select current season if available
+        if (seasonData.currentSeasonId) {
+          select.value = seasonData.currentSeasonId;
+        }
+
+        document.getElementById('nifLoadingState').style.display = 'none';
+        document.getElementById('nifSelectSeason').style.display = 'block';
+      } catch (error) {
+        document.getElementById('nifLoadingState').style.display = 'none';
+        showToast('Failed to load seasons from NIF', 'error');
+        console.error('NIF Error:', error);
+      }
+    }
+
+    async function loadTournaments() {
+      const seasonId = document.getElementById('seasonSelect').value;
+      if (!seasonId) {
+        showToast('Please select a season', 'error');
+        return;
+      }
+
+      state.nifData.selectedSeasonId = seasonId;
+      document.getElementById('nifLoadingState').style.display = 'block';
+      document.getElementById('nifSelectSeason').style.display = 'none';
+
+      try {
+        const tournamentsData = await window.nifAPI.getTournamentsBySeason(seasonId);
+
+        const select = document.getElementById('tournamentSelect');
+        select.innerHTML = '';
+
+        tournamentsData.tournamentsInSeason.forEach(tournament => {
+          const option = document.createElement('option');
+          option.value = tournament.tournamentId;
+          option.textContent = `${tournament.tournamentName} - ${tournament.tournamentClasses.map(c => c.className).join(', ')}`;
+          select.appendChild(option);
+        });
+
+        document.getElementById('nifLoadingState').style.display = 'none';
+        document.getElementById('nifSelectTournament').style.display = 'block';
+      } catch (error) {
+        document.getElementById('nifLoadingState').style.display = 'none';
+        showToast('Failed to load tournaments', 'error');
+        console.error('NIF Error:', error);
+      }
+    }
+
+    async function loadTeams() {
+      const tournamentId = document.getElementById('tournamentSelect').value;
+      if (!tournamentId) {
+        showToast('Please select a tournament', 'error');
+        return;
+      }
+
+      state.nifData.selectedTournamentId = tournamentId;
+      document.getElementById('nifLoadingState').style.display = 'block';
+      document.getElementById('nifSelectTournament').style.display = 'none';
+
+      try {
+        const teamsData = await window.nifAPI.getTeamsByTournament(tournamentId);
+
+        const select = document.getElementById('teamSelect');
+        select.innerHTML = '';
+
+        teamsData.teams.forEach(team => {
+          const option = document.createElement('option');
+          option.value = team.teamId;
+          option.textContent = team.overriddenName || team.team;
+          select.appendChild(option);
+        });
+
+        document.getElementById('nifLoadingState').style.display = 'none';
+        document.getElementById('nifSelectTeam').style.display = 'block';
+      } catch (error) {
+        document.getElementById('nifLoadingState').style.display = 'none';
+        showToast('Failed to load teams', 'error');
+        console.error('NIF Error:', error);
+      }
+    }
+
+    async function loadMatches() {
+      const teamId = parseInt(document.getElementById('teamSelect').value);
+      if (!teamId) {
+        showToast('Please select a team', 'error');
+        return;
+      }
+
+      state.nifData.selectedTeamId = teamId;
+      document.getElementById('nifLoadingState').style.display = 'block';
+      document.getElementById('nifSelectTeam').style.display = 'none';
+
+      try {
+        const matchesData = await window.nifAPI.getMatchesByTournament(state.nifData.selectedTournamentId);
+
+        // Filter matches for selected team
+        const teamMatches = matchesData.matches.filter(m =>
+          m.hometeamId === teamId || m.awayteamId === teamId
+        );
+
+        const select = document.getElementById('matchSelect');
+        select.innerHTML = '';
+
+        if (teamMatches.length === 0) {
+          select.innerHTML = '<option>No matches found for this team</option>';
+        } else {
+          teamMatches.forEach(match => {
+            const option = document.createElement('option');
+            option.value = match.matchId;
+            const isHome = match.hometeamId === teamId;
+            const opponent = isHome ? match.awayteamOverriddenName : match.hometeamOverriddenName;
+            const homeAway = isHome ? 'vs' : '@';
+            const date = match.matchDate ? new Date(match.matchDate).toLocaleDateString() : 'TBD';
+            option.textContent = `${date} - ${homeAway} ${opponent} (${match.statusType})`;
+            option.dataset.match = JSON.stringify(match);
+            select.appendChild(option);
+          });
+        }
+
+        document.getElementById('nifLoadingState').style.display = 'none';
+        document.getElementById('nifSelectMatch').style.display = 'block';
+      } catch (error) {
+        document.getElementById('nifLoadingState').style.display = 'none';
+        showToast('Failed to load matches', 'error');
+        console.error('NIF Error:', error);
+      }
+    }
+
+    async function importFromNIF() {
+      const matchSelect = document.getElementById('matchSelect');
+      const selectedOption = matchSelect.options[matchSelect.selectedIndex];
+
+      if (!selectedOption || !selectedOption.dataset.match) {
+        showToast('Please select a match', 'error');
+        return;
+      }
+
+      document.getElementById('nifLoadingState').style.display = 'block';
+      document.getElementById('nifSelectMatch').style.display = 'none';
+
+      try {
+        const match = JSON.parse(selectedOption.dataset.match);
+        const teamId = state.nifData.selectedTeamId;
+        const isHome = match.hometeamId === teamId;
+
+        // Set up game data
+        state.game = {
+          opponent: isHome ? match.awayteamOverriddenName : match.hometeamOverriddenName,
+          date: match.matchDate ? new Date(match.matchDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          ruleSet: 'FIBA',
+          location: match.activityAreaName || '',
+          nifMatchId: match.matchId,
+          nifTournamentId: state.nifData.selectedTournamentId,
+          isHomeTeam: isHome
+        };
+        await persistMeta('currentGame', state.game);
+
+        // Import roster
+        const players = await window.nifAPI.getTeamPlayersForApp(teamId);
+
+        // Add players to state and DB
+        for (const player of players) {
+          const newPlayer = {
+            id: generateId(),
+            ...player
+          };
+          state.players.push(newPlayer);
+          await putInStore('players', newPlayer);
+        }
+
+        document.getElementById('nifLoadingState').style.display = 'none';
+        document.getElementById('nifImportSection').style.display = 'none';
+        document.getElementById('rosterSetupSection').style.display = 'block';
+
+        renderRosterPreview();
+        showToast(`Imported ${players.length} players from NIF!`, 'success');
+      } catch (error) {
+        document.getElementById('nifLoadingState').style.display = 'none';
+        showToast('Failed to import match data', 'error');
+        console.error('NIF Error:', error);
+      }
+    }
+
+    function startManualSetup() {
+      document.getElementById('setupMethodSection').style.display = 'none';
+      document.getElementById('manualSetupSection').style.display = 'block';
     }
 
     function handleAddPlayer(e) {
