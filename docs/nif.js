@@ -302,6 +302,5 @@ export {
   convertNIFPlayerToApp,
   getTeamPlayersForApp,
   calculateAge,
-  BASKETBALL_SPORT_ID,
   NIF_API_BASE
 };
