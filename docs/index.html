@@ -619,6 +619,10 @@
   <!-- Stats Dialog -->
   <dialog id="statsDialog">
     <h3>Game Statistics</h3>
+    <div id="statsHeatmapContainer" style="display:none;margin-bottom:1rem;">
+      <h4 style="margin:0 0 0.5rem 0;">Shot Heatmap (Made Shots)</h4>
+      <canvas id="statsHeatmap" width="500" height="470" style="width:100%;max-width:500px;height:auto;border:1px solid var(--muted);border-radius:4px;background:var(--court-bg);"></canvas>
+    </div>
     <div id="statsContent" style="max-height:60vh;overflow-y:auto;"></div>
     <div style="margin-top:1rem;display:flex;gap:0.5rem;">
       <button type="button" id="exportStatsBtn" style="flex:1;">Export Stats</button>
@@ -1998,7 +2002,133 @@
       html += '</div>';
       container.innerHTML = html;
 
+      // Render heatmap
+      renderShotHeatmap();
+
       document.getElementById('statsDialog').showModal();
+    }
+
+    function renderShotHeatmap() {
+      // Get all made shots with coordinates
+      const madeShots = state.events.filter(e => 
+        e.kind === 'shot' && e.result === 'made' && e.coordinates
+      );
+
+      // Show/hide heatmap container based on availability of data
+      const heatmapContainer = document.getElementById('statsHeatmapContainer');
+      if (madeShots.length === 0) {
+        heatmapContainer.style.display = 'none';
+        return;
+      }
+      heatmapContainer.style.display = 'block';
+
+      const canvas = document.getElementById('statsHeatmap');
+      const ctx = canvas.getContext('2d');
+      
+      // Court dimensions (matching the SVG viewBox)
+      const w = 500;
+      const h = 470;  // Half court height (940/2)
+      
+      // Clear canvas
+      ctx.clearRect(0, 0, w, h);
+      
+      // Draw court background
+      ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--court-bg').trim();
+      ctx.fillRect(0, 0, w, h);
+      
+      // Create a grid for density calculation
+      const gridSize = 25; // Size of each grid cell
+      const gridW = Math.ceil(w / gridSize);
+      const gridH = Math.ceil(h / gridSize);
+      const density = Array(gridH).fill(0).map(() => Array(gridW).fill(0));
+      
+      // Calculate density in each grid cell
+      madeShots.forEach(shot => {
+        // Adjust Y coordinate to focus on offensive half (bottom half of full court)
+        const adjustedY = shot.coordinates.y - 470; // Offset to show bottom half
+        if (adjustedY < 0 || adjustedY >= h) return; // Skip shots outside offensive half
+        
+        const gridX = Math.floor(shot.coordinates.x / gridSize);
+        const gridY = Math.floor(adjustedY / gridSize);
+        
+        if (gridX >= 0 && gridX < gridW && gridY >= 0 && gridY < gridH) {
+          density[gridY][gridX]++;
+        }
+      });
+      
+      // Find max density for normalization
+      let maxDensity = 0;
+      for (let y = 0; y < gridH; y++) {
+        for (let x = 0; x < gridW; x++) {
+          maxDensity = Math.max(maxDensity, density[y][x]);
+        }
+      }
+      
+      // Draw heatmap
+      if (maxDensity > 0) {
+        for (let y = 0; y < gridH; y++) {
+          for (let x = 0; x < gridW; x++) {
+            const count = density[y][x];
+            if (count > 0) {
+              const intensity = count / maxDensity;
+              
+              // Color gradient from blue (low) to red (high)
+              let r, g, b;
+              if (intensity < 0.5) {
+                // Blue to yellow
+                const t = intensity * 2;
+                r = Math.round(t * 255);
+                g = Math.round(t * 255);
+                b = Math.round((1 - t) * 255);
+              } else {
+                // Yellow to red
+                const t = (intensity - 0.5) * 2;
+                r = 255;
+                g = Math.round((1 - t) * 255);
+                b = 0;
+              }
+              
+              const alpha = 0.6 + (intensity * 0.4); // Transparency based on intensity
+              ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+              ctx.fillRect(x * gridSize, y * gridSize, gridSize, gridSize);
+            }
+          }
+        }
+      }
+      
+      // Draw court lines on top
+      const lineColor = getComputedStyle(document.documentElement).getPropertyValue('--court-line').trim();
+      ctx.strokeStyle = lineColor;
+      ctx.lineWidth = 2;
+      
+      // Court outline
+      ctx.strokeRect(20, 20, w - 40, h - 40);
+      
+      // Paint area
+      const paintLeft = w * 0.3;
+      const paintWidth = w * 0.4;
+      ctx.strokeRect(paintLeft, 20, paintWidth, 170);
+      
+      // Free throw line
+      ctx.beginPath();
+      ctx.moveTo(paintLeft, 190);
+      ctx.lineTo(paintLeft + paintWidth, 190);
+      ctx.stroke();
+      
+      // Three-point arc (simplified)
+      const basketX = w / 2;
+      const basketY = 20;
+      const threePointRadius = 237.5;
+      
+      ctx.beginPath();
+      ctx.arc(basketX, basketY, threePointRadius, 0.4, Math.PI - 0.4);
+      ctx.stroke();
+      
+      // Hoop
+      ctx.fillStyle = lineColor;
+      ctx.beginPath();
+      ctx.arc(basketX, basketY, 8, 0, Math.PI * 2);
+      ctx.fill();
     }
 
     function calculateStats() {
