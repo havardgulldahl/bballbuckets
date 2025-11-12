@@ -547,6 +547,7 @@
       .left-column,
       .right-column {
         border-left: none;
+        flex: none;
       }
 
       .event-pad {
@@ -571,6 +572,19 @@
         display: none;
       }
 
+      /* Event section should scroll if content is too tall */
+      #eventSection {
+        flex: none;
+        max-height: calc(100vh - 400px);
+        overflow-y: auto;
+      }
+
+      /* Opponent score section with fixed size to ensure visibility */
+      #opponentScoreSection {
+        flex: none;
+        overflow-y: visible;
+      }
+
       /* Two-stage mobile flow: hide roster until event is selected */
       #rosterSection {
         display: none;
@@ -579,6 +593,9 @@
       /* When event is selected (indicated by body class), show roster and hide event buttons */
       body.event-selected #rosterSection {
         display: flex;
+        flex: none;
+        max-height: calc(100vh - 160px);
+        overflow-y: auto;
       }
 
       body.event-selected #eventSection {
