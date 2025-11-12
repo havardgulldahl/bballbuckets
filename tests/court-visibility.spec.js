@@ -14,11 +14,11 @@ test.describe('Court visibility on different viewports', () => {
     const courtSection = page.locator('#courtSection');
     await expect(courtSection).not.toBeVisible();
 
-    // Verify event and roster sections are visible
+    // On mobile, two-stage flow: event section visible, roster hidden until event selected
     const eventSection = page.locator('#eventSection');
     const rosterSection = page.locator('#rosterSection');
     await expect(eventSection).toBeVisible();
-    await expect(rosterSection).toBeVisible();
+    await expect(rosterSection).not.toBeVisible();
   });
 
   test('court section should be visible on tablet viewport', async ({ page }) => {
@@ -77,5 +77,63 @@ test.describe('Court visibility on different viewports', () => {
     // The value could be "1fr" or a pixel value like "375px" depending on the browser
     const columnCount = gridTemplateColumns.trim().split(/\s+/).length;
     expect(columnCount).toBe(1);
+  });
+
+  test('two-stage mobile flow: roster appears after event selection', async ({ page }) => {
+    // Set mobile viewport
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto('/');
+
+    // Wait for the page to load
+    await page.waitForLoadState('networkidle');
+
+    // Setup a game first
+    const setupBtn = page.locator('#setupGameBtn');
+    await setupBtn.click();
+
+    // Choose manual setup
+    const manualSetupBtn = page.locator('#manualSetupBtn');
+    await manualSetupBtn.click();
+
+    // Fill in game details
+    await page.locator('#opponentInput').fill('Test Opponent');
+    await page.locator('#gameSetupForm button[type="submit"]').click();
+
+    // Add a player
+    await page.locator('input[name="firstName"]').fill('John');
+    await page.locator('input[name="lastName"]').fill('Doe');
+    await page.locator('input[name="jersey"]').fill('23');
+    await page.locator('#playerForm button[type="submit"]').click();
+
+    // Finish setup
+    await page.locator('#finishSetupBtn').click();
+
+    // Wait for modal to close
+    await page.waitForTimeout(500);
+
+    // Initial state: event section visible, roster not visible
+    const eventSection = page.locator('#eventSection');
+    const rosterSection = page.locator('#rosterSection');
+    await expect(eventSection).toBeVisible();
+    await expect(rosterSection).not.toBeVisible();
+
+    // Click an event button (Made 2)
+    const made2Btn = page.locator('button[data-kind="shot"][data-points="2"][data-result="made"]');
+    await made2Btn.click();
+
+    // After event selection: roster visible, event section not visible
+    await expect(rosterSection).toBeVisible();
+    await expect(eventSection).not.toBeVisible();
+
+    // Back button should be visible
+    const backBtn = page.locator('#backToEventsBtn');
+    await expect(backBtn).toBeVisible();
+
+    // Click back button
+    await backBtn.click();
+
+    // Back to first screen: event section visible, roster not visible
+    await expect(eventSection).toBeVisible();
+    await expect(rosterSection).not.toBeVisible();
   });
 });
