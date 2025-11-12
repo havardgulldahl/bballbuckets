@@ -5,37 +5,56 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
-  <meta name="theme-color" content="#5a5a5a" />
+  <meta name="theme-color" content="#ee6c4d" />
   <title>Balls &amp; Buckets</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon"
-    href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%235a5a5a%22 width=%22100%22 height=%22100%22 rx=%2218%22/><path fill=%22white%22 d=%22M50 10a40 40 0 1 1 0 80 40 40 0 0 1 0-80Zm0 8a32 32 0 0 0-28.7 48.1l21-21a4 4 0 0 1 5.7 0l30.7 30.7A32 32 0 0 0 50 18Zm0 64a32 32 0 0 0 28.7-48.1L57.7 55a4 4 0 0 1-5.7 0L21.3 24.3A32 32 0 0 0 50 82Z%22/></svg>" />
+    href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23ee6c4d%22 width=%22100%22 height=%22100%22 rx=%2218%22/><path fill=%22white%22 d=%22M50 10a40 40 0 1 1 0 80 40 40 0 0 1 0-80Zm0 8a32 32 0 0 0-28.7 48.1l21-21a4 4 0 0 1 5.7 0l30.7 30.7A32 32 0 0 0 50 18Zm0 64a32 32 0 0 0 28.7-48.1L57.7 55a4 4 0 0 1-5.7 0L21.3 24.3A32 32 0 0 0 50 82Z%22/></svg>" />
   <meta name="description" content="Offline-first live tagging app for youth basketball game stats." />
   <style>
     :root {
       color-scheme: light dark;
-      --bg: #e8e8e8;
-      --bg-alt: #f5f5f5;
-      --fg: #2a2a2a;
-      --muted: #6b6b6b;
-      --accent: #5a5a5a;
-      --accent-soft: rgba(90, 90, 90, 0.15);
-      --danger: #c55;
-      --success: #6a6;
+      --bg: #f8f9fa;
+      --bg-alt: #ffffff;
+      --fg: #1a1a1a;
+      --muted: #6c757d;
+      --accent: #ee6c4d;
+      --accent-hover: #e85d3c;
+      --accent-soft: rgba(238, 108, 77, 0.1);
+      --secondary: #3d5a80;
+      --secondary-hover: #2d4a70;
+      --danger: #dc3545;
+      --danger-hover: #c82333;
+      --success: #2d9a5f;
+      --success-hover: #258750;
+      --warning: #f77f00;
+      --warning-hover: #e67300;
+      --info: #0ea5e9;
       --font: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       --radius: 8px;
-      --court-bg: #d4d4d4;
-      --court-line: #888;
+      --court-bg: #e8e8e0;
+      --court-line: #ffffff;
     }
 
     :root.dark {
-      --bg: #2a2a2a;
-      --bg-alt: #3a3a3a;
-      --fg: #e8e8e8;
-      --muted: #a8a8a8;
-      --accent-soft: rgba(120, 120, 120, 0.2);
-      --court-bg: #3a3a3a;
-      --court-line: #6a6a6a;
+      --bg: #1a1a1a;
+      --bg-alt: #2d2d2d;
+      --fg: #f8f9fa;
+      --muted: #adb5bd;
+      --accent: #ff7557;
+      --accent-hover: #ff6242;
+      --accent-soft: rgba(255, 117, 87, 0.1);
+      --secondary: #5a7fa8;
+      --secondary-hover: #4a6f98;
+      --danger: #ff6b7a;
+      --danger-hover: #ff5565;
+      --success: #3dcc7f;
+      --success-hover: #2dbc6f;
+      --warning: #ffa43a;
+      --warning-hover: #ff9425;
+      --info: #38bdf8;
+      --court-bg: #2d2d2d;
+      --court-line: #4a4a4a;
     }
 
     *,
@@ -97,17 +116,22 @@
       background: rgba(255, 255, 255, 0.2);
       color: white;
       border: 1px solid rgba(255, 255, 255, 0.3);
-      padding: 0.4rem 0.8rem;
+      padding: 0.6rem 1rem;
+      min-height: 44px;
       border-radius: 6px;
       cursor: pointer;
-      font-size: 0.8rem;
-      transition: background 0.2s;
+      font-size: 0.85rem;
+      transition: background 0.2s, transform 0.12s ease;
       font-family: inherit;
       white-space: nowrap;
     }
 
     header button:hover {
       background: rgba(255, 255, 255, 0.3);
+    }
+
+    header button:active {
+      transform: scale(0.97);
     }
 
     main {
@@ -199,27 +223,45 @@
       font: inherit;
       border: none;
       border-radius: 6px;
-      padding: 0.6rem 0.9rem;
+      padding: 0.75rem 1.25rem;
+      min-height: 44px;
       cursor: pointer;
-      transition: transform .12s ease, box-shadow .15s ease;
+      transition: transform .12s ease, box-shadow .15s ease, background 0.2s;
       background: var(--accent);
       color: white;
       font-weight: 600;
       touch-action: manipulation;
     }
 
+    button:hover {
+      background: var(--accent-hover);
+    }
+
     button:active {
       transform: scale(.97);
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    button:focus-visible {
+      outline: 3px solid var(--accent);
+      outline-offset: 2px;
     }
 
     button.secondary {
-      background: var(--accent-soft);
+      background: var(--bg-alt);
       color: var(--fg);
+      border: 2px solid var(--muted);
+    }
+
+    button.secondary:hover {
+      background: var(--accent-soft);
+      border-color: var(--accent);
     }
 
     button:disabled {
-      opacity: 0.4;
+      opacity: 0.5;
       cursor: not-allowed;
+      filter: grayscale(0.5);
     }
 
     .event-pad {
@@ -229,9 +271,10 @@
     }
 
     .event-pad button {
-      min-height: 48px;
+      min-height: 52px;
+      padding: 0.75rem 1rem;
       border-radius: var(--radius);
-      font-size: 0.9rem;
+      font-size: 0.95rem;
       max-width: 8em;
     }
 
@@ -239,8 +282,16 @@
       background: var(--success);
     }
 
+    .event-pad button[data-kind="shot"][data-result="made"]:hover {
+      background: var(--success-hover);
+    }
+
     .event-pad button[data-kind="shot"][data-result="missed"] {
       background: var(--danger);
+    }
+
+    .event-pad button[data-kind="shot"][data-result="missed"]:hover {
+      background: var(--danger-hover);
     }
 
     .opponent-score-pad {
@@ -250,33 +301,34 @@
     }
 
     .opponent-score-btn {
-      min-height: 48px;
-      background: #d97706;
+      min-height: 52px;
+      background: var(--warning);
       color: white;
       font-weight: 700;
       font-size: 1rem;
     }
 
     .opponent-score-btn:hover {
-      background: #ea580c;
+      background: var(--warning-hover);
     }
 
     .undo-btn {
-      min-height: 48px;
-      background: #7c3aed;
+      min-height: 52px;
+      background: var(--secondary);
       color: white;
       font-weight: 600;
-      font-size: 0.9rem;
+      font-size: 0.95rem;
     }
 
     .undo-btn:hover {
-      background: #6d28d9;
+      background: var(--secondary-hover);
     }
 
     .undo-btn:disabled {
       background: var(--accent-soft);
       color: var(--muted);
       opacity: 0.6;
+      filter: grayscale(0.5);
     }
 
     .validation-banner {
@@ -311,7 +363,8 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 0.6rem 0.8rem;
+      padding: 0.75rem 1rem;
+      min-height: 48px;
       border-radius: var(--radius);
       background: var(--accent-soft);
       cursor: pointer;
@@ -326,12 +379,13 @@
     }
 
     .player-chip.disabled {
-      opacity: 0.4;
+      opacity: 0.5;
       cursor: not-allowed;
+      filter: grayscale(0.5);
     }
 
     .player-chip.on-court {
-      background: rgba(106, 170, 106, 0.2);
+      background: rgba(45, 154, 95, 0.15);
       border-color: var(--success);
     }
 
@@ -502,7 +556,20 @@
 
       .event-pad {
         grid-template-columns: repeat(2, 1fr);
-        gap: 0.4rem;
+        gap: 0.6rem;
+      }
+
+      .event-pad button {
+        min-height: 56px;
+        font-size: 1rem;
+      }
+
+      .opponent-score-btn {
+        min-height: 56px;
+      }
+
+      .undo-btn {
+        min-height: 56px;
       }
 
       #courtSection {
