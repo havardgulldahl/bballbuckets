@@ -508,6 +508,25 @@
       #courtSection {
         display: none;
       }
+
+      /* Two-stage mobile flow: hide roster until event is selected */
+      #rosterSection {
+        display: none;
+      }
+
+      /* When event is selected (indicated by body class), show roster and hide event buttons */
+      body.event-selected #rosterSection {
+        display: flex;
+      }
+
+      body.event-selected #eventSection {
+        display: none;
+      }
+
+      /* Show back button on mobile when event is selected */
+      body.event-selected #rosterHeader {
+        display: block !important;
+      }
     }
   </style>
 </head>
@@ -598,6 +617,9 @@
 
       <!-- Player Roster -->
       <section id="rosterSection">
+        <div id="rosterHeader" style="display:none;margin-bottom:1rem;">
+          <button type="button" id="backToEventsBtn" class="secondary" style="width:100%;">← Back to Events</button>
+        </div>
         <div class="player-list" id="playerList">
           <div class="empty-state">No players in roster</div>
         </div>
@@ -1137,6 +1159,9 @@
             subtype: btn.dataset.subtype || null
           };
 
+          // Add class to show roster on mobile
+          document.body.classList.add('event-selected');
+
           renderPlayerList();
           showToast('Event selected. Choose a player.', 'success');
         });
@@ -1144,6 +1169,9 @@
 
       // Clear position button
       document.getElementById('clearPositionBtn').addEventListener('click', clearSelection);
+
+      // Back to events button (mobile)
+      document.getElementById('backToEventsBtn').addEventListener('click', clearSelection);
 
       // Opponent scoring buttons
       document.getElementById('opponentPlus1Btn').addEventListener('click', () => logOpponentScore(1));
@@ -1563,6 +1591,9 @@
     function clearSelection() {
       state.selectedPosition = null;
       state.selectedEvent = null;
+
+      // Remove class to show event buttons on mobile
+      document.body.classList.remove('event-selected');
 
       validateGameState();
       renderPlayerList();
