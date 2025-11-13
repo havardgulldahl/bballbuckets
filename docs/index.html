@@ -273,19 +273,52 @@
       max-width: 8em;
     }
 
-    .event-pad button[data-kind="shot"][data-result="made"] {
+    .event-pad-primary {
+      display: grid;
+      gap: 0.5rem;
+      grid-template-columns: repeat(4, 1fr);
+      margin-bottom: 0.5rem;
+    }
+
+    .event-pad-primary button {
+      min-height: 52px;
+      padding: 0.75rem 1rem;
+      border-radius: var(--radius);
+      font-size: 0.95rem;
+      max-width: 8em;
+    }
+
+    .event-pad-secondary {
+      display: grid;
+      gap: 0.5rem;
+      grid-template-columns: repeat(4, 1fr);
+    }
+
+    .event-pad-secondary button {
+      min-height: 44px;
+      padding: 0.5rem 0.75rem;
+      border-radius: var(--radius);
+      font-size: 0.85rem;
+      max-width: 7em;
+    }
+
+    .event-pad button[data-kind="shot"][data-result="made"],
+    .event-pad-primary button[data-kind="shot"][data-result="made"] {
       background: var(--success);
     }
 
-    .event-pad button[data-kind="shot"][data-result="made"]:hover {
+    .event-pad button[data-kind="shot"][data-result="made"]:hover,
+    .event-pad-primary button[data-kind="shot"][data-result="made"]:hover {
       background: var(--success-hover);
     }
 
-    .event-pad button[data-kind="shot"][data-result="missed"] {
+    .event-pad button[data-kind="shot"][data-result="missed"],
+    .event-pad-primary button[data-kind="shot"][data-result="missed"] {
       background: var(--danger);
     }
 
-    .event-pad button[data-kind="shot"][data-result="missed"]:hover {
+    .event-pad button[data-kind="shot"][data-result="missed"]:hover,
+    .event-pad-primary button[data-kind="shot"][data-result="missed"]:hover {
       background: var(--danger-hover);
     }
 
@@ -320,11 +353,15 @@
       top: 0;
       right: 0;
       height: 100%;
-      display: flex;
+      display: none;
       gap: 0.25rem;
       align-items: center;
       padding-right: 0.5rem;
       background: var(--accent-soft);
+    }
+
+    .roster-item-wrapper:has(.roster-item-content.swiped) .roster-item-actions {
+      display: flex;
     }
 
     .roster-item-actions button {
@@ -605,6 +642,27 @@
         font-size: 1rem;
       }
 
+      .event-pad-primary {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.6rem;
+      }
+
+      .event-pad-primary button {
+        min-height: 56px;
+        font-size: 1rem;
+      }
+
+      .event-pad-secondary {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.5rem;
+      }
+
+      .event-pad-secondary button {
+        min-height: 48px;
+        font-size: 0.85rem;
+        padding: 0.5rem 0.5rem;
+      }
+
       .opponent-score-btn {
         min-height: 56px;
       }
@@ -706,13 +764,13 @@
       </div>
     </div>
     <div class="controls">
-      <button id="undoBtn" class="undo-btn" style="display:none;" title="Undo Last Event">↶ Undo</button>
-      <button id="rosterBtn" style="display:none;" title="Quick Roster Access">👥 Roster</button>
-      <button id="nextPeriodBtn" style="display:none;">Next</button>
-      <button id="finishGameBtn" style="display:none;">Finish</button>
-      <button id="newGameBtn" style="display:none;">New Game</button>
-      <button id="exportBtn" style="display:none;">Export</button>
-      <button id="setupGameBtn">Setup</button>
+      <button id="undoBtn" class="undo-btn" style="display:none;" title="Undo Last Event">↶</button>
+      <button id="rosterBtn" style="display:none;" title="Quick Roster Access">👥</button>
+      <button id="nextPeriodBtn" style="display:none;" title="Next Period">⏭️</button>
+      <button id="finishGameBtn" style="display:none;" title="Finish Game">🏁</button>
+      <button id="newGameBtn" style="display:none;" title="New Game">➕</button>
+      <button id="exportBtn" style="display:none;" title="Export Data">💾</button>
+      <button id="setupGameBtn" title="Setup Game">⚙️</button>
     </div>
   </header>
 
@@ -731,13 +789,15 @@
 
       <!-- Event Selection -->
       <section id="eventSection">
-        <div class="event-pad">
+        <div class="event-pad-primary">
           <button type="button" data-kind="shot" data-points="2" data-result="made">Made 2</button>
           <button type="button" data-kind="shot" data-points="2" data-result="missed">Miss 2</button>
           <button type="button" data-kind="shot" data-points="3" data-result="made">Made 3</button>
           <button type="button" data-kind="shot" data-points="3" data-result="missed">Miss 3</button>
           <button type="button" data-kind="ft" data-result="made">Made FT</button>
           <button type="button" data-kind="ft" data-result="missed">Miss FT</button>
+        </div>
+        <div class="event-pad-secondary">
           <button type="button" data-kind="rebound" data-subtype="offensive">Off Reb</button>
           <button type="button" data-kind="rebound" data-subtype="defensive">Def Reb</button>
           <button type="button" data-kind="turnover" data-subtype="liveBall">Turnover</button>
@@ -1309,7 +1369,7 @@
       });
 
       // Event buttons
-      document.querySelectorAll('.event-pad button').forEach(btn => {
+      document.querySelectorAll('.event-pad button, .event-pad-primary button, .event-pad-secondary button').forEach(btn => {
         btn.addEventListener('click', () => {
           if (!state.game) {
             showToast('Please setup game first', 'error');
@@ -2067,7 +2127,7 @@
 
       // Disable controls if game is finished
       if (state.gameFinished) {
-        document.querySelectorAll('.event-pad button').forEach(btn => {
+        document.querySelectorAll('.event-pad button, .event-pad-primary button, .event-pad-secondary button').forEach(btn => {
           btn.disabled = true;
         });
         document.querySelectorAll('.opponent-score-btn').forEach(btn => {
@@ -2075,7 +2135,7 @@
         });
         courtSVG.style.cursor = 'default';
       } else {
-        document.querySelectorAll('.event-pad button').forEach(btn => {
+        document.querySelectorAll('.event-pad button, .event-pad-primary button, .event-pad-secondary button').forEach(btn => {
           btn.disabled = false;
         });
         document.querySelectorAll('.opponent-score-btn').forEach(btn => {
