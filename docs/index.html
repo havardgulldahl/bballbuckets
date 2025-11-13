@@ -308,22 +308,20 @@
     }
 
     .undo-btn {
-      min-height: 52px;
-      background: var(--secondary);
-      color: white;
+      background: var(--warning) !important;
+      color: white !important;
+      border: 1px solid rgba(255, 255, 255, 0.3) !important;
       font-weight: 600;
-      font-size: 0.95rem;
+      font-size: 0.8rem;
     }
 
     .undo-btn:hover {
-      background: var(--secondary-hover);
+      background: var(--warning-hover) !important;
     }
 
     .undo-btn:disabled {
-      background: var(--accent-soft);
-      color: var(--muted);
-      opacity: 0.6;
-      filter: grayscale(0.5);
+      opacity: 0.5 !important;
+      cursor: not-allowed;
     }
 
     .validation-banner {
@@ -498,8 +496,8 @@
 
     .toast {
       position: fixed;
-      bottom: 2rem;
-      right: 2rem;
+      top: 2rem;
+      left: 2rem;
       background: var(--bg-alt);
       color: var(--fg);
       padding: 0.85rem 1.2rem;
@@ -520,7 +518,7 @@
 
     @keyframes slideIn {
       from {
-        transform: translateX(400px);
+        transform: translateX(-400px);
         opacity: 0;
       }
 
@@ -637,11 +635,12 @@
       </div>
     </div>
     <div class="controls">
-      <button id="nextPeriodBtn" style="display:none;">Next Period</button>
-      <button id="finishGameBtn" style="display:none;">Finish Game</button>
+      <button id="undoBtn" class="undo-btn" style="display:none;" title="Undo Last Event">↶ Undo</button>
+      <button id="nextPeriodBtn" style="display:none;">Next</button>
+      <button id="finishGameBtn" style="display:none;">Finish</button>
       <button id="newGameBtn" style="display:none;">New Game</button>
       <button id="exportBtn" style="display:none;">Export</button>
-      <button id="setupGameBtn">Setup Game</button>
+      <button id="setupGameBtn">Setup</button>
     </div>
   </header>
 
@@ -693,9 +692,6 @@
             <button type="button" id="opponentPlus2Btn" class="opponent-score-btn">+2</button>
             <button type="button" id="opponentPlus3Btn" class="opponent-score-btn">+3</button>
           </div>
-        </div>
-        <div style="margin-top:1rem;">
-          <button type="button" id="undoBtn" class="undo-btn" style="width:100%;">↶ Undo Last Event</button>
         </div>
       </section>
 
@@ -767,6 +763,11 @@
       </div>
 
       <div id="nifSelectSeason" style="display:none;">
+        <div id="nifShortcuts" style="display:none;margin-bottom:1rem;padding:1rem;background:var(--accent-soft);border-radius:var(--radius);">
+          <div style="font-size:0.85rem;font-weight:600;margin-bottom:0.5rem;opacity:0.9;">Quick Select</div>
+          <button type="button" id="quickTournamentBtn" style="width:100%;margin-bottom:0.3rem;text-align:left;font-size:0.85rem;"></button>
+          <button type="button" id="quickTeamBtn" style="width:100%;text-align:left;font-size:0.85rem;"></button>
+        </div>
         <label>Season
           <select id="seasonSelect" size="5" style="width:100%;"></select>
         </label>
@@ -1181,6 +1182,8 @@
       document.getElementById('loadTeamsBtn').addEventListener('click', loadTeams);
       document.getElementById('loadMatchesBtn').addEventListener('click', loadMatches);
       document.getElementById('importMatchBtn').addEventListener('click', importFromNIF);
+      document.getElementById('quickTournamentBtn').addEventListener('click', handleQuickTournament);
+      document.getElementById('quickTeamBtn').addEventListener('click', handleQuickTeam);
 
       // Player form
       document.getElementById('playerForm').addEventListener('submit', handleAddPlayer);
@@ -1322,6 +1325,24 @@
           select.value = seasonData.currentSeasonId;
         }
 
+        // Show shortcuts if last tournament and team are available
+        const lastTournamentId = localStorage.getItem('lastNIFTournamentId');
+        const lastTournamentName = localStorage.getItem('lastNIFTournamentName');
+        const lastTeamId = localStorage.getItem('lastNIFTeamId');
+        const lastTeamName = localStorage.getItem('lastNIFTeamName');
+        
+        if (lastTournamentId && lastTournamentName && lastTeamId && lastTeamName) {
+          document.getElementById('nifShortcuts').style.display = 'block';
+          document.getElementById('quickTournamentBtn').textContent = `🏆 ${lastTournamentName}`;
+          document.getElementById('quickTournamentBtn').dataset.tournamentId = lastTournamentId;
+          document.getElementById('quickTournamentBtn').dataset.tournamentName = lastTournamentName;
+          document.getElementById('quickTeamBtn').textContent = `👥 ${lastTeamName}`;
+          document.getElementById('quickTeamBtn').dataset.teamId = lastTeamId;
+          document.getElementById('quickTeamBtn').dataset.teamName = lastTeamName;
+        } else {
+          document.getElementById('nifShortcuts').style.display = 'none';
+        }
+
         document.getElementById('nifLoadingState').style.display = 'none';
         document.getElementById('nifSelectSeason').style.display = 'block';
       } catch (error) {
@@ -1352,6 +1373,7 @@
           const option = document.createElement('option');
           option.value = tournament.tournamentId;
           option.textContent = `${tournament.tournamentName} - ${tournament.tournamentClasses.map(c => c.className).join(', ')}`;
+          option.dataset.tournamentName = tournament.tournamentName;
           select.appendChild(option);
         });
 
@@ -1372,6 +1394,14 @@
       }
 
       state.nifData.selectedTournamentId = tournamentId;
+      
+      // Save tournament selection to localStorage
+      const tournamentSelect = document.getElementById('tournamentSelect');
+      const selectedOption = tournamentSelect.options[tournamentSelect.selectedIndex];
+      const tournamentName = selectedOption ? selectedOption.dataset.tournamentName : '';
+      localStorage.setItem('lastNIFTournamentId', tournamentId);
+      localStorage.setItem('lastNIFTournamentName', tournamentName);
+      
       document.getElementById('nifLoadingState').style.display = 'block';
       document.getElementById('nifSelectTournament').style.display = 'none';
 
@@ -1385,6 +1415,7 @@
           const option = document.createElement('option');
           option.value = team.teamId;
           option.textContent = team.overriddenName || team.team;
+          option.dataset.teamName = team.overriddenName || team.team;
           select.appendChild(option);
         });
 
@@ -1405,6 +1436,14 @@
       }
 
       state.nifData.selectedTeamId = teamId;
+      
+      // Save team selection to localStorage
+      const teamSelect = document.getElementById('teamSelect');
+      const selectedOption = teamSelect.options[teamSelect.selectedIndex];
+      const teamName = selectedOption ? selectedOption.dataset.teamName : '';
+      localStorage.setItem('lastNIFTeamId', teamId);
+      localStorage.setItem('lastNIFTeamName', teamName);
+      
       document.getElementById('nifLoadingState').style.display = 'block';
       document.getElementById('nifSelectTeam').style.display = 'none';
 
@@ -1439,6 +1478,96 @@
         document.getElementById('nifSelectMatch').style.display = 'block';
       } catch (error) {
         document.getElementById('nifLoadingState').style.display = 'none';
+        showToast('Failed to load matches', 'error');
+        console.error('NIF Error:', error);
+      }
+    }
+
+    async function handleQuickTournament() {
+      const btn = document.getElementById('quickTournamentBtn');
+      const tournamentId = btn.dataset.tournamentId;
+      const tournamentName = btn.dataset.tournamentName;
+      
+      if (!tournamentId) return;
+      
+      // Set the tournament and skip to team selection
+      state.nifData.selectedTournamentId = tournamentId;
+      document.getElementById('nifSelectSeason').style.display = 'none';
+      document.getElementById('nifLoadingState').style.display = 'block';
+      
+      try {
+        const teamsData = await window.nifAPI.getTeamsByTournament(tournamentId);
+        
+        const select = document.getElementById('teamSelect');
+        select.innerHTML = '';
+        
+        teamsData.teams.forEach(team => {
+          const option = document.createElement('option');
+          option.value = team.teamId;
+          option.textContent = team.overriddenName || team.team;
+          option.dataset.teamName = team.overriddenName || team.team;
+          select.appendChild(option);
+        });
+        
+        document.getElementById('nifLoadingState').style.display = 'none';
+        document.getElementById('nifSelectTeam').style.display = 'block';
+        showToast(`Loaded ${tournamentName}`, 'success');
+      } catch (error) {
+        document.getElementById('nifLoadingState').style.display = 'none';
+        document.getElementById('nifSelectSeason').style.display = 'block';
+        showToast('Failed to load tournament', 'error');
+        console.error('NIF Error:', error);
+      }
+    }
+    
+    async function handleQuickTeam() {
+      const btn = document.getElementById('quickTeamBtn');
+      const teamId = parseInt(btn.dataset.teamId);
+      const teamName = btn.dataset.teamName;
+      const tournamentBtn = document.getElementById('quickTournamentBtn');
+      const tournamentId = tournamentBtn.dataset.tournamentId;
+      
+      if (!tournamentId || !teamId) return;
+      
+      // Set both tournament and team, skip to match selection
+      state.nifData.selectedTournamentId = tournamentId;
+      state.nifData.selectedTeamId = teamId;
+      document.getElementById('nifSelectSeason').style.display = 'none';
+      document.getElementById('nifLoadingState').style.display = 'block';
+      
+      try {
+        const matchesData = await window.nifAPI.getMatchesByTournament(tournamentId);
+        
+        // Filter matches for selected team
+        const teamMatches = matchesData.matches.filter(m =>
+          m.hometeamId === teamId || m.awayteamId === teamId
+        );
+        
+        const select = document.getElementById('matchSelect');
+        select.innerHTML = '';
+        
+        if (teamMatches.length === 0) {
+          select.innerHTML = '<option>No matches found for this team</option>';
+        } else {
+          teamMatches.forEach(match => {
+            const option = document.createElement('option');
+            option.value = match.matchId;
+            const isHome = match.hometeamId === teamId;
+            const opponent = isHome ? match.awayteamOverriddenName : match.hometeamOverriddenName;
+            const homeAway = isHome ? 'vs' : '@';
+            const date = match.matchDate ? new Date(match.matchDate).toLocaleDateString() : 'TBD';
+            option.textContent = `${date} - ${homeAway} ${opponent} (${match.statusType})`;
+            option.dataset.match = JSON.stringify(match);
+            select.appendChild(option);
+          });
+        }
+        
+        document.getElementById('nifLoadingState').style.display = 'none';
+        document.getElementById('nifSelectMatch').style.display = 'block';
+        showToast(`Loaded ${teamName} matches`, 'success');
+      } catch (error) {
+        document.getElementById('nifLoadingState').style.display = 'none';
+        document.getElementById('nifSelectSeason').style.display = 'block';
         showToast('Failed to load matches', 'error');
         console.error('NIF Error:', error);
       }
@@ -1758,12 +1887,14 @@
         document.getElementById('headerPeriod').textContent = `P${state.period}`;
 
         // Show control buttons
+        document.getElementById('undoBtn').style.display = state.gameFinished ? 'none' : 'inline-block';
         document.getElementById('nextPeriodBtn').style.display = state.gameFinished ? 'none' : 'inline-block';
         document.getElementById('finishGameBtn').style.display = state.gameFinished ? 'none' : 'inline-block';
         document.getElementById('newGameBtn').style.display = state.gameFinished ? 'inline-block' : 'none';
-        document.getElementById('exportBtn').style.display = 'inline-block';
+        document.getElementById('exportBtn').style.display = state.gameFinished ? 'inline-block' : 'none';
       } else {
         document.getElementById('gameInfo').style.display = 'none';
+        document.getElementById('undoBtn').style.display = 'none';
         document.getElementById('nextPeriodBtn').style.display = 'none';
         document.getElementById('finishGameBtn').style.display = 'none';
         document.getElementById('newGameBtn').style.display = 'none';
