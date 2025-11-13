@@ -307,6 +307,53 @@
       background: var(--warning-hover);
     }
 
+    /* Swipeable roster item styles */
+    .roster-item-wrapper {
+      position: relative;
+      overflow: hidden;
+      border-radius: var(--radius);
+      margin-bottom: 0.4rem;
+    }
+
+    .roster-item-actions {
+      position: absolute;
+      top: 0;
+      right: 0;
+      height: 100%;
+      display: flex;
+      gap: 0.25rem;
+      align-items: center;
+      padding-right: 0.5rem;
+      background: var(--accent-soft);
+    }
+
+    .roster-item-actions button {
+      padding: 0.3rem 0.6rem;
+      font-size: 0.75rem;
+      min-height: unset;
+      white-space: nowrap;
+    }
+
+    .roster-item-content {
+      padding: 0.4rem 0.6rem;
+      background: var(--accent-soft);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+      transition: transform 0.2s ease-out;
+      touch-action: pan-y;
+    }
+
+    .roster-item-content.swiped {
+      transform: translateX(-140px);
+    }
+
+    .roster-item-content .remove-btn {
+      padding: 0.2rem 0.5rem;
+      font-size: 0.75rem;
+    }
+
     .undo-btn {
       background: var(--warning) !important;
       color: white !important;
@@ -503,7 +550,7 @@
       padding: 0.85rem 1.2rem;
       border-radius: var(--radius);
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-      z-index: 1000;
+      z-index: 10000;
       animation: slideIn 0.2s ease-out;
       border-left: 4px solid var(--accent);
     }
@@ -581,6 +628,7 @@
       #opponentScoreSection {
         flex: none;
         overflow-y: visible;
+        padding: 0.5rem 1rem;
       }
 
       /* Two-stage mobile flow: hide roster until event is selected */
@@ -609,6 +657,29 @@
       body.event-selected #rosterHeader {
         display: block !important;
       }
+
+      /* Hide Clear Selection button on mobile */
+      #clearPositionBtn {
+        display: none;
+      }
+
+      /* Hide remove button on mobile, use swipe instead */
+      .roster-item-content .remove-btn {
+        display: none;
+      }
+
+      /* Show Roster button on mobile */
+      #rosterBtn {
+        display: inline-block !important;
+      }
+    }
+
+    /* Tablet/iPad - also use swipe for roster items */
+    @media (max-width: 1024px) {
+      /* Hide remove button on tablet, use swipe instead */
+      .roster-item-content .remove-btn {
+        display: none;
+      }
     }
   </style>
 </head>
@@ -636,6 +707,7 @@
     </div>
     <div class="controls">
       <button id="undoBtn" class="undo-btn" style="display:none;" title="Undo Last Event">↶ Undo</button>
+      <button id="rosterBtn" style="display:none;" title="Quick Roster Access">👥 Roster</button>
       <button id="nextPeriodBtn" style="display:none;">Next</button>
       <button id="finishGameBtn" style="display:none;">Finish</button>
       <button id="newGameBtn" style="display:none;">New Game</button>
@@ -685,7 +757,7 @@
     <div class="right-column">
       <!-- Opponent Quick Score -->
       <section id="opponentScoreSection">
-        <div style="margin-top:1rem;">
+        <div>
           <h3 style="font-size:0.9em;margin:0 0 0.5rem 0;opacity:0.8;">Opponent Quick Score</h3>
           <div class="opponent-score-pad">
             <button type="button" id="opponentPlus1Btn" class="opponent-score-btn">+1</button>
@@ -725,6 +797,16 @@
     <div style="margin-top:1rem;display:flex;gap:0.5rem;">
       <button type="button" id="exportStatsBtn" style="flex:1;">Export Stats</button>
       <button type="button" class="secondary" id="closeStatsBtn" style="flex:1;">Close</button>
+    </div>
+  </dialog>
+
+  <!-- Quick Roster Dialog (Mobile) -->
+  <dialog id="quickRosterDialog">
+    <h3>Quick Roster</h3>
+    <p style="color:var(--muted);font-size:0.85rem;margin-bottom:1rem;">Toggle players on/off court</p>
+    <div id="quickRosterList" style="max-height:60vh;overflow-y:auto;"></div>
+    <div style="margin-top:1rem;">
+      <button type="button" class="secondary" id="closeQuickRosterBtn" style="width:100%;">Close</button>
     </div>
   </dialog>
 
@@ -1267,6 +1349,14 @@
 
       // Undo button
       document.getElementById('undoBtn').addEventListener('click', undoLastEvent);
+
+      // Roster button (mobile only)
+      document.getElementById('rosterBtn').addEventListener('click', showQuickRoster);
+
+      // Quick Roster dialog
+      document.getElementById('closeQuickRosterBtn').addEventListener('click', () => {
+        document.getElementById('quickRosterDialog').close();
+      });
     }
 
     function showGameSetup() {
@@ -1693,11 +1783,22 @@
       }
 
       container.innerHTML = state.players.map(p => `
-        <div style="padding:0.4rem 0.6rem;background:var(--accent-soft);border-radius:var(--radius);display:flex;justify-content:space-between;align-items:center;">
-          <span>#${p.jersey} ${p.firstName} ${p.lastName}</span>
-          <button type="button" onclick="removePlayer('${p.id}')" style="padding:0.2rem 0.5rem;font-size:0.75rem;">Remove</button>
+        <div class="roster-item-wrapper">
+          <div class="roster-item-actions">
+            <button type="button" onclick="editPlayer('${p.id}')" class="secondary">Edit</button>
+            <button type="button" onclick="removePlayer('${p.id}')" class="danger">Remove</button>
+          </div>
+          <div class="roster-item-content" data-player-id="${p.id}">
+            <span>#${p.jersey} ${p.firstName} ${p.lastName}</span>
+            <button type="button" onclick="removePlayer('${p.id}')" class="remove-btn">Remove</button>
+          </div>
         </div>
       `).join('');
+
+      // Add swipe event listeners for mobile/tablet
+      container.querySelectorAll('.roster-item-content').forEach(item => {
+        setupSwipeGesture(item);
+      });
     }
 
     function renderPlayerList() {
@@ -1789,6 +1890,69 @@
       validateGameState();
       showToast('Player removed', 'success');
     };
+
+    window.editPlayer = function (playerId) {
+      const player = state.players.find(p => p.id === playerId);
+      if (!player) return;
+
+      // Pre-fill the form with player data
+      const form = document.getElementById('playerForm');
+      form.firstName.value = player.firstName;
+      form.lastName.value = player.lastName;
+      form.jersey.value = player.jersey;
+
+      // Remove the player so it can be re-added with updated info
+      state.players = state.players.filter(p => p.id !== playerId);
+      deleteFromStore('players', playerId);
+      renderRosterPreview();
+      showToast('Edit player details and click Add Player', 'success');
+    };
+
+    function setupSwipeGesture(element) {
+      let startX = 0;
+      let currentX = 0;
+      let isSwiping = false;
+
+      element.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX;
+        currentX = startX;
+        isSwiping = true;
+      }, { passive: true });
+
+      element.addEventListener('touchmove', (e) => {
+        if (!isSwiping) return;
+        currentX = e.touches[0].clientX;
+        const deltaX = currentX - startX;
+
+        // Only allow swipe left (negative deltaX)
+        if (deltaX < 0 && deltaX > -150) {
+          element.style.transform = `translateX(${deltaX}px)`;
+        }
+      }, { passive: true });
+
+      element.addEventListener('touchend', (e) => {
+        if (!isSwiping) return;
+        isSwiping = false;
+
+        const deltaX = currentX - startX;
+
+        // If swiped more than 70px, reveal actions
+        if (deltaX < -70) {
+          element.classList.add('swiped');
+        } else {
+          element.classList.remove('swiped');
+          element.style.transform = '';
+        }
+      });
+
+      // Close swipe when tapping elsewhere
+      document.addEventListener('touchstart', (e) => {
+        if (!element.contains(e.target) && !element.parentElement.querySelector('.roster-item-actions').contains(e.target)) {
+          element.classList.remove('swiped');
+          element.style.transform = '';
+        }
+      });
+    }
 
     window.toggleCourt = async function (playerId) {
       const player = state.players.find(p => p.id === playerId);
@@ -2074,6 +2238,27 @@
       // Hide the banner - all validation issues are now shown in the roster section
       banner.style.display = 'none';
       banner.innerHTML = '';
+    }
+
+    function showQuickRoster() {
+      const dialog = document.getElementById('quickRosterDialog');
+      const container = document.getElementById('quickRosterList');
+
+      if (state.players.length === 0) {
+        container.innerHTML = '<div class="empty-state">No players in roster</div>';
+      } else {
+        container.innerHTML = state.players.map(p => `
+          <div class="player-chip" style="margin-bottom:0.5rem;">
+            <span><strong>#${p.jersey}</strong> ${p.firstName} ${p.lastName}</span>
+            <label class="court-toggle" onclick="event.stopPropagation();">
+              <input type="checkbox" ${p.onCourt ? 'checked' : ''} onchange="toggleCourt('${p.id}')" />
+              <span class="slider"></span>
+            </label>
+          </div>
+        `).join('');
+      }
+
+      dialog.showModal();
     }
 
     // Utility functions
