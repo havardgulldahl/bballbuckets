@@ -1842,7 +1842,13 @@
         return;
       }
 
-      container.innerHTML = state.players.map(p => `
+      // Sort players: on-court players first
+      const sortedPlayers = [...state.players].sort((a, b) => {
+        if (a.onCourt === b.onCourt) return 0;
+        return a.onCourt ? -1 : 1;
+      });
+
+      container.innerHTML = sortedPlayers.map(p => `
         <div class="roster-item-wrapper">
           <div class="roster-item-actions">
             <button type="button" onclick="editPlayer('${p.id}')" class="secondary">Edit</button>
@@ -1870,7 +1876,13 @@
 
       const hasEvent = !!state.selectedEvent;
 
-      let html = state.players.map(p => `
+      // Sort players: on-court players first
+      const sortedPlayers = [...state.players].sort((a, b) => {
+        if (a.onCourt === b.onCourt) return 0;
+        return a.onCourt ? -1 : 1;
+      });
+
+      let html = sortedPlayers.map(p => `
         <div class="player-chip ${!hasEvent ? 'disabled' : ''} ${p.onCourt ? 'on-court' : ''}" ${hasEvent ? `onclick="selectPlayer('${p.id}')"` : ''}>
           <span><strong>#${p.jersey}</strong> ${p.firstName} ${p.lastName}</span>
           <label class="court-toggle" onclick="event.stopPropagation();">
@@ -2307,7 +2319,13 @@
       if (state.players.length === 0) {
         container.innerHTML = '<div class="empty-state">No players in roster</div>';
       } else {
-        container.innerHTML = state.players.map(p => `
+        // Sort players: on-court players first
+        const sortedPlayers = [...state.players].sort((a, b) => {
+          if (a.onCourt === b.onCourt) return 0;
+          return a.onCourt ? -1 : 1;
+        });
+
+        container.innerHTML = sortedPlayers.map(p => `
           <div class="player-chip" style="margin-bottom:0.5rem;">
             <span><strong>#${p.jersey}</strong> ${p.firstName} ${p.lastName}</span>
             <label class="court-toggle" onclick="event.stopPropagation();">
