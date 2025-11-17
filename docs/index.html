@@ -445,7 +445,7 @@
       border-radius: var(--radius);
       background: var(--accent-soft);
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.3s ease, transform 0.4s ease-out;
       border: 2px solid transparent;
     }
 
@@ -469,6 +469,22 @@
     .player-list {
       display: grid;
       gap: 0.5rem;
+    }
+
+    /* Animation for player position changes */
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .player-chip.just-moved {
+      animation: slideDown 0.5s ease-out;
     }
 
     .court-toggle {
@@ -569,6 +585,25 @@
     textarea:focus {
       outline: 2px solid var(--accent);
       border-color: var(--accent);
+    }
+
+    /* Filter input for select elements */
+    .select-filter-input {
+      margin-bottom: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.9rem;
+      border: 2px solid var(--accent);
+      background: var(--bg-alt);
+    }
+
+    .select-filter-input::placeholder {
+      color: var(--muted);
+      opacity: 0.7;
+    }
+
+    /* Hide filtered options */
+    select option.filtered-hidden {
+      display: none;
     }
 
     .empty-state {
@@ -1034,7 +1069,8 @@
       selectedEvent: null,
       gameFinished: false,
       validationWarnings: [],
-      validationErrors: []
+      validationErrors: [],
+      lastToggledPlayerId: null
     };
 
     const dbName = 'hooptrack-db';
@@ -1451,6 +1487,42 @@
       document.getElementById('rosterSetupSection').style.display = 'none';
     }
 
+    // Helper function to add filter input to a select element
+    function addFilterToSelect(selectId, labelId) {
+      const select = document.getElementById(selectId);
+      const label = document.querySelector(`label:has(#${selectId})`);
+      
+      if (!select || !label) return;
+      
+      // Check if filter already exists
+      if (label.querySelector('.select-filter-input')) return;
+      
+      // Only add filter if there are more than 7 options
+      if (select.options.length <= 7) return;
+      
+      const filterInput = document.createElement('input');
+      filterInput.type = 'text';
+      filterInput.placeholder = 'Filter...';
+      filterInput.className = 'select-filter-input';
+      
+      filterInput.addEventListener('input', (e) => {
+        const filterText = e.target.value.toLowerCase();
+        Array.from(select.options).forEach(option => {
+          const optionText = option.textContent.toLowerCase();
+          if (optionText.includes(filterText)) {
+            option.classList.remove('filtered-hidden');
+            option.style.display = '';
+          } else {
+            option.classList.add('filtered-hidden');
+            option.style.display = 'none';
+          }
+        });
+      });
+      
+      // Insert filter input before the select element
+      label.insertBefore(filterInput, select);
+    }
+
     async function startNIFSetup() {
       document.getElementById('setupMethodSection').style.display = 'none';
       document.getElementById('nifImportSection').style.display = 'block';
@@ -1474,6 +1546,9 @@
         if (seasonData.currentSeasonId) {
           select.value = seasonData.currentSeasonId;
         }
+
+        // Add filter if needed
+        addFilterToSelect('seasonSelect', 'seasonLabel');
 
         // Show shortcuts if last tournament and team are available
         const lastTournamentId = localStorage.getItem('lastNIFTournamentId');
@@ -1527,6 +1602,9 @@
           select.appendChild(option);
         });
 
+        // Add filter if needed
+        addFilterToSelect('tournamentSelect', 'tournamentLabel');
+
         document.getElementById('nifLoadingState').style.display = 'none';
         document.getElementById('nifSelectTournament').style.display = 'block';
       } catch (error) {
@@ -1569,6 +1647,9 @@
           select.appendChild(option);
         });
 
+        // Add filter if needed
+        addFilterToSelect('teamSelect', 'teamLabel');
+
         document.getElementById('nifLoadingState').style.display = 'none';
         document.getElementById('nifSelectTeam').style.display = 'block';
       } catch (error) {
@@ -1605,24 +1686,52 @@
           m.hometeamId === teamId || m.awayteamId === teamId
         );
 
+        // Sort matches by date in ascending order
+        teamMatches.sort((a, b) => {
+          const dateA = a.matchDate ? new Date(a.matchDate).getTime() : 0;
+          const dateB = b.matchDate ? new Date(b.matchDate).getTime() : 0;
+          return dateA - dateB;
+        });
+
         const select = document.getElementById('matchSelect');
         select.innerHTML = '';
 
         if (teamMatches.length === 0) {
           select.innerHTML = '<option>No matches found for this team</option>';
         } else {
+          const now = new Date();
+          now.setHours(0, 0, 0, 0); // Start of today
+          
           teamMatches.forEach(match => {
             const option = document.createElement('option');
             option.value = match.matchId;
             const isHome = match.hometeamId === teamId;
             const opponent = isHome ? match.awayteamOverriddenName : match.hometeamOverriddenName;
             const homeAway = isHome ? 'vs' : '@';
-            const date = match.matchDate ? new Date(match.matchDate).toLocaleDateString() : 'TBD';
-            option.textContent = `${date} - ${homeAway} ${opponent} (${match.statusType})`;
+            const matchDate = match.matchDate ? new Date(match.matchDate) : null;
+            const date = matchDate ? matchDate.toLocaleDateString() : 'TBD';
+            
+            // Disable past matches
+            if (matchDate) {
+              const matchDateOnly = new Date(matchDate);
+              matchDateOnly.setHours(0, 0, 0, 0);
+              if (matchDateOnly < now) {
+                option.disabled = true;
+                option.textContent = `${date} - ${homeAway} ${opponent} (${match.statusType}) [Past]`;
+              } else {
+                option.textContent = `${date} - ${homeAway} ${opponent} (${match.statusType})`;
+              }
+            } else {
+              option.textContent = `${date} - ${homeAway} ${opponent} (${match.statusType})`;
+            }
+            
             option.dataset.match = JSON.stringify(match);
             select.appendChild(option);
           });
         }
+
+        // Add filter if needed
+        addFilterToSelect('matchSelect', 'matchLabel');
 
         document.getElementById('nifLoadingState').style.display = 'none';
         document.getElementById('nifSelectMatch').style.display = 'block';
@@ -1658,6 +1767,9 @@
           option.dataset.teamName = team.overriddenName || team.team;
           select.appendChild(option);
         });
+        
+        // Add filter if needed
+        addFilterToSelect('teamSelect', 'teamLabel');
         
         document.getElementById('nifLoadingState').style.display = 'none';
         document.getElementById('nifSelectTeam').style.display = 'block';
@@ -1696,21 +1808,49 @@
         const select = document.getElementById('matchSelect');
         select.innerHTML = '';
         
+        // Sort matches by date in ascending order
+        teamMatches.sort((a, b) => {
+          const dateA = a.matchDate ? new Date(a.matchDate).getTime() : 0;
+          const dateB = b.matchDate ? new Date(b.matchDate).getTime() : 0;
+          return dateA - dateB;
+        });
+        
         if (teamMatches.length === 0) {
           select.innerHTML = '<option>No matches found for this team</option>';
         } else {
+          const now = new Date();
+          now.setHours(0, 0, 0, 0); // Start of today
+          
           teamMatches.forEach(match => {
             const option = document.createElement('option');
             option.value = match.matchId;
             const isHome = match.hometeamId === teamId;
             const opponent = isHome ? match.awayteamOverriddenName : match.hometeamOverriddenName;
             const homeAway = isHome ? 'vs' : '@';
-            const date = match.matchDate ? new Date(match.matchDate).toLocaleDateString() : 'TBD';
-            option.textContent = `${date} - ${homeAway} ${opponent} (${match.statusType})`;
+            const matchDate = match.matchDate ? new Date(match.matchDate) : null;
+            const date = matchDate ? matchDate.toLocaleDateString() : 'TBD';
+            
+            // Disable past matches
+            if (matchDate) {
+              const matchDateOnly = new Date(matchDate);
+              matchDateOnly.setHours(0, 0, 0, 0);
+              if (matchDateOnly < now) {
+                option.disabled = true;
+                option.textContent = `${date} - ${homeAway} ${opponent} (${match.statusType}) [Past]`;
+              } else {
+                option.textContent = `${date} - ${homeAway} ${opponent} (${match.statusType})`;
+              }
+            } else {
+              option.textContent = `${date} - ${homeAway} ${opponent} (${match.statusType})`;
+            }
+            
             option.dataset.match = JSON.stringify(match);
             select.appendChild(option);
           });
         }
+        
+        // Add filter if needed
+        addFilterToSelect('matchSelect', 'matchLabel');
         
         document.getElementById('nifLoadingState').style.display = 'none';
         document.getElementById('nifSelectMatch').style.display = 'block';
@@ -1842,10 +1982,11 @@
         return;
       }
 
-      // Sort players: on-court players first
+      // Sort players by jersey number
       const sortedPlayers = [...state.players].sort((a, b) => {
-        if (a.onCourt === b.onCourt) return 0;
-        return a.onCourt ? -1 : 1;
+        const jerseyA = parseInt(a.jersey) || 999;
+        const jerseyB = parseInt(b.jersey) || 999;
+        return jerseyA - jerseyB;
       });
 
       container.innerHTML = sortedPlayers.map(p => `
@@ -1876,21 +2017,30 @@
 
       const hasEvent = !!state.selectedEvent;
 
-      // Sort players: on-court players first
+      // Sort players: on-court players first, then by jersey number within each group
       const sortedPlayers = [...state.players].sort((a, b) => {
-        if (a.onCourt === b.onCourt) return 0;
+        if (a.onCourt === b.onCourt) {
+          // Within same court status, sort by jersey number
+          const jerseyA = parseInt(a.jersey) || 999;
+          const jerseyB = parseInt(b.jersey) || 999;
+          return jerseyA - jerseyB;
+        }
         return a.onCourt ? -1 : 1;
       });
 
-      let html = sortedPlayers.map(p => `
-        <div class="player-chip ${!hasEvent ? 'disabled' : ''} ${p.onCourt ? 'on-court' : ''}" ${hasEvent ? `onclick="selectPlayer('${p.id}')"` : ''}>
+      let html = sortedPlayers.map(p => {
+        // Add animation class if this player was just toggled
+        const animClass = state.lastToggledPlayerId === p.id ? 'just-moved' : '';
+        return `
+        <div class="player-chip ${!hasEvent ? 'disabled' : ''} ${p.onCourt ? 'on-court' : ''} ${animClass}" ${hasEvent ? `onclick="selectPlayer('${p.id}')"` : ''}>
           <span><strong>#${p.jersey}</strong> ${p.firstName} ${p.lastName}</span>
           <label class="court-toggle" onclick="event.stopPropagation();">
             <input type="checkbox" ${p.onCourt ? 'checked' : ''} onchange="toggleCourt('${p.id}')" />
             <span class="slider"></span>
           </label>
         </div>
-      `).join('');
+      `;
+      }).join('');
 
       // Add ALL validation issues at the bottom
       const allIssues = [...state.validationErrors, ...state.validationWarnings];
@@ -2031,10 +2181,19 @@
       if (!player) return;
 
       player.onCourt = !player.onCourt;
+      
+      // Mark this player as just moved for animation
+      state.lastToggledPlayerId = playerId;
+      
       await putInStore('players', player);
       validateGameState();
       renderPlayerList();
       showToast(`${player.firstName} ${player.lastName} ${player.onCourt ? 'on court' : 'benched'}`, 'success');
+      
+      // Clear the animation flag after animation completes
+      setTimeout(() => {
+        state.lastToggledPlayerId = null;
+      }, 500);
     };
 
     function clearSelection() {
