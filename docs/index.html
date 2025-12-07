@@ -774,6 +774,156 @@
         display: none;
       }
     }
+
+    /* History View Styles */
+    .history-card {
+      background: var(--bg-alt);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 2px solid transparent;
+    }
+
+    .history-card:hover {
+      border-color: var(--accent);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+      transform: translateY(-2px);
+    }
+
+    .history-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .history-card-date {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .history-card-score {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: var(--accent);
+    }
+
+    .history-card-opponent {
+      font-size: 1.2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .history-card-meta {
+      display: flex;
+      gap: 1rem;
+      font-size: 0.85rem;
+      color: var(--muted);
+      flex-wrap: wrap;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .stat-card {
+      background: var(--bg-alt);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .stat-card h3 {
+      margin: 0 0 1rem 0;
+      font-size: 1.1rem;
+      color: var(--accent);
+      border-bottom: 2px solid var(--accent);
+      padding-bottom: 0.5rem;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--bg);
+    }
+
+    .stat-row:last-child {
+      border-bottom: none;
+    }
+
+    .stat-label {
+      color: var(--muted);
+    }
+
+    .stat-value {
+      font-weight: bold;
+    }
+
+    .player-stats-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    .player-stats-table th {
+      background: var(--accent-soft);
+      padding: 0.75rem 0.5rem;
+      text-align: left;
+      font-weight: 600;
+      border-bottom: 2px solid var(--accent);
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    .player-stats-table td {
+      padding: 0.75rem 0.5rem;
+      border-bottom: 1px solid var(--bg);
+    }
+
+    .player-stats-table tbody tr:hover {
+      background: var(--accent-soft);
+    }
+
+    .player-stats-table th.sortable {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .player-stats-table th.sortable:hover {
+      background: var(--accent);
+      color: white;
+    }
+
+    .danger {
+      background: var(--danger);
+      color: white;
+    }
+
+    .danger:hover {
+      background: var(--danger-hover);
+    }
+
+    @media (max-width: 768px) {
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .player-stats-table {
+        font-size: 0.75rem;
+      }
+      
+      .player-stats-table th,
+      .player-stats-table td {
+        padding: 0.5rem 0.25rem;
+      }
+    }
   </style>
 </head>
 
@@ -805,12 +955,44 @@
       <button id="finishGameBtn" style="display:none;" title="Finish Game">🏁</button>
       <button id="newGameBtn" style="display:none;" title="New Game">➕</button>
       <button id="exportBtn" style="display:none;" title="Export Data">💾</button>
+      <button id="historyBtn" style="display:none;" title="Game History">📊</button>
       <button id="setupGameBtn" title="Setup Game">⚙️</button>
     </div>
   </header>
 
   <!-- Validation Banner -->
   <div id="validationBanner" style="display:none;"></div>
+
+  <!-- History View -->
+  <div id="historyView" style="display:none;padding:1.5rem;max-width:1400px;margin:0 auto;">
+    <div style="margin-bottom:2rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;">
+      <h2 style="margin:0;font-size:1.8rem;color:var(--accent);">📊 Game History</h2>
+      <button id="backToLiveGameBtn" class="secondary" style="padding:0.75rem 1.5rem;">← Back to Live Game</button>
+    </div>
+    
+    <div id="historyList" style="display:grid;gap:1rem;">
+      <div style="text-align:center;padding:3rem;color:var(--muted);">
+        <div style="font-size:3rem;margin-bottom:1rem;">🏀</div>
+        <div>No finished games yet</div>
+        <div style="font-size:0.85rem;margin-top:0.5rem;">Games will appear here after you finish them</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- History Game Detail View -->
+  <div id="historyDetailView" style="display:none;padding:1.5rem;max-width:1400px;margin:0 auto;">
+    <div style="margin-bottom:2rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;">
+      <button id="backToHistoryListBtn" class="secondary" style="padding:0.75rem 1.5rem;">← Back to History</button>
+      <div style="display:flex;gap:0.5rem;">
+        <button id="exportHistoryGameBtn" title="Export Game Data" style="padding:0.75rem 1.5rem;">💾 Export</button>
+        <button id="deleteHistoryGameBtn" class="danger" title="Delete Game" style="padding:0.75rem 1.5rem;">🗑️</button>
+      </div>
+    </div>
+    
+    <div id="historyGameHeader" style="margin-bottom:2rem;padding:1.5rem;background:var(--bg-alt);border-radius:var(--radius);box-shadow:0 2px 4px rgba(0,0,0,0.1);"></div>
+    
+    <div id="historyGameStats" style="display:grid;gap:2rem;"></div>
+  </div>
 
   <main>
     <!-- Left Column -->
@@ -1041,6 +1223,16 @@
       getTeamPlayersForApp
     } from './nif.js';
 
+    // Import history database functions
+    import {
+      saveGameToHistory,
+      getAllFinishedGames,
+      getFinishedGame,
+      getFinishedGameEvents,
+      getFinishedGamePlayers,
+      deleteFinishedGame
+    } from './history-db.js';
+
     // Make NIF functions available globally
     window.nifAPI = {
       getCurrentSeason,
@@ -1048,6 +1240,16 @@
       getTeamsByTournament,
       getMatchesByTournament,
       getTeamPlayersForApp
+    };
+
+    // Make history functions available globally
+    window.historyDB = {
+      saveGameToHistory,
+      getAllFinishedGames,
+      getFinishedGame,
+      getFinishedGameEvents,
+      getFinishedGamePlayers,
+      deleteFinishedGame
     };
   </script>
   <script>
@@ -1070,7 +1272,9 @@
       gameFinished: false,
       validationWarnings: [],
       validationErrors: [],
-      lastToggledPlayerId: null
+      lastToggledPlayerId: null,
+      currentView: 'live', // 'live', 'history', 'historyDetail'
+      selectedHistoryGame: null
     };
 
     const dbName = 'hooptrack-db';
@@ -1305,6 +1509,7 @@
       document.getElementById('finishGameBtn').addEventListener('click', finishGame);
       document.getElementById('newGameBtn').addEventListener('click', startNewGame);
       document.getElementById('exportBtn').addEventListener('click', showExportDialog);
+      document.getElementById('historyBtn').addEventListener('click', showHistoryView);
 
       // Export dialog buttons
       document.getElementById('exportCSVBtn').addEventListener('click', () => exportData('csv'));
@@ -1453,6 +1658,12 @@
       document.getElementById('closeQuickRosterBtn').addEventListener('click', () => {
         document.getElementById('quickRosterDialog').close();
       });
+
+      // History view navigation
+      document.getElementById('backToLiveGameBtn').addEventListener('click', showLiveGameView);
+      document.getElementById('backToHistoryListBtn').addEventListener('click', showHistoryView);
+      document.getElementById('exportHistoryGameBtn').addEventListener('click', exportHistoryGame);
+      document.getElementById('deleteHistoryGameBtn').addEventListener('click', deleteHistoryGame);
     }
 
     function showGameSetup() {
@@ -2287,6 +2498,7 @@
         document.getElementById('finishGameBtn').style.display = state.gameFinished ? 'none' : 'inline-block';
         document.getElementById('newGameBtn').style.display = state.gameFinished ? 'inline-block' : 'none';
         document.getElementById('exportBtn').style.display = state.gameFinished ? 'inline-block' : 'none';
+        document.getElementById('historyBtn').style.display = state.gameFinished ? 'inline-block' : 'none';
       } else {
         document.getElementById('gameInfo').style.display = 'none';
         document.getElementById('undoBtn').style.display = 'none';
@@ -2294,6 +2506,7 @@
         document.getElementById('finishGameBtn').style.display = 'none';
         document.getElementById('newGameBtn').style.display = 'none';
         document.getElementById('exportBtn').style.display = 'none';
+        document.getElementById('historyBtn').style.display = 'none';
       }
 
       // Disable controls if game is finished
@@ -2591,8 +2804,38 @@
 
       state.gameFinished = true;
       await persistMeta('gameFinished', true);
+
+      // Save game to history database
+      try {
+        const gameId = `game-${Date.now()}`;
+        const stats = calculateStats();
+        const historyGameData = {
+          id: gameId,
+          timestamp: Date.now(),
+          date: state.game.date,
+          opponent: state.game.opponent,
+          location: state.game.location || '',
+          ruleSet: state.game.ruleSet || 'FIBA',
+          homeScore: state.homeScore,
+          opponentScore: state.opponentScore,
+          periods: state.period,
+          stats: stats
+        };
+
+        await window.historyDB.saveGameToHistory({
+          id: gameId,
+          game: historyGameData,
+          events: state.events,
+          players: state.players
+        });
+
+        showToast('Game finished and saved to history!', 'success');
+      } catch (error) {
+        console.error('Error saving game to history:', error);
+        showToast('Game finished! (Warning: Could not save to history)', 'warning');
+      }
+
       updateUI();
-      showToast('Game finished!', 'success');
 
       // Show stats
       setTimeout(() => showStats(), 500);
@@ -2626,6 +2869,439 @@
       showGameSetup();
 
       showToast('Ready to start a new game!', 'success');
+    }
+
+    // History View Functions
+    async function showHistoryView() {
+      state.currentView = 'history';
+      
+      // Hide live game view and history detail
+      document.querySelector('main').style.display = 'none';
+      document.getElementById('historyDetailView').style.display = 'none';
+      
+      // Show history list view
+      document.getElementById('historyView').style.display = 'block';
+
+      // Load and display finished games
+      try {
+        const games = await window.historyDB.getAllFinishedGames();
+        const container = document.getElementById('historyList');
+
+        if (games.length === 0) {
+          container.innerHTML = `
+            <div style="text-align:center;padding:3rem;color:var(--muted);">
+              <div style="font-size:3rem;margin-bottom:1rem;">🏀</div>
+              <div>No finished games yet</div>
+              <div style="font-size:0.85rem;margin-top:0.5rem;">Games will appear here after you finish them</div>
+            </div>
+          `;
+        } else {
+          let html = '';
+          games.forEach(game => {
+            const resultText = game.homeScore > game.opponentScore ? 'W' : 
+                             game.homeScore < game.opponentScore ? 'L' : 'T';
+            const resultColor = game.homeScore > game.opponentScore ? 'var(--success)' : 
+                              game.homeScore < game.opponentScore ? 'var(--danger)' : 'var(--warning)';
+            
+            html += `
+              <div class="history-card" onclick="showHistoryGameDetail('${game.id}')">
+                <div class="history-card-header">
+                  <span class="history-card-date">📅 ${game.date}</span>
+                  <span style="font-weight:bold;color:${resultColor};">${resultText}</span>
+                </div>
+                <div class="history-card-opponent">🆚 ${game.opponent}</div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:1rem;">
+                  <div class="history-card-score">${game.homeScore} - ${game.opponentScore}</div>
+                  <div class="history-card-meta">
+                    <span>⏱️ ${game.periods} periods</span>
+                    ${game.location ? `<span>📍 ${game.location}</span>` : ''}
+                  </div>
+                </div>
+              </div>
+            `;
+          });
+          container.innerHTML = html;
+        }
+      } catch (error) {
+        console.error('Error loading history:', error);
+        showToast('Error loading game history', 'error');
+      }
+    }
+
+    function showLiveGameView() {
+      state.currentView = 'live';
+      
+      // Show live game view
+      document.querySelector('main').style.display = 'flex';
+      
+      // Hide history views
+      document.getElementById('historyView').style.display = 'none';
+      document.getElementById('historyDetailView').style.display = 'none';
+    }
+
+    async function showHistoryGameDetail(gameId) {
+      state.currentView = 'historyDetail';
+      state.selectedHistoryGame = gameId;
+
+      // Hide other views
+      document.getElementById('historyView').style.display = 'none';
+      document.querySelector('main').style.display = 'none';
+
+      // Show detail view
+      document.getElementById('historyDetailView').style.display = 'block';
+
+      try {
+        // Load game data
+        const game = await window.historyDB.getFinishedGame(gameId);
+        const events = await window.historyDB.getFinishedGameEvents(gameId);
+        const players = await window.historyDB.getFinishedGamePlayers(gameId);
+
+        // Render game header
+        const headerContainer = document.getElementById('historyGameHeader');
+        const resultText = game.homeScore > game.opponentScore ? 'Victory' : 
+                         game.homeScore < game.opponentScore ? 'Loss' : 'Tie';
+        const resultColor = game.homeScore > game.opponentScore ? 'var(--success)' : 
+                          game.homeScore < game.opponentScore ? 'var(--danger)' : 'var(--warning)';
+
+        headerContainer.innerHTML = `
+          <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:1rem;">
+            <div>
+              <h2 style="margin:0 0 0.5rem 0;font-size:1.8rem;">🆚 ${game.opponent}</h2>
+              <div style="color:var(--muted);font-size:0.9rem;">
+                📅 ${game.date} ${game.location ? `• 📍 ${game.location}` : ''} • ⏱️ ${game.periods} periods
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:2.5rem;font-weight:bold;color:var(--accent);">${game.homeScore} - ${game.opponentScore}</div>
+              <div style="font-size:1.2rem;font-weight:bold;color:${resultColor};">${resultText}</div>
+            </div>
+          </div>
+        `;
+
+        // Render stats
+        renderHistoryGameStats(game, events, players);
+
+      } catch (error) {
+        console.error('Error loading game details:', error);
+        showToast('Error loading game details', 'error');
+      }
+    }
+
+    function renderHistoryGameStats(game, events, players) {
+      const statsContainer = document.getElementById('historyGameStats');
+      const stats = game.stats;
+
+      let html = '';
+
+      // Team Stats Card
+      html += `
+        <div class="stat-card">
+          <h3>📊 Team Statistics</h3>
+          <div class="stat-row">
+            <span class="stat-label">Final Score</span>
+            <span class="stat-value">${game.homeScore} - ${game.opponentScore}</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Field Goals</span>
+            <span class="stat-value">${stats.team.fgm}/${stats.team.fga} (${stats.team.fgPct}%)</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">3-Pointers</span>
+            <span class="stat-value">${stats.team.threepm}/${stats.team.threepa} (${stats.team.threePct}%)</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Free Throws</span>
+            <span class="stat-value">${stats.team.ftm}/${stats.team.fta} (${stats.team.ftPct}%)</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Rebounds</span>
+            <span class="stat-value">${stats.team.rebounds} (O:${stats.team.oreb}, D:${stats.team.dreb})</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Assists</span>
+            <span class="stat-value">${stats.team.assists}</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Steals</span>
+            <span class="stat-value">${stats.team.steals}</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Blocks</span>
+            <span class="stat-value">${stats.team.blocks}</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Turnovers</span>
+            <span class="stat-value">${stats.team.turnovers}</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Personal Fouls</span>
+            <span class="stat-value">${stats.team.fouls}</span>
+          </div>
+        </div>
+      `;
+
+      // Advanced Team Stats Card
+      const possessions = estimatePossessions(stats.team);
+      const offensiveRating = possessions > 0 ? ((game.homeScore / possessions) * 100).toFixed(1) : '0.0';
+      const effectiveFG = stats.team.fga > 0 ? (((stats.team.fgm + 0.5 * stats.team.threepm) / stats.team.fga) * 100).toFixed(1) : '0.0';
+      const trueShooting = (stats.team.fga + 0.44 * stats.team.fta) > 0 ? 
+        ((game.homeScore / (2 * (stats.team.fga + 0.44 * stats.team.fta))) * 100).toFixed(1) : '0.0';
+
+      html += `
+        <div class="stat-card">
+          <h3>📈 Advanced Team Metrics</h3>
+          <div class="stat-row">
+            <span class="stat-label">Possessions (est.)</span>
+            <span class="stat-value">${possessions.toFixed(1)}</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Offensive Rating</span>
+            <span class="stat-value">${offensiveRating} pts/100</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Effective FG%</span>
+            <span class="stat-value">${effectiveFG}%</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">True Shooting%</span>
+            <span class="stat-value">${trueShooting}%</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Assist/TO Ratio</span>
+            <span class="stat-value">${stats.team.turnovers > 0 ? (stats.team.assists / stats.team.turnovers).toFixed(2) : stats.team.assists.toFixed(2)}</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Total Events</span>
+            <span class="stat-value">${events.filter(e => e.team !== 'opponent').length}</span>
+          </div>
+        </div>
+      `;
+
+      // Player Stats Table Card
+      html += `
+        <div class="stat-card" style="grid-column: 1 / -1;">
+          <h3>👥 Player Statistics</h3>
+          <div style="overflow-x:auto;">
+            <table class="player-stats-table">
+              <thead>
+                <tr>
+                  <th class="sortable" onclick="sortHistoryPlayerStats('name')">Player</th>
+                  <th class="sortable" onclick="sortHistoryPlayerStats('points')" style="text-align:center;">#</th>
+                  <th class="sortable" onclick="sortHistoryPlayerStats('points')" style="text-align:center;">PTS</th>
+                  <th class="sortable" onclick="sortHistoryPlayerStats('fgm')" style="text-align:center;">FGM/A</th>
+                  <th class="sortable" onclick="sortHistoryPlayerStats('fgPct')" style="text-align:center;">FG%</th>
+                  <th class="sortable" onclick="sortHistoryPlayerStats('threepm')" style="text-align:center;">3PM/A</th>
+                  <th class="sortable" onclick="sortHistoryPlayerStats('threePct')" style="text-align:center;">3P%</th>
+                  <th class="sortable" onclick="sortHistoryPlayerStats('ftm')" style="text-align:center;">FTM/A</th>
+                  <th class="sortable" onclick="sortHistoryPlayerStats('ftPct')" style="text-align:center;">FT%</th>
+                  <th class="sortable" onclick="sortHistoryPlayerStats('rebounds')" style="text-align:center;">REB</th>
+                  <th class="sortable" onclick="sortHistoryPlayerStats('assists')" style="text-align:center;">AST</th>
+                  <th class="sortable" onclick="sortHistoryPlayerStats('steals')" style="text-align:center;">STL</th>
+                  <th class="sortable" onclick="sortHistoryPlayerStats('blocks')" style="text-align:center;">BLK</th>
+                  <th class="sortable" onclick="sortHistoryPlayerStats('turnovers')" style="text-align:center;">TO</th>
+                  <th class="sortable" onclick="sortHistoryPlayerStats('fouls')" style="text-align:center;">PF</th>
+                </tr>
+              </thead>
+              <tbody id="historyPlayerStatsBody">
+      `;
+
+      // Sort players by points descending
+      const sortedPlayers = [...stats.players].sort((a, b) => b.points - a.points);
+
+      sortedPlayers.forEach(player => {
+        const fgPct = player.fga > 0 ? ((player.fgm / player.fga) * 100).toFixed(1) : '0.0';
+        const threePct = player.threepa > 0 ? ((player.threepm / player.threepa) * 100).toFixed(1) : '0.0';
+        const ftPct = player.fta > 0 ? ((player.ftm / player.fta) * 100).toFixed(1) : '0.0';
+
+        html += `
+          <tr>
+            <td style="font-weight:600;">${player.name}</td>
+            <td style="text-align:center;">${player.jersey}</td>
+            <td style="text-align:center;font-weight:bold;">${player.points}</td>
+            <td style="text-align:center;">${player.fgm}/${player.fga}</td>
+            <td style="text-align:center;">${fgPct}</td>
+            <td style="text-align:center;">${player.threepm}/${player.threepa}</td>
+            <td style="text-align:center;">${threePct}</td>
+            <td style="text-align:center;">${player.ftm}/${player.fta}</td>
+            <td style="text-align:center;">${ftPct}</td>
+            <td style="text-align:center;">${player.rebounds}</td>
+            <td style="text-align:center;">${player.assists}</td>
+            <td style="text-align:center;">${player.steals}</td>
+            <td style="text-align:center;">${player.blocks}</td>
+            <td style="text-align:center;">${player.turnovers}</td>
+            <td style="text-align:center;">${player.fouls}</td>
+          </tr>
+        `;
+      });
+
+      html += `
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+
+      statsContainer.innerHTML = html;
+    }
+
+    function estimatePossessions(teamStats) {
+      // Possessions = FGA + 0.44 * FTA - OREB + TO
+      return teamStats.fga + 0.44 * teamStats.fta - teamStats.oreb + teamStats.turnovers;
+    }
+
+    let historySortColumn = 'points';
+    let historySortAscending = false;
+
+    function sortHistoryPlayerStats(column) {
+      if (historySortColumn === column) {
+        historySortAscending = !historySortAscending;
+      } else {
+        historySortColumn = column;
+        historySortAscending = false;
+      }
+
+      // Re-render with sorted data
+      const gameId = state.selectedHistoryGame;
+      if (gameId) {
+        window.historyDB.getFinishedGame(gameId).then(game => {
+          const stats = game.stats;
+          let sortedPlayers = [...stats.players];
+
+          sortedPlayers.sort((a, b) => {
+            let aVal, bVal;
+            
+            if (column === 'name') {
+              aVal = a.name.toLowerCase();
+              bVal = b.name.toLowerCase();
+              return historySortAscending ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+            } else if (column === 'fgPct') {
+              aVal = a.fga > 0 ? a.fgm / a.fga : 0;
+              bVal = b.fga > 0 ? b.fgm / b.fga : 0;
+            } else if (column === 'threePct') {
+              aVal = a.threepa > 0 ? a.threepm / a.threepa : 0;
+              bVal = b.threepa > 0 ? b.threepm / b.threepa : 0;
+            } else if (column === 'ftPct') {
+              aVal = a.fta > 0 ? a.ftm / a.fta : 0;
+              bVal = b.fta > 0 ? b.ftm / b.fta : 0;
+            } else {
+              aVal = a[column] || 0;
+              bVal = b[column] || 0;
+            }
+
+            return historySortAscending ? aVal - bVal : bVal - aVal;
+          });
+
+          // Re-render table body
+          let html = '';
+          sortedPlayers.forEach(player => {
+            const fgPct = player.fga > 0 ? ((player.fgm / player.fga) * 100).toFixed(1) : '0.0';
+            const threePct = player.threepa > 0 ? ((player.threepm / player.threepa) * 100).toFixed(1) : '0.0';
+            const ftPct = player.fta > 0 ? ((player.ftm / player.fta) * 100).toFixed(1) : '0.0';
+
+            html += `
+              <tr>
+                <td style="font-weight:600;">${player.name}</td>
+                <td style="text-align:center;">${player.jersey}</td>
+                <td style="text-align:center;font-weight:bold;">${player.points}</td>
+                <td style="text-align:center;">${player.fgm}/${player.fga}</td>
+                <td style="text-align:center;">${fgPct}</td>
+                <td style="text-align:center;">${player.threepm}/${player.threepa}</td>
+                <td style="text-align:center;">${threePct}</td>
+                <td style="text-align:center;">${player.ftm}/${player.fta}</td>
+                <td style="text-align:center;">${ftPct}</td>
+                <td style="text-align:center;">${player.rebounds}</td>
+                <td style="text-align:center;">${player.assists}</td>
+                <td style="text-align:center;">${player.steals}</td>
+                <td style="text-align:center;">${player.blocks}</td>
+                <td style="text-align:center;">${player.turnovers}</td>
+                <td style="text-align:center;">${player.fouls}</td>
+              </tr>
+            `;
+          });
+
+          document.getElementById('historyPlayerStatsBody').innerHTML = html;
+        });
+      }
+    }
+
+    async function exportHistoryGame() {
+      if (!state.selectedHistoryGame) {
+        showToast('No game selected', 'error');
+        return;
+      }
+
+      try {
+        const game = await window.historyDB.getFinishedGame(state.selectedHistoryGame);
+        const events = await window.historyDB.getFinishedGameEvents(state.selectedHistoryGame);
+        
+        // Create temporary state for export
+        const tempState = {
+          game: {
+            opponent: game.opponent,
+            date: game.date,
+            location: game.location,
+            ruleSet: game.ruleSet
+          },
+          homeScore: game.homeScore,
+          opponentScore: game.opponentScore,
+          period: game.periods,
+          events: events
+        };
+
+        // Export as JSON
+        const exportData = {
+          game: tempState.game,
+          finalScore: {
+            home: tempState.homeScore,
+            opponent: tempState.opponentScore
+          },
+          periods: tempState.period,
+          stats: game.stats,
+          events: tempState.events
+        };
+
+        const content = JSON.stringify(exportData, null, 2);
+        const filename = `game-${game.date}-data.json`;
+        const mimeType = 'application/json';
+
+        // Create download
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        showToast('Game exported as JSON', 'success');
+      } catch (error) {
+        console.error('Error exporting game:', error);
+        showToast('Error exporting game', 'error');
+      }
+    }
+
+    async function deleteHistoryGame() {
+      if (!state.selectedHistoryGame) {
+        showToast('No game selected', 'error');
+        return;
+      }
+
+      if (!confirm('Are you sure you want to delete this game? This action cannot be undone.')) {
+        return;
+      }
+
+      try {
+        await window.historyDB.deleteFinishedGame(state.selectedHistoryGame);
+        showToast('Game deleted', 'success');
+        
+        // Go back to history list
+        showHistoryView();
+      } catch (error) {
+        console.error('Error deleting game:', error);
+        showToast('Error deleting game', 'error');
+      }
     }
 
     function showExportDialog() {
