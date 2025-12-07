@@ -2612,7 +2612,7 @@
       dialog.showModal();
     }
 
-    async function adjustScore(team, delta) {
+    function adjustScore(team, delta) {
       if (team === 'home') {
         state.homeScore = Math.max(0, state.homeScore + delta);
         document.getElementById('homeScoreDisplay').textContent = state.homeScore;
@@ -2623,11 +2623,6 @@
 
       // Update the header display
       updateUI();
-      
-      // Persist state
-      if (state.game) {
-        await putInStore('games', state.game);
-      }
     }
 
     // Utility functions
