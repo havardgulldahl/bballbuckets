@@ -1,5 +1,5 @@
 // sw.js
-const APP_VERSION = 'v1.0.0'; // bump on each deploy to invalidate caches
+const APP_VERSION = 'v1.1.0'; // bump on each deploy to invalidate caches
 const APP_CACHE = `app-shell-${APP_VERSION}`;
 const RUNTIME_CACHE = `runtime-${APP_VERSION}`;
 
@@ -8,6 +8,7 @@ const APP_SHELL = [
   './index.html',
   './app.js',
   './db.js',
+  './history-db.js',
   './manifest.webmanifest',
 ];
 
