@@ -3145,7 +3145,9 @@
     }
 
     function estimatePossessions(teamStats) {
+      // Standard basketball analytics formula for estimating possessions
       // Possessions = FGA + 0.44 * FTA - OREB + TO
+      // The 0.44 coefficient represents the average portion of FTA that end possessions (not and-ones)
       return teamStats.fga + 0.44 * teamStats.fta - teamStats.oreb + teamStats.turnovers;
     }
 
