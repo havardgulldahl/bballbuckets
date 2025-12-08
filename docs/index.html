@@ -3077,6 +3077,16 @@
         </div>
       `;
 
+      // Shot Chart Card
+      html += `
+        <div class="stat-card" style="grid-column: 1 / -1;">
+          <h3>🎯 Shot Chart - Team</h3>
+          <div style="text-align:center;">
+            <svg id="historyCourtSVG" viewBox="0 400 500 540" preserveAspectRatio="xMidYMid meet" style="max-width:600px;width:100%;height:auto;border:1px solid var(--muted);border-radius:var(--radius);"></svg>
+          </div>
+        </div>
+      `;
+
       // Player Stats Table Card
       html += `
         <div class="stat-card" style="grid-column: 1 / -1;">
@@ -3088,6 +3098,7 @@
                   <th class="sortable" onclick="sortHistoryPlayerStats('name')">Player</th>
                   <th class="sortable" onclick="sortHistoryPlayerStats('points')" style="text-align:center;">#</th>
                   <th class="sortable" onclick="sortHistoryPlayerStats('points')" style="text-align:center;">PTS</th>
+                  <th class="sortable" onclick="sortHistoryPlayerStats('plusMinus')" style="text-align:center;">+/-</th>
                   <th class="sortable" onclick="sortHistoryPlayerStats('fgm')" style="text-align:center;">FGM/A</th>
                   <th class="sortable" onclick="sortHistoryPlayerStats('fgPct')" style="text-align:center;">FG%</th>
                   <th class="sortable" onclick="sortHistoryPlayerStats('threepm')" style="text-align:center;">3PM/A</th>
@@ -3105,6 +3116,15 @@
               <tbody id="historyPlayerStatsBody">
       `;
 
+      // Calculate plus/minus for each player
+      const playersWithPlusMinus = calculatePlusMinus(events, players);
+      
+      // Merge plus/minus with stats
+      stats.players.forEach(player => {
+        const pmData = playersWithPlusMinus.find(p => p.originalId === player.id);
+        player.plusMinus = pmData ? pmData.plusMinus : 0;
+      });
+
       // Sort players by points descending
       const sortedPlayers = [...stats.players].sort((a, b) => b.points - a.points);
 
@@ -3112,12 +3132,15 @@
         const fgPct = player.fga > 0 ? ((player.fgm / player.fga) * 100).toFixed(1) : '0.0';
         const threePct = player.threepa > 0 ? ((player.threepm / player.threepa) * 100).toFixed(1) : '0.0';
         const ftPct = player.fta > 0 ? ((player.ftm / player.fta) * 100).toFixed(1) : '0.0';
+        const pmColor = player.plusMinus > 0 ? 'var(--success)' : player.plusMinus < 0 ? 'var(--danger)' : 'var(--muted)';
+        const pmSign = player.plusMinus > 0 ? '+' : '';
 
         html += `
-          <tr>
+          <tr style="cursor:pointer;" onclick="showPlayerShotChart('${player.id}', '${player.name}')" title="Click to view shot chart">
             <td style="font-weight:600;">${player.name}</td>
             <td style="text-align:center;">${player.jersey}</td>
             <td style="text-align:center;font-weight:bold;">${player.points}</td>
+            <td style="text-align:center;font-weight:bold;color:${pmColor};">${pmSign}${player.plusMinus}</td>
             <td style="text-align:center;">${player.fgm}/${player.fga}</td>
             <td style="text-align:center;">${fgPct}</td>
             <td style="text-align:center;">${player.threepm}/${player.threepa}</td>
@@ -3142,6 +3165,9 @@
       `;
 
       statsContainer.innerHTML = html;
+      
+      // Draw team shot chart
+      drawHistoryShotChart(events, null);
     }
 
     function estimatePossessions(teamStats) {
@@ -3149,6 +3175,215 @@
       // Possessions = FGA + 0.44 * FTA - OREB + TO
       // The 0.44 coefficient represents the average portion of FTA that end possessions (not and-ones)
       return teamStats.fga + 0.44 * teamStats.fta - teamStats.oreb + teamStats.turnovers;
+    }
+
+    function calculatePlusMinus(events, players) {
+      // Calculate plus/minus for each player based on when they were on court
+      // Plus/minus = (points scored by team - points scored by opponent) while player was on court
+      
+      const playerPlusMinus = players.map(p => ({
+        originalId: p.originalId,
+        id: p.id,
+        plusMinus: 0,
+        pointsFor: 0,
+        pointsAgainst: 0
+      }));
+
+      // Get all scoring events sorted by timestamp
+      const scoringEvents = events
+        .filter(e => (e.kind === 'shot' && e.result === 'made') || (e.kind === 'ft' && e.result === 'made'))
+        .sort((a, b) => a.timestamp - b.timestamp);
+
+      // For each scoring event, attribute to all players on court at that time
+      scoringEvents.forEach(event => {
+        const points = event.kind === 'shot' ? event.points : 1;
+        const isHomeTeam = event.team !== 'opponent';
+
+        // Find players who were on court (we'll use all players since we don't track substitutions in history)
+        // In the future, if we track onCourt status, we can filter by that
+        playerPlusMinus.forEach(pm => {
+          if (isHomeTeam) {
+            pm.pointsFor += points;
+            pm.plusMinus += points;
+          } else {
+            pm.pointsAgainst += points;
+            pm.plusMinus -= points;
+          }
+        });
+      });
+
+      return playerPlusMinus;
+    }
+
+    function drawHistoryShotChart(events, playerId) {
+      const courtSVG = document.getElementById('historyCourtSVG');
+      if (!courtSVG) return;
+
+      const lineColor = getComputedStyle(document.documentElement).getPropertyValue('--court-line').trim();
+
+      // Half court dimensions (500 x 540) - showing only offensive half
+      const w = 500;
+      const h = 540;
+
+      // Clear SVG
+      courtSVG.innerHTML = '';
+
+      // Court background
+      const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      bg.setAttribute('width', w);
+      bg.setAttribute('height', h);
+      bg.setAttribute('fill', 'var(--court-bg)');
+      courtSVG.appendChild(bg);
+
+      // Define court elements group
+      const court = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      court.setAttribute('stroke', lineColor);
+      court.setAttribute('stroke-width', '2');
+      court.setAttribute('fill', 'none');
+
+      // Outline
+      const outline = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      outline.setAttribute('x', '20');
+      outline.setAttribute('y', '20');
+      outline.setAttribute('width', w - 40);
+      outline.setAttribute('height', h - 40);
+      court.appendChild(outline);
+
+      // Baseline
+      const baseline = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      baseline.setAttribute('x1', '20');
+      baseline.setAttribute('y1', h - 20);
+      baseline.setAttribute('x2', w - 20);
+      baseline.setAttribute('y2', h - 20);
+      court.appendChild(baseline);
+
+      const yBase = h - 20;
+      const yDir = -1;
+
+      // Free throw line
+      const ftY = yBase + yDir * 190;
+      const ftLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      ftLine.setAttribute('x1', w * 0.3);
+      ftLine.setAttribute('y1', ftY);
+      ftLine.setAttribute('x2', w * 0.7);
+      ftLine.setAttribute('y2', ftY);
+      court.appendChild(ftLine);
+
+      // Paint
+      const paint = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      paint.setAttribute('x', w * 0.3);
+      paint.setAttribute('y', ftY);
+      paint.setAttribute('width', w * 0.4);
+      paint.setAttribute('height', Math.abs(ftY - yBase));
+      court.appendChild(paint);
+
+      // 3-point arc
+      const arc = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      const threePointRadius = 237.5;
+      const basketX = w / 2;
+      const basketY = yBase + yDir * 63.5;
+      const sidelineX = 20;
+      const cornerThreeX = sidelineX + 63;
+      const dx = Math.abs(basketX - cornerThreeX);
+      const dy = Math.sqrt(Math.max(0, threePointRadius * threePointRadius - dx * dx));
+      const arcStartY = basketY + yDir * dy;
+      const rightCornerThreeX = w - cornerThreeX + sidelineX;
+      const arcPath = `M ${cornerThreeX} ${yBase} L ${cornerThreeX} ${arcStartY} A ${threePointRadius} ${threePointRadius} 0 0 1 ${rightCornerThreeX} ${arcStartY} L ${rightCornerThreeX} ${yBase}`;
+      arc.setAttribute('d', arcPath);
+      court.appendChild(arc);
+
+      // Free throw circle
+      const ftCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      ftCircle.setAttribute('cx', w / 2);
+      ftCircle.setAttribute('cy', ftY);
+      ftCircle.setAttribute('r', '60');
+      court.appendChild(ftCircle);
+
+      // Hoop
+      const hoop = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      hoop.setAttribute('cx', w / 2);
+      hoop.setAttribute('cy', yBase);
+      hoop.setAttribute('r', '8');
+      hoop.setAttribute('fill', lineColor);
+      court.appendChild(hoop);
+
+      courtSVG.appendChild(court);
+
+      // Filter shots by player if specified
+      const shotEvents = events.filter(e => 
+        e.kind === 'shot' && 
+        e.coordinates && 
+        e.team !== 'opponent' &&
+        (!playerId || e.playerId === playerId)
+      );
+
+      // Draw shots
+      shotEvents.forEach(event => {
+        const color = event.result === 'made' ? 'rgba(50, 200, 50, 0.7)' : 'rgba(200, 50, 50, 0.7)';
+        const shot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        shot.setAttribute('cx', event.coordinates.x);
+        shot.setAttribute('cy', event.coordinates.y);
+        shot.setAttribute('r', '8');
+        shot.setAttribute('fill', color);
+        shot.setAttribute('stroke', event.result === 'made' ? 'rgba(50, 200, 50, 1)' : 'rgba(200, 50, 50, 1)');
+        shot.setAttribute('stroke-width', '2');
+        
+        // Add tooltip
+        const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+        title.textContent = `${event.playerName || 'Unknown'} - ${event.points}pt ${event.result}`;
+        shot.appendChild(title);
+        
+        courtSVG.appendChild(shot);
+      });
+
+      // Add statistics summary below court
+      const made = shotEvents.filter(e => e.result === 'made').length;
+      const total = shotEvents.length;
+      const pct = total > 0 ? ((made / total) * 100).toFixed(1) : '0.0';
+      
+      const summary = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      summary.setAttribute('x', w / 2);
+      summary.setAttribute('y', '30');
+      summary.setAttribute('text-anchor', 'middle');
+      summary.setAttribute('fill', 'var(--fg)');
+      summary.setAttribute('font-size', '16');
+      summary.setAttribute('font-weight', 'bold');
+      summary.textContent = `${made}/${total} FG (${pct}%)`;
+      courtSVG.appendChild(summary);
+    }
+
+    function showPlayerShotChart(playerId, playerName) {
+      // Get current game data
+      const gameId = state.selectedHistoryGame;
+      if (!gameId) return;
+
+      window.historyDB.getFinishedGameEvents(gameId).then(events => {
+        // Update shot chart title and redraw
+        const shotChartCard = document.querySelector('.stat-card h3');
+        if (shotChartCard && shotChartCard.textContent.includes('Shot Chart')) {
+          shotChartCard.innerHTML = `🎯 Shot Chart - ${playerName} <button onclick="showTeamShotChart()" style="margin-left:1rem;padding:0.25rem 0.75rem;font-size:0.85rem;">Show Team</button>`;
+        }
+        
+        // Redraw with player filter
+        drawHistoryShotChart(events, playerId);
+      });
+    }
+
+    function showTeamShotChart() {
+      // Get current game data
+      const gameId = state.selectedHistoryGame;
+      if (!gameId) return;
+
+      window.historyDB.getFinishedGameEvents(gameId).then(events => {
+        // Update shot chart title and redraw
+        const shotChartCard = document.querySelector('.stat-card h3');
+        if (shotChartCard && shotChartCard.textContent.includes('Shot Chart')) {
+          shotChartCard.textContent = '🎯 Shot Chart - Team';
+        }
+        
+        // Redraw without player filter
+        drawHistoryShotChart(events, null);
+      });
     }
 
     let historySortColumn = 'points';
@@ -3199,12 +3434,15 @@
             const fgPct = player.fga > 0 ? ((player.fgm / player.fga) * 100).toFixed(1) : '0.0';
             const threePct = player.threepa > 0 ? ((player.threepm / player.threepa) * 100).toFixed(1) : '0.0';
             const ftPct = player.fta > 0 ? ((player.ftm / player.fta) * 100).toFixed(1) : '0.0';
+            const pmColor = (player.plusMinus || 0) > 0 ? 'var(--success)' : (player.plusMinus || 0) < 0 ? 'var(--danger)' : 'var(--muted)';
+            const pmSign = (player.plusMinus || 0) > 0 ? '+' : '';
 
             html += `
-              <tr>
+              <tr style="cursor:pointer;" onclick="showPlayerShotChart('${player.id}', '${player.name}')" title="Click to view shot chart">
                 <td style="font-weight:600;">${player.name}</td>
                 <td style="text-align:center;">${player.jersey}</td>
                 <td style="text-align:center;font-weight:bold;">${player.points}</td>
+                <td style="text-align:center;font-weight:bold;color:${pmColor};">${pmSign}${player.plusMinus || 0}</td>
                 <td style="text-align:center;">${player.fgm}/${player.fga}</td>
                 <td style="text-align:center;">${fgPct}</td>
                 <td style="text-align:center;">${player.threepm}/${player.threepa}</td>
