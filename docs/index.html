@@ -3180,6 +3180,9 @@
     function calculatePlusMinus(events, players) {
       // Calculate plus/minus for each player based on when they were on court
       // Plus/minus = (points scored by team - points scored by opponent) while player was on court
+      // NOTE: Current implementation assumes all players were on court for all scoring events
+      // since we don't track substitution timing in the current data model.
+      // This provides a simplified team-wide differential rather than true individual +/-
       
       const playerPlusMinus = players.map(p => ({
         originalId: p.originalId,
@@ -3194,13 +3197,12 @@
         .filter(e => (e.kind === 'shot' && e.result === 'made') || (e.kind === 'ft' && e.result === 'made'))
         .sort((a, b) => a.timestamp - b.timestamp);
 
-      // For each scoring event, attribute to all players on court at that time
+      // For each scoring event, attribute to all players
+      // This gives a team-wide differential since we don't track substitutions
       scoringEvents.forEach(event => {
         const points = event.kind === 'shot' ? event.points : 1;
         const isHomeTeam = event.team !== 'opponent';
 
-        // Find players who were on court (we'll use all players since we don't track substitutions in history)
-        // In the future, if we track onCourt status, we can filter by that
         playerPlusMinus.forEach(pm => {
           if (isHomeTeam) {
             pm.pointsFor += points;
@@ -3302,7 +3304,7 @@
       // Hoop
       const hoop = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
       hoop.setAttribute('cx', w / 2);
-      hoop.setAttribute('cy', yBase);
+      hoop.setAttribute('cy', basketY);
       hoop.setAttribute('r', '8');
       hoop.setAttribute('fill', lineColor);
       court.appendChild(hoop);
@@ -3358,11 +3360,27 @@
       if (!gameId) return;
 
       window.historyDB.getFinishedGameEvents(gameId).then(events => {
-        // Update shot chart title and redraw
-        const shotChartCard = document.querySelector('.stat-card h3');
-        if (shotChartCard && shotChartCard.textContent.includes('Shot Chart')) {
-          shotChartCard.innerHTML = `🎯 Shot Chart - ${playerName} <button onclick="showTeamShotChart()" style="margin-left:1rem;padding:0.25rem 0.75rem;font-size:0.85rem;">Show Team</button>`;
-        }
+        // Update shot chart title and redraw - find the specific heading
+        const statCards = document.querySelectorAll('.stat-card h3');
+        statCards.forEach(heading => {
+          if (heading.textContent.includes('Shot Chart')) {
+            // Clear existing content
+            heading.textContent = '🎯 Shot Chart - ';
+            // Safely add player name as text
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = playerName;
+            heading.appendChild(nameSpan);
+            // Add button
+            const button = document.createElement('button');
+            button.textContent = 'Show Team';
+            button.onclick = showTeamShotChart;
+            button.style.marginLeft = '1rem';
+            button.style.padding = '0.25rem 0.75rem';
+            button.style.fontSize = '0.85rem';
+            heading.appendChild(document.createTextNode(' '));
+            heading.appendChild(button);
+          }
+        });
         
         // Redraw with player filter
         drawHistoryShotChart(events, playerId);
@@ -3375,11 +3393,13 @@
       if (!gameId) return;
 
       window.historyDB.getFinishedGameEvents(gameId).then(events => {
-        // Update shot chart title and redraw
-        const shotChartCard = document.querySelector('.stat-card h3');
-        if (shotChartCard && shotChartCard.textContent.includes('Shot Chart')) {
-          shotChartCard.textContent = '🎯 Shot Chart - Team';
-        }
+        // Update shot chart title and redraw - find the specific heading
+        const statCards = document.querySelectorAll('.stat-card h3');
+        statCards.forEach(heading => {
+          if (heading.textContent.includes('Shot Chart')) {
+            heading.textContent = '🎯 Shot Chart - Team';
+          }
+        });
         
         // Redraw without player filter
         drawHistoryShotChart(events, null);
@@ -3400,8 +3420,20 @@
       // Re-render with sorted data
       const gameId = state.selectedHistoryGame;
       if (gameId) {
-        window.historyDB.getFinishedGame(gameId).then(game => {
+        Promise.all([
+          window.historyDB.getFinishedGame(gameId),
+          window.historyDB.getFinishedGameEvents(gameId),
+          window.historyDB.getFinishedGamePlayers(gameId)
+        ]).then(([game, events, players]) => {
           const stats = game.stats;
+          
+          // Recalculate plus/minus for sorting
+          const playersWithPlusMinus = calculatePlusMinus(events, players);
+          stats.players.forEach(player => {
+            const pmData = playersWithPlusMinus.find(p => p.originalId === player.id);
+            player.plusMinus = pmData ? pmData.plusMinus : 0;
+          });
+          
           let sortedPlayers = [...stats.players];
 
           sortedPlayers.sort((a, b) => {
