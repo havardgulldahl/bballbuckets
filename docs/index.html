@@ -3451,10 +3451,10 @@
         const shot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         shot.setAttribute('cx', event.coordinates.x);
         shot.setAttribute('cy', event.coordinates.y);
-        shot.setAttribute('r', '8');
+        shot.setAttribute('r', '12');
         shot.setAttribute('fill', color);
         shot.setAttribute('stroke', event.result === 'made' ? 'rgba(50, 200, 50, 1)' : 'rgba(200, 50, 50, 1)');
-        shot.setAttribute('stroke-width', '2');
+        shot.setAttribute('stroke-width', '3');
         
         // Add tooltip
         const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
@@ -3474,7 +3474,7 @@
       summary.setAttribute('y', '30');
       summary.setAttribute('text-anchor', 'middle');
       summary.setAttribute('fill', 'var(--fg)');
-      summary.setAttribute('font-size', '16');
+      summary.setAttribute('font-size', '20');
       summary.setAttribute('font-weight', 'bold');
       summary.textContent = `${made}/${total} FG (${pct}%)`;
       courtSVG.appendChild(summary);
