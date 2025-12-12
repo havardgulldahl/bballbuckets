@@ -340,6 +340,31 @@
       background: var(--warning-hover);
     }
 
+    .score-adjust-btn {
+      background: var(--accent);
+      color: white;
+      border-radius: var(--radius);
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: background 0.2s;
+    }
+
+    .score-adjust-btn:hover {
+      background: var(--accent-hover);
+    }
+
+    #headerScore {
+      cursor: pointer;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      transition: background 0.2s;
+    }
+
+    #headerScore:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
     /* Swipeable roster item styles */
     .roster-item-wrapper {
       position: relative;
@@ -1087,6 +1112,35 @@
     </div>
   </dialog>
 
+  <!-- Score Adjustment Dialog -->
+  <dialog id="scoreAdjustDialog">
+    <h3>Adjust Score</h3>
+    <p style="color:var(--muted);font-size:0.85rem;margin-bottom:1rem;">Tap to adjust team scores</p>
+    <div style="display:flex;flex-direction:column;gap:1.5rem;">
+      <!-- Home Team Score -->
+      <div>
+        <div style="font-weight:600;margin-bottom:0.5rem;font-size:0.9rem;">Home Team</div>
+        <div style="display:flex;align-items:center;gap:1rem;">
+          <button type="button" id="homeScoreMinusBtn" class="score-adjust-btn" style="font-size:1.5rem;min-width:60px;min-height:60px;">−</button>
+          <div style="flex:1;text-align:center;font-size:2rem;font-weight:bold;" id="homeScoreDisplay">0</div>
+          <button type="button" id="homeScorePlusBtn" class="score-adjust-btn" style="font-size:1.5rem;min-width:60px;min-height:60px;">+</button>
+        </div>
+      </div>
+      <!-- Opponent Team Score -->
+      <div>
+        <div style="font-weight:600;margin-bottom:0.5rem;font-size:0.9rem;" id="opponentScoreLabel">Opponent</div>
+        <div style="display:flex;align-items:center;gap:1rem;">
+          <button type="button" id="opponentScoreMinusBtn" class="score-adjust-btn" style="font-size:1.5rem;min-width:60px;min-height:60px;">−</button>
+          <div style="flex:1;text-align:center;font-size:2rem;font-weight:bold;" id="opponentScoreDisplay">0</div>
+          <button type="button" id="opponentScorePlusBtn" class="score-adjust-btn" style="font-size:1.5rem;min-width:60px;min-height:60px;">+</button>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:1.5rem;">
+      <button type="button" class="secondary" id="closeScoreAdjustBtn" style="width:100%;">Done</button>
+    </div>
+  </dialog>
+
   <!-- Game Setup Dialog -->
   <dialog id="gameSetupDialog">
     <!-- Step 1: Choose setup method -->
@@ -1664,6 +1718,15 @@
       document.getElementById('backToHistoryListBtn').addEventListener('click', showHistoryView);
       document.getElementById('exportHistoryGameBtn').addEventListener('click', exportHistoryGame);
       document.getElementById('deleteHistoryGameBtn').addEventListener('click', deleteHistoryGame);
+      // Score Adjustment dialog
+      document.getElementById('headerScore').addEventListener('click', showScoreAdjustDialog);
+      document.getElementById('homeScorePlusBtn').addEventListener('click', () => adjustScore('home', 1));
+      document.getElementById('homeScoreMinusBtn').addEventListener('click', () => adjustScore('home', -1));
+      document.getElementById('opponentScorePlusBtn').addEventListener('click', () => adjustScore('opponent', 1));
+      document.getElementById('opponentScoreMinusBtn').addEventListener('click', () => adjustScore('opponent', -1));
+      document.getElementById('closeScoreAdjustBtn').addEventListener('click', () => {
+        document.getElementById('scoreAdjustDialog').close();
+      });
     }
 
     function showGameSetup() {
@@ -2308,12 +2371,37 @@
         state.homeScore += 1;
       }
 
-      // Clear selection
-      clearSelection();
-      updateUI();
       // Generate a nice message based on event and player
       const msg = `#${player.jersey} ${player.lastName} - ${event.kind.charAt(0).toUpperCase() + event.kind.slice(1)}${event.points ? ` (+${event.points})` : ''} ${event.result ? `(${event.result})` : ''}`;
       showToast(msg, 'success');
+
+      // Auto-select assist after made 2pt or 3pt shot
+      if (event.kind === 'shot' && event.result === 'made' && (event.points === 2 || event.points === 3)) {
+        // Auto-select assist event
+        state.selectedEvent = {
+          kind: 'assist',
+          points: 0,
+          result: null,
+          subtype: null
+        };
+        
+        // Keep event-selected class to show roster
+        document.body.classList.add('event-selected');
+        
+        // Add a warning message in the validation warnings
+        state.validationWarnings.push({
+          type: 'assist_prompt',
+          message: 'Who made the assist? Tap a player or clear selection if no assist.',
+          severity: 'warning'
+        });
+        
+        renderPlayerList();
+        updateUI();
+      } else {
+        // Clear selection normally for other events
+        clearSelection();
+        updateUI();
+      }
     };
 
     window.removePlayer = function (playerId) {
@@ -2413,6 +2501,9 @@
 
       // Remove class to show event buttons on mobile
       document.body.classList.remove('event-selected');
+
+      // Remove assist prompt warning if it exists
+      state.validationWarnings = state.validationWarnings.filter(w => w.type !== 'assist_prompt');
 
       validateGameState();
       renderPlayerList();
@@ -2709,6 +2800,41 @@
       }
 
       dialog.showModal();
+    }
+
+    function showScoreAdjustDialog() {
+      if (!state.game) {
+        showToast('Please setup game first', 'error');
+        return;
+      }
+
+      const dialog = document.getElementById('scoreAdjustDialog');
+      
+      // Update dialog with current scores
+      document.getElementById('homeScoreDisplay').textContent = state.homeScore;
+      document.getElementById('opponentScoreDisplay').textContent = state.opponentScore;
+      
+      // Update opponent label with team name if available
+      if (state.game.opponent) {
+        document.getElementById('opponentScoreLabel').textContent = state.game.opponent;
+      } else {
+        document.getElementById('opponentScoreLabel').textContent = 'Opponent';
+      }
+
+      dialog.showModal();
+    }
+
+    function adjustScore(team, delta) {
+      if (team === 'home') {
+        state.homeScore = Math.max(0, state.homeScore + delta);
+        document.getElementById('homeScoreDisplay').textContent = state.homeScore;
+      } else {
+        state.opponentScore = Math.max(0, state.opponentScore + delta);
+        document.getElementById('opponentScoreDisplay').textContent = state.opponentScore;
+      }
+
+      // Update the header display
+      updateUI();
     }
 
     // Utility functions
