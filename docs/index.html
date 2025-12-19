@@ -502,6 +502,7 @@
         opacity: 0;
         transform: translateY(-10px);
       }
+
       to {
         opacity: 1;
         transform: translateY(0);
@@ -794,6 +795,7 @@
 
     /* Tablet/iPad - also use swipe for roster items */
     @media (max-width: 1024px) {
+
       /* Hide remove button on tablet, use swipe instead */
       .roster-item-content .remove-btn {
         display: none;
@@ -805,7 +807,7 @@
       background: var(--bg-alt);
       border-radius: var(--radius);
       padding: 1.5rem;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       cursor: pointer;
       transition: all 0.2s;
       border: 2px solid transparent;
@@ -813,7 +815,7 @@
 
     .history-card:hover {
       border-color: var(--accent);
-      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
       transform: translateY(-2px);
     }
 
@@ -860,7 +862,7 @@
       background: var(--bg-alt);
       border-radius: var(--radius);
       padding: 1.5rem;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 
     .stat-card h3 {
@@ -939,11 +941,11 @@
       .stats-grid {
         grid-template-columns: 1fr;
       }
-      
+
       .player-stats-table {
         font-size: 0.75rem;
       }
-      
+
       .player-stats-table th,
       .player-stats-table td {
         padding: 0.5rem 0.25rem;
@@ -989,12 +991,14 @@
   <div id="validationBanner" style="display:none;"></div>
 
   <!-- History View -->
-  <div id="historyView" style="display:none;padding:1.5rem;max-width:1400px;margin:0 auto;">
-    <div style="margin-bottom:2rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;">
+  <div id="historyView"
+    style="display:none;padding:1.5rem;max-width:1400px;margin:0 auto;overflow-y:auto;height:100vh;">
+    <div
+      style="margin-bottom:2rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;">
       <h2 style="margin:0;font-size:1.8rem;color:var(--accent);">📊 Game History</h2>
       <button id="backToLiveGameBtn" class="secondary" style="padding:0.75rem 1.5rem;">← Back to Live Game</button>
     </div>
-    
+
     <div id="historyList" style="display:grid;gap:1rem;">
       <div style="text-align:center;padding:3rem;color:var(--muted);">
         <div style="font-size:3rem;margin-bottom:1rem;">🏀</div>
@@ -1005,17 +1009,22 @@
   </div>
 
   <!-- History Game Detail View -->
-  <div id="historyDetailView" style="display:none;padding:1.5rem;max-width:1400px;margin:0 auto;">
-    <div style="margin-bottom:2rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;">
+  <div id="historyDetailView"
+    style="display:none;padding:1.5rem;max-width:1400px;margin:0 auto;overflow-y:auto;height:100vh;">
+    <div
+      style="margin-bottom:2rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;">
       <button id="backToHistoryListBtn" class="secondary" style="padding:0.75rem 1.5rem;">← Back to History</button>
       <div style="display:flex;gap:0.5rem;">
         <button id="exportHistoryGameBtn" title="Export Game Data" style="padding:0.75rem 1.5rem;">💾 Export</button>
-        <button id="deleteHistoryGameBtn" class="danger" title="Delete Game" style="padding:0.75rem 1.5rem;">🗑️</button>
+        <button id="deleteHistoryGameBtn" class="danger" title="Delete Game"
+          style="padding:0.75rem 1.5rem;">🗑️</button>
       </div>
     </div>
-    
-    <div id="historyGameHeader" style="margin-bottom:2rem;padding:1.5rem;background:var(--bg-alt);border-radius:var(--radius);box-shadow:0 2px 4px rgba(0,0,0,0.1);"></div>
-    
+
+    <div id="historyGameHeader"
+      style="margin-bottom:2rem;padding:1.5rem;background:var(--bg-alt);border-radius:var(--radius);box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+    </div>
+
     <div id="historyGameStats" style="display:grid;gap:2rem;"></div>
   </div>
 
@@ -1024,7 +1033,7 @@
     <div class="left-column">
       <!-- Basketball Court SVG -->
       <section id="courtSection">
-        <svg id="courtSVG" viewBox="0 400 500 540" preserveAspectRatio="xMidYMid meet">
+        <svg id="courtSVG" viewBox="0 0 500 517" preserveAspectRatio="xMidYMid meet">
           <!-- Court will be drawn here -->
         </svg>
       </section>
@@ -1121,18 +1130,22 @@
       <div>
         <div style="font-weight:600;margin-bottom:0.5rem;font-size:0.9rem;">Home Team</div>
         <div style="display:flex;align-items:center;gap:1rem;">
-          <button type="button" id="homeScoreMinusBtn" class="score-adjust-btn" style="font-size:1.5rem;min-width:60px;min-height:60px;">−</button>
+          <button type="button" id="homeScoreMinusBtn" class="score-adjust-btn"
+            style="font-size:1.5rem;min-width:60px;min-height:60px;">−</button>
           <div style="flex:1;text-align:center;font-size:2rem;font-weight:bold;" id="homeScoreDisplay">0</div>
-          <button type="button" id="homeScorePlusBtn" class="score-adjust-btn" style="font-size:1.5rem;min-width:60px;min-height:60px;">+</button>
+          <button type="button" id="homeScorePlusBtn" class="score-adjust-btn"
+            style="font-size:1.5rem;min-width:60px;min-height:60px;">+</button>
         </div>
       </div>
       <!-- Opponent Team Score -->
       <div>
         <div style="font-weight:600;margin-bottom:0.5rem;font-size:0.9rem;" id="opponentScoreLabel">Opponent</div>
         <div style="display:flex;align-items:center;gap:1rem;">
-          <button type="button" id="opponentScoreMinusBtn" class="score-adjust-btn" style="font-size:1.5rem;min-width:60px;min-height:60px;">−</button>
+          <button type="button" id="opponentScoreMinusBtn" class="score-adjust-btn"
+            style="font-size:1.5rem;min-width:60px;min-height:60px;">−</button>
           <div style="flex:1;text-align:center;font-size:2rem;font-weight:bold;" id="opponentScoreDisplay">0</div>
-          <button type="button" id="opponentScorePlusBtn" class="score-adjust-btn" style="font-size:1.5rem;min-width:60px;min-height:60px;">+</button>
+          <button type="button" id="opponentScorePlusBtn" class="score-adjust-btn"
+            style="font-size:1.5rem;min-width:60px;min-height:60px;">+</button>
         </div>
       </div>
     </div>
@@ -1176,9 +1189,11 @@
       </div>
 
       <div id="nifSelectSeason" style="display:none;">
-        <div id="nifShortcuts" style="display:none;margin-bottom:1rem;padding:1rem;background:var(--accent-soft);border-radius:var(--radius);">
+        <div id="nifShortcuts"
+          style="display:none;margin-bottom:1rem;padding:1rem;background:var(--accent-soft);border-radius:var(--radius);">
           <div style="font-size:0.85rem;font-weight:600;margin-bottom:0.5rem;opacity:0.9;">Quick Select</div>
-          <button type="button" id="quickTournamentBtn" style="width:100%;margin-bottom:0.3rem;text-align:left;font-size:0.85rem;"></button>
+          <button type="button" id="quickTournamentBtn"
+            style="width:100%;margin-bottom:0.3rem;text-align:left;font-size:0.85rem;"></button>
           <button type="button" id="quickTeamBtn" style="width:100%;text-align:left;font-size:0.85rem;"></button>
         </div>
         <label>Season
@@ -1414,9 +1429,9 @@
 
       const lineColor = getComputedStyle(document.documentElement).getPropertyValue('--court-line').trim();
 
-      // Full court dimensions (500 x 940)
+      // Half court + center line dimensions (55% of full court: 500 x 517)
       const w = 500;
-      const h = 940;
+      const h = 517;
 
       // Clear SVG
       courtSVG.innerHTML = '';
@@ -1434,7 +1449,7 @@
       court.setAttribute('stroke-width', '2');
       court.setAttribute('fill', 'none');
 
-      // Outline
+      // Outline (3 sides + center line)
       const outline = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
       outline.setAttribute('x', '20');
       outline.setAttribute('y', '20');
@@ -1442,90 +1457,82 @@
       outline.setAttribute('height', h - 40);
       court.appendChild(outline);
 
-      // Half court line
-      const halfCourt = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      halfCourt.setAttribute('x1', '20');
-      halfCourt.setAttribute('y1', h / 2);
-      halfCourt.setAttribute('x2', w - 20);
-      halfCourt.setAttribute('y2', h / 2);
-      court.appendChild(halfCourt);
+      // Center line (at top of this view)
+      const centerLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      centerLine.setAttribute('x1', '20');
+      centerLine.setAttribute('y1', '20');
+      centerLine.setAttribute('x2', w - 20);
+      centerLine.setAttribute('y2', '20');
+      court.appendChild(centerLine);
 
-      // Center circle
+      // Center circle (partial, at top)
       const centerCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
       centerCircle.setAttribute('cx', w / 2);
-      centerCircle.setAttribute('cy', h / 2);
+      centerCircle.setAttribute('cy', '20');
       centerCircle.setAttribute('r', '60');
       court.appendChild(centerCircle);
 
-      // Draw both hoops (top and bottom)
-      for (let isTop of [true, false]) {
-        const yBase = isTop ? 20 : h - 20;
-        const yDir = isTop ? 1 : -1;
+      // Draw offensive hoop (bottom)
+      const yBase = h - 20;
+      const yDir = -1;
 
-        // Free throw line
-        const ftY = yBase + yDir * 190;
-        const ftLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        ftLine.setAttribute('x1', w * 0.3);
-        ftLine.setAttribute('y1', ftY);
-        ftLine.setAttribute('x2', w * 0.7);
-        ftLine.setAttribute('y2', ftY);
-        court.appendChild(ftLine);
+      // Free throw line
+      const ftY = yBase + yDir * 190;
+      const ftLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      ftLine.setAttribute('x1', w * 0.3);
+      ftLine.setAttribute('y1', ftY);
+      ftLine.setAttribute('x2', w * 0.7);
+      ftLine.setAttribute('y2', ftY);
+      court.appendChild(ftLine);
 
-        // Paint
-        const paint = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        paint.setAttribute('x', w * 0.3);
-        paint.setAttribute('y', isTop ? yBase : ftY);
-        paint.setAttribute('width', w * 0.4);
-        paint.setAttribute('height', Math.abs(ftY - yBase));
-        court.appendChild(paint);
+      // Paint
+      const paint = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      paint.setAttribute('x', w * 0.3);
+      paint.setAttribute('y', ftY);
+      paint.setAttribute('width', w * 0.4);
+      paint.setAttribute('height', Math.abs(ftY - yBase));
+      court.appendChild(paint);
 
-        // 3-point arc
-        const arc = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      // 3-point arc
+      const arc = document.createElementNS('http://www.w3.org/2000/svg', 'path');
 
-        // NFHS rules: 19'9" arc (237.5 units scaled), corners are 5'3" from sideline
-        // Basketball court width is 50 feet, scaled to 500 units = 10 units per foot
-        const threePointRadius = 237.5; // 19'9" from basket center
-        const basketX = w / 2; // Basket at center
-        const basketY = yBase + yDir * 63.5; // Basket 5.25 feet from baseline (63.5 units)
+      // NFHS rules: 19'9" arc (237.5 units scaled), corners are 5'3" from sideline
+      const threePointRadius = 237.5; // 19'9" from basket center
+      const basketX = w / 2; // Basket at center
+      const basketY = yBase + yDir * 63.5; // Basket 5.25 feet from baseline (63.5 units)
 
-        // Corner 3 starts where the arc would be closer than the straight line distance
-        // NFHS: corner 3 is 5'3" from sideline (63 units when scaled)
-        const sidelineX = 20; // Court outline starts at x=20
-        const cornerThreeX = sidelineX + 63; // 5'3" from sideline
+      // Corner 3 starts where the arc would be closer than the straight line distance
+      // NFHS: corner 3 is 5'3" from sideline (63 units when scaled)
+      const sidelineX = 20; // Court outline starts at x=20
+      const cornerThreeX = sidelineX + 63; // 5'3" from sideline
 
-        // Calculate where arc intersects with this X coordinate
-        const dx = Math.abs(basketX - cornerThreeX);
-        const dy = Math.sqrt(Math.max(0, threePointRadius * threePointRadius - dx * dx));
-        const arcStartY = basketY + yDir * dy;
+      // Calculate where arc intersects with this X coordinate
+      const dx = Math.abs(basketX - cornerThreeX);
+      const dy = Math.sqrt(Math.max(0, threePointRadius * threePointRadius - dx * dx));
+      const arcStartY = basketY + yDir * dy;
 
-        // Mirror for right side
-        const rightCornerThreeX = w - cornerThreeX + sidelineX;
+      // Mirror for right side
+      const rightCornerThreeX = w - cornerThreeX + sidelineX;
 
-        // Create path: left corner line from baseline to arc start, arc, right corner line to baseline
-        // Sweep-flag: 0 = counterclockwise, 1 = clockwise
-        // For top basket, arc should sweep away from center (counterclockwise when viewed left-to-right)
-        // For bottom basket, arc should sweep away from center (clockwise when viewed left-to-right)
-        const arcPath = isTop
-          ? `M ${cornerThreeX} ${yBase} L ${cornerThreeX} ${arcStartY} A ${threePointRadius} ${threePointRadius} 0 0 0 ${rightCornerThreeX} ${arcStartY} L ${rightCornerThreeX} ${yBase}`
-          : `M ${cornerThreeX} ${yBase} L ${cornerThreeX} ${arcStartY} A ${threePointRadius} ${threePointRadius} 0 0 1 ${rightCornerThreeX} ${arcStartY} L ${rightCornerThreeX} ${yBase}`;
-        arc.setAttribute('d', arcPath);
-        court.appendChild(arc);
+      // Create path for bottom basket (clockwise arc)
+      const arcPath = `M ${cornerThreeX} ${yBase} L ${cornerThreeX} ${arcStartY} A ${threePointRadius} ${threePointRadius} 0 0 1 ${rightCornerThreeX} ${arcStartY} L ${rightCornerThreeX} ${yBase}`;
+      arc.setAttribute('d', arcPath);
+      court.appendChild(arc);
 
-        // Free throw circle
-        const ftCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        ftCircle.setAttribute('cx', w / 2);
-        ftCircle.setAttribute('cy', ftY);
-        ftCircle.setAttribute('r', '60');
-        court.appendChild(ftCircle);
+      // Free throw circle
+      const ftCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      ftCircle.setAttribute('cx', w / 2);
+      ftCircle.setAttribute('cy', ftY);
+      ftCircle.setAttribute('r', '60');
+      court.appendChild(ftCircle);
 
-        // Hoop
-        const hoop = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        hoop.setAttribute('cx', w / 2);
-        hoop.setAttribute('cy', yBase);
-        hoop.setAttribute('r', '8');
-        hoop.setAttribute('fill', lineColor);
-        court.appendChild(hoop);
-      }
+      // Hoop
+      const hoop = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      hoop.setAttribute('cx', w / 2);
+      hoop.setAttribute('cy', yBase);
+      hoop.setAttribute('r', '8');
+      hoop.setAttribute('fill', lineColor);
+      court.appendChild(hoop);
 
       courtSVG.appendChild(court);
 
@@ -1765,20 +1772,20 @@
     function addFilterToSelect(selectId, labelId) {
       const select = document.getElementById(selectId);
       const label = document.querySelector(`label:has(#${selectId})`);
-      
+
       if (!select || !label) return;
-      
+
       // Check if filter already exists
       if (label.querySelector('.select-filter-input')) return;
-      
+
       // Only add filter if there are more than 7 options
       if (select.options.length <= 7) return;
-      
+
       const filterInput = document.createElement('input');
       filterInput.type = 'text';
       filterInput.placeholder = 'Filter...';
       filterInput.className = 'select-filter-input';
-      
+
       filterInput.addEventListener('input', (e) => {
         const filterText = e.target.value.toLowerCase();
         Array.from(select.options).forEach(option => {
@@ -1792,7 +1799,7 @@
           }
         });
       });
-      
+
       // Insert filter input before the select element
       label.insertBefore(filterInput, select);
     }
@@ -1829,7 +1836,7 @@
         const lastTournamentName = localStorage.getItem('lastNIFTournamentName');
         const lastTeamId = localStorage.getItem('lastNIFTeamId');
         const lastTeamName = localStorage.getItem('lastNIFTeamName');
-        
+
         if (lastTournamentId && lastTournamentName && lastTeamId && lastTeamName) {
           document.getElementById('nifShortcuts').style.display = 'block';
           document.getElementById('quickTournamentBtn').textContent = `🏆 ${lastTournamentName}`;
@@ -1896,14 +1903,14 @@
       }
 
       state.nifData.selectedTournamentId = tournamentId;
-      
+
       // Save tournament selection to localStorage
       const tournamentSelect = document.getElementById('tournamentSelect');
       const selectedOption = tournamentSelect.options[tournamentSelect.selectedIndex];
       const tournamentName = selectedOption ? selectedOption.dataset.tournamentName : '';
       localStorage.setItem('lastNIFTournamentId', tournamentId);
       localStorage.setItem('lastNIFTournamentName', tournamentName);
-      
+
       document.getElementById('nifLoadingState').style.display = 'block';
       document.getElementById('nifSelectTournament').style.display = 'none';
 
@@ -1941,14 +1948,14 @@
       }
 
       state.nifData.selectedTeamId = teamId;
-      
+
       // Save team selection to localStorage
       const teamSelect = document.getElementById('teamSelect');
       const selectedOption = teamSelect.options[teamSelect.selectedIndex];
       const teamName = selectedOption ? selectedOption.dataset.teamName : '';
       localStorage.setItem('lastNIFTeamId', teamId);
       localStorage.setItem('lastNIFTeamName', teamName);
-      
+
       document.getElementById('nifLoadingState').style.display = 'block';
       document.getElementById('nifSelectTeam').style.display = 'none';
 
@@ -1975,16 +1982,18 @@
         } else {
           const now = new Date();
           now.setHours(0, 0, 0, 0); // Start of today
-          
+
           teamMatches.forEach(match => {
             const option = document.createElement('option');
             option.value = match.matchId;
             const isHome = match.hometeamId === teamId;
-            const opponent = isHome ? match.awayteamOverriddenName : match.hometeamOverriddenName;
+            const opponent = isHome
+              ? (match.awayteamOverriddenName || match.awayteam)
+              : (match.hometeamOverriddenName || match.hometeam);
             const homeAway = isHome ? 'vs' : '@';
             const matchDate = match.matchDate ? new Date(match.matchDate) : null;
             const date = matchDate ? matchDate.toLocaleDateString() : 'TBD';
-            
+
             // Disable past matches
             if (matchDate) {
               const matchDateOnly = new Date(matchDate);
@@ -1998,7 +2007,7 @@
             } else {
               option.textContent = `${date} - ${homeAway} ${opponent} (${match.statusType})`;
             }
-            
+
             option.dataset.match = JSON.stringify(match);
             select.appendChild(option);
           });
@@ -2020,20 +2029,20 @@
       const btn = document.getElementById('quickTournamentBtn');
       const tournamentId = btn.dataset.tournamentId;
       const tournamentName = btn.dataset.tournamentName;
-      
+
       if (!tournamentId) return;
-      
+
       // Set the tournament and skip to team selection
       state.nifData.selectedTournamentId = tournamentId;
       document.getElementById('nifSelectSeason').style.display = 'none';
       document.getElementById('nifLoadingState').style.display = 'block';
-      
+
       try {
         const teamsData = await window.nifAPI.getTeamsByTournament(tournamentId);
-        
+
         const select = document.getElementById('teamSelect');
         select.innerHTML = '';
-        
+
         teamsData.teams.forEach(team => {
           const option = document.createElement('option');
           option.value = team.teamId;
@@ -2041,10 +2050,10 @@
           option.dataset.teamName = team.overriddenName || team.team;
           select.appendChild(option);
         });
-        
+
         // Add filter if needed
         addFilterToSelect('teamSelect', 'teamLabel');
-        
+
         document.getElementById('nifLoadingState').style.display = 'none';
         document.getElementById('nifSelectTeam').style.display = 'block';
         showToast(`Loaded ${tournamentName}`, 'success');
@@ -2055,55 +2064,57 @@
         console.error('NIF Error:', error);
       }
     }
-    
+
     async function handleQuickTeam() {
       const btn = document.getElementById('quickTeamBtn');
       const teamId = parseInt(btn.dataset.teamId);
       const teamName = btn.dataset.teamName;
       const tournamentBtn = document.getElementById('quickTournamentBtn');
       const tournamentId = tournamentBtn.dataset.tournamentId;
-      
+
       if (!tournamentId || !teamId) return;
-      
+
       // Set both tournament and team, skip to match selection
       state.nifData.selectedTournamentId = tournamentId;
       state.nifData.selectedTeamId = teamId;
       document.getElementById('nifSelectSeason').style.display = 'none';
       document.getElementById('nifLoadingState').style.display = 'block';
-      
+
       try {
         const matchesData = await window.nifAPI.getMatchesByTournament(tournamentId);
-        
+
         // Filter matches for selected team
         const teamMatches = matchesData.matches.filter(m =>
           m.hometeamId === teamId || m.awayteamId === teamId
         );
-        
+
         const select = document.getElementById('matchSelect');
         select.innerHTML = '';
-        
+
         // Sort matches by date in ascending order
         teamMatches.sort((a, b) => {
           const dateA = a.matchDate ? new Date(a.matchDate).getTime() : 0;
           const dateB = b.matchDate ? new Date(b.matchDate).getTime() : 0;
           return dateA - dateB;
         });
-        
+
         if (teamMatches.length === 0) {
           select.innerHTML = '<option>No matches found for this team</option>';
         } else {
           const now = new Date();
           now.setHours(0, 0, 0, 0); // Start of today
-          
+
           teamMatches.forEach(match => {
             const option = document.createElement('option');
             option.value = match.matchId;
             const isHome = match.hometeamId === teamId;
-            const opponent = isHome ? match.awayteamOverriddenName : match.hometeamOverriddenName;
+            const opponent = isHome
+              ? (match.awayteamOverriddenName || match.awayteam)
+              : (match.hometeamOverriddenName || match.hometeam);
             const homeAway = isHome ? 'vs' : '@';
             const matchDate = match.matchDate ? new Date(match.matchDate) : null;
             const date = matchDate ? matchDate.toLocaleDateString() : 'TBD';
-            
+
             // Disable past matches
             if (matchDate) {
               const matchDateOnly = new Date(matchDate);
@@ -2117,15 +2128,15 @@
             } else {
               option.textContent = `${date} - ${homeAway} ${opponent} (${match.statusType})`;
             }
-            
+
             option.dataset.match = JSON.stringify(match);
             select.appendChild(option);
           });
         }
-        
+
         // Add filter if needed
         addFilterToSelect('matchSelect', 'matchLabel');
-        
+
         document.getElementById('nifLoadingState').style.display = 'none';
         document.getElementById('nifSelectMatch').style.display = 'block';
         showToast(`Loaded ${teamName} matches`, 'success');
@@ -2156,7 +2167,9 @@
 
         // Set up game data
         state.game = {
-          opponent: isHome ? match.awayteamOverriddenName : match.hometeamOverriddenName,
+          opponent: isHome
+            ? (match.awayteamOverriddenName || match.awayteam)
+            : (match.hometeamOverriddenName || match.hometeam),
           date: match.matchDate ? new Date(match.matchDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
           ruleSet: 'FIBA',
           location: match.activityAreaName || '',
@@ -2384,17 +2397,17 @@
           result: null,
           subtype: null
         };
-        
+
         // Keep event-selected class to show roster
         document.body.classList.add('event-selected');
-        
+
         // Add a warning message in the validation warnings
         state.validationWarnings.push({
           type: 'assist_prompt',
           message: 'Who made the assist? Tap a player or clear selection if no assist.',
           severity: 'warning'
         });
-        
+
         renderPlayerList();
         updateUI();
       } else {
@@ -2480,15 +2493,30 @@
       if (!player) return;
 
       player.onCourt = !player.onCourt;
-      
+
+      // Log substitution event for accurate +/- calculation
+      const subEvent = {
+        id: generateId(),
+        timestamp: Date.now(),
+        period: state.period,
+        playerId: playerId,
+        playerName: `${player.firstName} ${player.lastName}`,
+        playerJersey: player.jersey,
+        kind: 'substitution',
+        subtype: player.onCourt ? 'in' : 'out',
+        team: 'home'
+      };
+      state.events.push(subEvent);
+      await putInStore('events', subEvent);
+
       // Mark this player as just moved for animation
       state.lastToggledPlayerId = playerId;
-      
+
       await putInStore('players', player);
       validateGameState();
       renderPlayerList();
       showToast(`${player.firstName} ${player.lastName} ${player.onCourt ? 'on court' : 'benched'}`, 'success');
-      
+
       // Clear the animation flag after animation completes
       setTimeout(() => {
         state.lastToggledPlayerId = null;
@@ -2560,6 +2588,15 @@
 
       // Get the last event
       const lastEvent = state.events[state.events.length - 1];
+
+      // If it's a substitution event, reverse the player's onCourt status
+      if (lastEvent.kind === 'substitution') {
+        const player = state.players.find(p => p.id === lastEvent.playerId);
+        if (player) {
+          player.onCourt = !player.onCourt;
+          await putInStore('players', player);
+        }
+      }
 
       // Remove from state
       state.events.pop();
@@ -2809,11 +2846,11 @@
       }
 
       const dialog = document.getElementById('scoreAdjustDialog');
-      
+
       // Update dialog with current scores
       document.getElementById('homeScoreDisplay').textContent = state.homeScore;
       document.getElementById('opponentScoreDisplay').textContent = state.opponentScore;
-      
+
       // Update opponent label with team name if available
       if (state.game.opponent) {
         document.getElementById('opponentScoreLabel').textContent = state.game.opponent;
@@ -2988,6 +3025,9 @@
       state.selectedEvent = null;
       state.gameFinished = false;
 
+      // Switch to live game view
+      showLiveGameView();
+
       // Update UI
       updateUI();
 
@@ -3000,11 +3040,11 @@
     // History View Functions
     async function showHistoryView() {
       state.currentView = 'history';
-      
+
       // Hide live game view and history detail
       document.querySelector('main').style.display = 'none';
       document.getElementById('historyDetailView').style.display = 'none';
-      
+
       // Show history list view
       document.getElementById('historyView').style.display = 'block';
 
@@ -3024,11 +3064,11 @@
         } else {
           let html = '';
           games.forEach(game => {
-            const resultText = game.homeScore > game.opponentScore ? 'W' : 
-                             game.homeScore < game.opponentScore ? 'L' : 'T';
-            const resultColor = game.homeScore > game.opponentScore ? 'var(--success)' : 
-                              game.homeScore < game.opponentScore ? 'var(--danger)' : 'var(--warning)';
-            
+            const resultText = game.homeScore > game.opponentScore ? 'W' :
+              game.homeScore < game.opponentScore ? 'L' : 'T';
+            const resultColor = game.homeScore > game.opponentScore ? 'var(--success)' :
+              game.homeScore < game.opponentScore ? 'var(--danger)' : 'var(--warning)';
+
             html += `
               <div class="history-card" onclick="showHistoryGameDetail('${game.id}')">
                 <div class="history-card-header">
@@ -3056,10 +3096,10 @@
 
     function showLiveGameView() {
       state.currentView = 'live';
-      
+
       // Show live game view
       document.querySelector('main').style.display = 'flex';
-      
+
       // Hide history views
       document.getElementById('historyView').style.display = 'none';
       document.getElementById('historyDetailView').style.display = 'none';
@@ -3084,10 +3124,10 @@
 
         // Render game header
         const headerContainer = document.getElementById('historyGameHeader');
-        const resultText = game.homeScore > game.opponentScore ? 'Victory' : 
-                         game.homeScore < game.opponentScore ? 'Loss' : 'Tie';
-        const resultColor = game.homeScore > game.opponentScore ? 'var(--success)' : 
-                          game.homeScore < game.opponentScore ? 'var(--danger)' : 'var(--warning)';
+        const resultText = game.homeScore > game.opponentScore ? 'Victory' :
+          game.homeScore < game.opponentScore ? 'Loss' : 'Tie';
+        const resultColor = game.homeScore > game.opponentScore ? 'var(--success)' :
+          game.homeScore < game.opponentScore ? 'var(--danger)' : 'var(--warning)';
 
         headerContainer.innerHTML = `
           <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:1rem;">
@@ -3170,7 +3210,7 @@
       const possessions = estimatePossessions(stats.team);
       const offensiveRating = possessions > 0 ? ((game.homeScore / possessions) * 100).toFixed(1) : '0.0';
       const effectiveFG = stats.team.fga > 0 ? (((stats.team.fgm + 0.5 * stats.team.threepm) / stats.team.fga) * 100).toFixed(1) : '0.0';
-      const trueShooting = (stats.team.fga + 0.44 * stats.team.fta) > 0 ? 
+      const trueShooting = (stats.team.fga + 0.44 * stats.team.fta) > 0 ?
         ((game.homeScore / (2 * (stats.team.fga + 0.44 * stats.team.fta))) * 100).toFixed(1) : '0.0';
 
       html += `
@@ -3208,7 +3248,7 @@
         <div class="stat-card" style="grid-column: 1 / -1;">
           <h3>🎯 Shot Chart - Team</h3>
           <div style="text-align:center;">
-            <svg id="historyCourtSVG" viewBox="0 400 500 540" preserveAspectRatio="xMidYMid meet" style="max-width:600px;width:100%;height:auto;border:1px solid var(--muted);border-radius:var(--radius);"></svg>
+            <svg id="historyCourtSVG" viewBox="0 0 500 517" preserveAspectRatio="xMidYMid meet" style="max-width:600px;width:100%;height:auto;border:1px solid var(--muted);border-radius:var(--radius);"></svg>
           </div>
         </div>
       `;
@@ -3244,7 +3284,7 @@
 
       // Calculate plus/minus for each player
       const playersWithPlusMinus = calculatePlusMinus(events, players);
-      
+
       // Merge plus/minus with stats
       stats.players.forEach(player => {
         const pmData = playersWithPlusMinus.find(p => p.originalId === player.id);
@@ -3291,7 +3331,7 @@
       `;
 
       statsContainer.innerHTML = html;
-      
+
       // Draw team shot chart
       drawHistoryShotChart(events, null);
     }
@@ -3306,10 +3346,8 @@
     function calculatePlusMinus(events, players) {
       // Calculate plus/minus for each player based on when they were on court
       // Plus/minus = (points scored by team - points scored by opponent) while player was on court
-      // NOTE: Current implementation assumes all players were on court for all scoring events
-      // since we don't track substitution timing in the current data model.
-      // This provides a simplified team-wide differential rather than true individual +/-
-      
+      // We track substitutions to determine who was on court at each scoring event
+
       const playerPlusMinus = players.map(p => ({
         originalId: p.originalId,
         id: p.id,
@@ -3318,26 +3356,41 @@
         pointsAgainst: 0
       }));
 
-      // Get all scoring events sorted by timestamp
-      const scoringEvents = events
-        .filter(e => (e.kind === 'shot' && e.result === 'made') || (e.kind === 'ft' && e.result === 'made'))
-        .sort((a, b) => a.timestamp - b.timestamp);
+      // Get all events sorted by timestamp
+      const sortedEvents = [...events].sort((a, b) => a.timestamp - b.timestamp);
 
-      // For each scoring event, attribute to all players
-      // This gives a team-wide differential since we don't track substitutions
-      scoringEvents.forEach(event => {
-        const points = event.kind === 'shot' ? event.points : 1;
-        const isHomeTeam = event.team !== 'opponent';
+      // Track which players are currently on court
+      // Initialize based on current state, but we'll track changes through substitution events
+      const onCourtStatus = new Map();
+      players.forEach(p => {
+        onCourtStatus.set(p.id, false); // Start with everyone off court
+      });
 
-        playerPlusMinus.forEach(pm => {
-          if (isHomeTeam) {
-            pm.pointsFor += points;
-            pm.plusMinus += points;
-          } else {
-            pm.pointsAgainst += points;
-            pm.plusMinus -= points;
-          }
-        });
+      // Process events chronologically
+      sortedEvents.forEach(event => {
+        // Update on-court status based on substitution events
+        if (event.kind === 'substitution') {
+          onCourtStatus.set(event.playerId, event.subtype === 'in');
+        }
+
+        // For scoring events, update +/- for players who were on court
+        if ((event.kind === 'shot' && event.result === 'made') || (event.kind === 'ft' && event.result === 'made')) {
+          const points = event.kind === 'shot' ? event.points : 1;
+          const isHomeTeam = event.team !== 'opponent';
+
+          // Apply to all players who were on court at this moment
+          playerPlusMinus.forEach(pm => {
+            if (onCourtStatus.get(pm.id)) {
+              if (isHomeTeam) {
+                pm.pointsFor += points;
+                pm.plusMinus += points;
+              } else {
+                pm.pointsAgainst += points;
+                pm.plusMinus -= points;
+              }
+            }
+          });
+        }
       });
 
       return playerPlusMinus;
@@ -3349,9 +3402,9 @@
 
       const lineColor = getComputedStyle(document.documentElement).getPropertyValue('--court-line').trim();
 
-      // Half court dimensions (500 x 540) - showing only offensive half
+      // Half court + center line dimensions (55% of full court: 500 x 517) - same as scoring view
       const w = 500;
-      const h = 540;
+      const h = 517;
 
       // Clear SVG
       courtSVG.innerHTML = '';
@@ -3369,7 +3422,7 @@
       court.setAttribute('stroke-width', '2');
       court.setAttribute('fill', 'none');
 
-      // Outline
+      // Outline (3 sides + center line)
       const outline = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
       outline.setAttribute('x', '20');
       outline.setAttribute('y', '20');
@@ -3377,14 +3430,22 @@
       outline.setAttribute('height', h - 40);
       court.appendChild(outline);
 
-      // Baseline
-      const baseline = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      baseline.setAttribute('x1', '20');
-      baseline.setAttribute('y1', h - 20);
-      baseline.setAttribute('x2', w - 20);
-      baseline.setAttribute('y2', h - 20);
-      court.appendChild(baseline);
+      // Center line (at top of this view)
+      const centerLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      centerLine.setAttribute('x1', '20');
+      centerLine.setAttribute('y1', '20');
+      centerLine.setAttribute('x2', w - 20);
+      centerLine.setAttribute('y2', '20');
+      court.appendChild(centerLine);
 
+      // Center circle (partial, at top)
+      const centerCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      centerCircle.setAttribute('cx', w / 2);
+      centerCircle.setAttribute('cy', '20');
+      centerCircle.setAttribute('r', '60');
+      court.appendChild(centerCircle);
+
+      // Draw offensive hoop (bottom)
       const yBase = h - 20;
       const yDir = -1;
 
@@ -3407,15 +3468,26 @@
 
       // 3-point arc
       const arc = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      const threePointRadius = 237.5;
-      const basketX = w / 2;
-      const basketY = yBase + yDir * 63.5;
-      const sidelineX = 20;
-      const cornerThreeX = sidelineX + 63;
+
+      // NFHS rules: 19'9" arc (237.5 units scaled), corners are 5'3" from sideline
+      const threePointRadius = 237.5; // 19'9" from basket center
+      const basketX = w / 2; // Basket at center
+      const basketY = yBase + yDir * 63.5; // Basket 5.25 feet from baseline (63.5 units)
+
+      // Corner 3 starts where the arc would be closer than the straight line distance
+      // NFHS: corner 3 is 5'3" from sideline (63 units when scaled)
+      const sidelineX = 20; // Court outline starts at x=20
+      const cornerThreeX = sidelineX + 63; // 5'3" from sideline
+
+      // Calculate where arc intersects with this X coordinate
       const dx = Math.abs(basketX - cornerThreeX);
       const dy = Math.sqrt(Math.max(0, threePointRadius * threePointRadius - dx * dx));
       const arcStartY = basketY + yDir * dy;
+
+      // Mirror for right side
       const rightCornerThreeX = w - cornerThreeX + sidelineX;
+
+      // Create path for bottom basket (clockwise arc)
       const arcPath = `M ${cornerThreeX} ${yBase} L ${cornerThreeX} ${arcStartY} A ${threePointRadius} ${threePointRadius} 0 0 1 ${rightCornerThreeX} ${arcStartY} L ${rightCornerThreeX} ${yBase}`;
       arc.setAttribute('d', arcPath);
       court.appendChild(arc);
@@ -3430,7 +3502,7 @@
       // Hoop
       const hoop = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
       hoop.setAttribute('cx', w / 2);
-      hoop.setAttribute('cy', basketY);
+      hoop.setAttribute('cy', yBase);
       hoop.setAttribute('r', '8');
       hoop.setAttribute('fill', lineColor);
       court.appendChild(hoop);
@@ -3438,29 +3510,30 @@
       courtSVG.appendChild(court);
 
       // Filter shots by player if specified
-      const shotEvents = events.filter(e => 
-        e.kind === 'shot' && 
-        e.coordinates && 
+      const shotEvents = events.filter(e =>
+        e.kind === 'shot' &&
+        e.coordinates &&
         e.team !== 'opponent' &&
         (!playerId || e.playerId === playerId)
       );
 
-      // Draw shots
+      // Draw shots - no transformation needed, coordinates are now consistent
       shotEvents.forEach(event => {
         const color = event.result === 'made' ? 'rgba(50, 200, 50, 0.7)' : 'rgba(200, 50, 50, 0.7)';
         const shot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+
         shot.setAttribute('cx', event.coordinates.x);
         shot.setAttribute('cy', event.coordinates.y);
         shot.setAttribute('r', '12');
         shot.setAttribute('fill', color);
         shot.setAttribute('stroke', event.result === 'made' ? 'rgba(50, 200, 50, 1)' : 'rgba(200, 50, 50, 1)');
         shot.setAttribute('stroke-width', '3');
-        
+
         // Add tooltip
         const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
         title.textContent = `${event.playerName || 'Unknown'} - ${event.points}pt ${event.result}`;
         shot.appendChild(title);
-        
+
         courtSVG.appendChild(shot);
       });
 
@@ -3468,7 +3541,7 @@
       const made = shotEvents.filter(e => e.result === 'made').length;
       const total = shotEvents.length;
       const pct = total > 0 ? ((made / total) * 100).toFixed(1) : '0.0';
-      
+
       const summary = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       summary.setAttribute('x', w / 2);
       summary.setAttribute('y', '30');
@@ -3507,7 +3580,7 @@
             heading.appendChild(button);
           }
         });
-        
+
         // Redraw with player filter
         drawHistoryShotChart(events, playerId);
       });
@@ -3526,7 +3599,7 @@
             heading.textContent = '🎯 Shot Chart - Team';
           }
         });
-        
+
         // Redraw without player filter
         drawHistoryShotChart(events, null);
       });
@@ -3552,19 +3625,19 @@
           window.historyDB.getFinishedGamePlayers(gameId)
         ]).then(([game, events, players]) => {
           const stats = game.stats;
-          
+
           // Recalculate plus/minus for sorting
           const playersWithPlusMinus = calculatePlusMinus(events, players);
           stats.players.forEach(player => {
             const pmData = playersWithPlusMinus.find(p => p.originalId === player.id);
             player.plusMinus = pmData ? pmData.plusMinus : 0;
           });
-          
+
           let sortedPlayers = [...stats.players];
 
           sortedPlayers.sort((a, b) => {
             let aVal, bVal;
-            
+
             if (column === 'name') {
               aVal = a.name.toLowerCase();
               bVal = b.name.toLowerCase();
@@ -3631,7 +3704,7 @@
       try {
         const game = await window.historyDB.getFinishedGame(state.selectedHistoryGame);
         const events = await window.historyDB.getFinishedGameEvents(state.selectedHistoryGame);
-        
+
         // Create temporary state for export
         const tempState = {
           game: {
@@ -3693,7 +3766,7 @@
       try {
         await window.historyDB.deleteFinishedGame(state.selectedHistoryGame);
         showToast('Game deleted', 'success');
-        
+
         // Go back to history list
         showHistoryView();
       } catch (error) {
