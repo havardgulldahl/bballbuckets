@@ -982,7 +982,7 @@
       <button id="finishGameBtn" style="display:none;" title="Finish Game">🏁</button>
       <button id="newGameBtn" style="display:none;" title="New Game">➕</button>
       <button id="exportBtn" style="display:none;" title="Export Data">💾</button>
-      <button id="historyBtn" style="display:none;" title="Game History">📊</button>
+      <button id="historyBtn" title="Game History">📊</button>
       <button id="setupGameBtn" title="Setup Game">⚙️</button>
     </div>
   </header>
@@ -2626,7 +2626,6 @@
         document.getElementById('finishGameBtn').style.display = state.gameFinished ? 'none' : 'inline-block';
         document.getElementById('newGameBtn').style.display = state.gameFinished ? 'inline-block' : 'none';
         document.getElementById('exportBtn').style.display = state.gameFinished ? 'inline-block' : 'none';
-        document.getElementById('historyBtn').style.display = state.gameFinished ? 'inline-block' : 'none';
       } else {
         document.getElementById('gameInfo').style.display = 'none';
         document.getElementById('undoBtn').style.display = 'none';
@@ -2634,7 +2633,6 @@
         document.getElementById('finishGameBtn').style.display = 'none';
         document.getElementById('newGameBtn').style.display = 'none';
         document.getElementById('exportBtn').style.display = 'none';
-        document.getElementById('historyBtn').style.display = 'none';
       }
 
       // Disable controls if game is finished
