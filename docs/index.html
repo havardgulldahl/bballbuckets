@@ -3296,15 +3296,15 @@
         const fgPct = player.fga > 0 ? ((player.fgm / player.fga) * 100).toFixed(1) : '0.0';
         const threePct = player.threepa > 0 ? ((player.threepm / player.threepa) * 100).toFixed(1) : '0.0';
         const ftPct = player.fta > 0 ? ((player.ftm / player.fta) * 100).toFixed(1) : '0.0';
-        const pmColor = player.plusMinus > 0 ? 'var(--success)' : player.plusMinus < 0 ? 'var(--danger)' : 'var(--muted)';
-        const pmSign = player.plusMinus > 0 ? '+' : '';
+        const pmColor = (player.plusMinus || 0) > 0 ? 'var(--success)' : (player.plusMinus || 0) < 0 ? 'var(--danger)' : 'var(--muted)';
+        const pmSign = (player.plusMinus || 0) > 0 ? '+' : '';
 
         html += `
           <tr style="cursor:pointer;" onclick="showPlayerShotChart('${player.id}', '${player.name}')" title="Click to view shot chart">
             <td style="font-weight:600;">${player.name}</td>
             <td style="text-align:center;">${player.jersey}</td>
             <td style="text-align:center;font-weight:bold;">${player.points}</td>
-            <td style="text-align:center;font-weight:bold;color:${pmColor};">${pmSign}${player.plusMinus}</td>
+            <td style="text-align:center;font-weight:bold;color:${pmColor};">${pmSign}${player.plusMinus || 0}</td>
             <td style="text-align:center;">${player.fgm}/${player.fga}</td>
             <td style="text-align:center;">${fgPct}</td>
             <td style="text-align:center;">${player.threepm}/${player.threepa}</td>
@@ -3349,6 +3349,9 @@
       const playerPlusMinus = players.map(p => ({
         originalId: p.originalId,
         id: p.id,
+        // Use originalId if available (history mode), otherwise id (live mode)
+        // This ensures we match the IDs stored in events
+        matchId: p.originalId || p.id,
         plusMinus: 0,
         pointsFor: 0,
         pointsAgainst: 0
@@ -3358,10 +3361,24 @@
       const sortedEvents = [...events].sort((a, b) => a.timestamp - b.timestamp);
 
       // Track which players are currently on court
-      // Initialize based on current state, but we'll track changes through substitution events
+      // Build the initial on-court status from the first substitution events
       const onCourtStatus = new Map();
-      players.forEach(p => {
-        onCourtStatus.set(p.id, false); // Start with everyone off court
+      playerPlusMinus.forEach(p => {
+        onCourtStatus.set(p.matchId, false); // Start with everyone off court
+      });
+
+      // First pass: identify the initial lineup from early substitution events
+      // Find the timestamp of the first scoring event to establish initial lineup
+      const firstScoringEvent = sortedEvents.find(e =>
+        (e.kind === 'shot' && e.result === 'made') || (e.kind === 'ft' && e.result === 'made')
+      );
+      const firstScoringTimestamp = firstScoringEvent ? firstScoringEvent.timestamp : Infinity;
+
+      // Apply all substitution events that happened before the first score
+      sortedEvents.forEach(event => {
+        if (event.kind === 'substitution' && event.timestamp < firstScoringTimestamp) {
+          onCourtStatus.set(event.playerId, event.subtype === 'in');
+        }
       });
 
       // Process events chronologically
@@ -3378,7 +3395,7 @@
 
           // Apply to all players who were on court at this moment
           playerPlusMinus.forEach(pm => {
-            if (onCourtStatus.get(pm.id)) {
+            if (onCourtStatus.get(pm.matchId)) {
               if (isHomeTeam) {
                 pm.pointsFor += points;
                 pm.plusMinus += points;
@@ -3793,7 +3810,7 @@
       html += `Field Goals: ${stats.team.fgm}/${stats.team.fga} (${stats.team.fgPct}%)\n`;
       html += `3-Pointers: ${stats.team.threepm}/${stats.team.threepa} (${stats.team.threePct}%)\n`;
       html += `Free Throws: ${stats.team.ftm}/${stats.team.fta} (${stats.team.ftPct}%)\n`;
-      html += `Rebounds: ${stats.team.rebounds} (O:${stats.team.oreb}, D:${stats.team.dreb})\n`;
+      html += `Rebounds: ${stats.team.rebounds} (Off: ${stats.team.oreb}, Def: ${stats.team.dreb})\n`;
       html += `Assists: ${stats.team.assists}\n`;
       html += `Steals: ${stats.team.steals}\n`;
       html += `Blocks: ${stats.team.blocks}\n`;
