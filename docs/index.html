@@ -1015,6 +1015,7 @@
       style="margin-bottom:2rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;">
       <button id="backToHistoryListBtn" class="secondary" style="padding:0.75rem 1.5rem;">← Back to History</button>
       <div style="display:flex;gap:0.5rem;">
+        <button id="printHistoryGameBtn" title="Print Game Report" style="padding:0.75rem 1.5rem;">🖨️ Print Report</button>
         <button id="exportHistoryGameBtn" title="Export Game Data" style="padding:0.75rem 1.5rem;">💾 Export</button>
         <button id="deleteHistoryGameBtn" class="danger" title="Delete Game"
           style="padding:0.75rem 1.5rem;">🗑️</button>
@@ -1724,6 +1725,7 @@
       document.getElementById('backToLiveGameBtn').addEventListener('click', showLiveGameView);
       document.getElementById('backToHistoryListBtn').addEventListener('click', showHistoryView);
       document.getElementById('exportHistoryGameBtn').addEventListener('click', exportHistoryGame);
+      document.getElementById('printHistoryGameBtn').addEventListener('click', () => printHistoryGameReport(state.selectedHistoryGame));
       document.getElementById('deleteHistoryGameBtn').addEventListener('click', deleteHistoryGame);
       // Score Adjustment dialog
       document.getElementById('headerScore').addEventListener('click', showScoreAdjustDialog);
@@ -3081,6 +3083,9 @@
                     ${game.location ? `<span>📍 ${game.location}</span>` : ''}
                   </div>
                 </div>
+                <div style="margin-top:0.75rem;text-align:right;">
+                  <button onclick="event.stopPropagation();printHistoryGameReport('${game.id}')" style="padding:0.4rem 0.9rem;font-size:0.85rem;" title="Print game report">🖨️ Print Report</button>
+                </div>
               </div>
             `;
           });
@@ -3766,6 +3771,307 @@
       } catch (error) {
         console.error('Error exporting game:', error);
         showToast('Error exporting game', 'error');
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function generateCourtSVGString(events, playerId, size) {
+      // Generate an inline SVG string for the shot chart
+      const w = size || 400;
+      const h = Math.round(w * 517 / 500);
+      const lineColor = '#888';
+
+      const yBase = h - 16;
+      const yDir = -1;
+      const ftY = yBase + yDir * Math.round(190 * h / 517);
+      const paintLeft = Math.round(w * 0.3);
+      const paintRight = Math.round(w * 0.7);
+      const paintWidth = paintRight - paintLeft;
+      const paintHeight = Math.abs(ftY - yBase);
+      const centerX = w / 2;
+      const basketY = yBase + yDir * Math.round(63.5 * h / 517);
+      const threeR = Math.round(237.5 * w / 500);
+      const sidelineX = 16;
+      const cornerX = sidelineX + Math.round(63 * w / 500);
+      const rightCornerX = w - cornerX + sidelineX;
+      const dx = Math.abs(centerX - cornerX);
+      const dy = Math.sqrt(Math.max(0, threeR * threeR - dx * dx));
+      const arcStartY = basketY + yDir * dy;
+      const ftCircleR = Math.round(60 * w / 500);
+      const centerCircleR = Math.round(60 * w / 500);
+
+      const arcPath = `M ${cornerX} ${yBase} L ${cornerX} ${arcStartY} A ${threeR} ${threeR} 0 0 1 ${rightCornerX} ${arcStartY} L ${rightCornerX} ${yBase}`;
+
+      const shotEvents = events.filter(e =>
+        e.kind === 'shot' &&
+        e.coordinates &&
+        e.team !== 'opponent' &&
+        (!playerId || e.playerId === playerId)
+      );
+
+      const shotDots = shotEvents.map(e => {
+        const cx = Math.round(e.coordinates.x * w / 500);
+        const cy = Math.round(e.coordinates.y * h / 517);
+        const r = Math.max(6, Math.round(10 * w / 500));
+        const fill = e.result === 'made' ? 'rgba(50,200,50,0.75)' : 'rgba(200,50,50,0.75)';
+        const stroke = e.result === 'made' ? '#32c832' : '#c83232';
+        const label = escapeHtml(`${e.playerName || '?'} ${e.points}pt ${e.result}`);
+        return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="2"><title>${label}</title></circle>`;
+      }).join('');
+
+      const made = shotEvents.filter(e => e.result === 'made').length;
+      const total = shotEvents.length;
+      const pct = total > 0 ? ((made / total) * 100).toFixed(1) : '0.0';
+
+      return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg" style="border:1px solid #ccc;border-radius:4px;max-width:100%;">
+  <rect width="${w}" height="${h}" fill="#f5e6c8"/>
+  <g stroke="${lineColor}" stroke-width="1.5" fill="none">
+    <rect x="16" y="16" width="${w - 32}" height="${h - 32}"/>
+    <line x1="16" y1="16" x2="${w - 16}" y2="16"/>
+    <circle cx="${centerX}" cy="16" r="${centerCircleR}"/>
+    <line x1="${paintLeft}" y1="${ftY}" x2="${paintRight}" y2="${ftY}"/>
+    <rect x="${paintLeft}" y="${ftY}" width="${paintWidth}" height="${paintHeight}"/>
+    <path d="${arcPath}"/>
+    <circle cx="${centerX}" cy="${ftY}" r="${ftCircleR}"/>
+    <circle cx="${centerX}" cy="${basketY}" r="6" fill="${lineColor}"/>
+  </g>
+  ${shotDots}
+  <text x="${centerX}" y="14" text-anchor="middle" font-size="11" font-weight="bold" fill="#333">${made}/${total} FG (${pct}%)</text>
+</svg>`;
+    }
+
+    async function printHistoryGameReport(gameId) {
+      if (!gameId) {
+        showToast('No game selected', 'error');
+        return;
+      }
+
+      try {
+        const [game, events, players] = await Promise.all([
+          window.historyDB.getFinishedGame(gameId),
+          window.historyDB.getFinishedGameEvents(gameId),
+          window.historyDB.getFinishedGamePlayers(gameId)
+        ]);
+
+        const stats = game.stats;
+        const safeOpponent = escapeHtml(game.opponent || 'Opponent');
+        const safeDate = escapeHtml(game.date || '');
+        const safeLocation = game.location ? escapeHtml(game.location) : '';
+        const resultText = game.homeScore > game.opponentScore ? 'Victory' :
+          game.homeScore < game.opponentScore ? 'Loss' : 'Tie';
+        const resultColor = game.homeScore > game.opponentScore ? '#22c55e' :
+          game.homeScore < game.opponentScore ? '#ef4444' : '#f59e0b';
+
+        // Advanced metrics
+        const possessions = stats.team.fga + 0.44 * stats.team.fta - stats.team.oreb + stats.team.turnovers;
+        const offRating = possessions > 0 ? ((game.homeScore / possessions) * 100).toFixed(1) : '0.0';
+        const eFG = stats.team.fga > 0 ? (((stats.team.fgm + 0.5 * stats.team.threepm) / stats.team.fga) * 100).toFixed(1) : '0.0';
+        const tsPct = (stats.team.fga + 0.44 * stats.team.fta) > 0 ?
+          ((game.homeScore / (2 * (stats.team.fga + 0.44 * stats.team.fta))) * 100).toFixed(1) : '0.0';
+        const astToRatio = stats.team.turnovers > 0 ? (stats.team.assists / stats.team.turnovers).toFixed(2) : stats.team.assists.toFixed(2);
+
+        // Plus/minus per player
+        const playersWithPM = calculatePlusMinus(events, players);
+        stats.players.forEach(player => {
+          const pmData = playersWithPM.find(p => p.originalId === player.id);
+          player.plusMinus = pmData ? pmData.plusMinus : 0;
+        });
+        const sortedPlayers = [...stats.players].sort((a, b) => b.points - a.points);
+
+        // Player rows for summary table
+        const playerRows = sortedPlayers.map(p => {
+          const fgPct = p.fga > 0 ? ((p.fgm / p.fga) * 100).toFixed(1) : '0.0';
+          const threePct = p.threepa > 0 ? ((p.threepm / p.threepa) * 100).toFixed(1) : '0.0';
+          const ftPct = p.fta > 0 ? ((p.ftm / p.fta) * 100).toFixed(1) : '0.0';
+          const pmSign = (p.plusMinus || 0) > 0 ? '+' : '';
+          const pmColor = (p.plusMinus || 0) > 0 ? '#22c55e' : (p.plusMinus || 0) < 0 ? '#ef4444' : '#666';
+          const safeName = escapeHtml(p.name);
+          const safeJersey = escapeHtml(p.jersey);
+          return `<tr>
+            <td style="font-weight:600;white-space:nowrap;">${safeName}</td>
+            <td style="text-align:center;">${safeJersey}</td>
+            <td style="text-align:center;font-weight:bold;">${p.points}</td>
+            <td style="text-align:center;color:${pmColor};font-weight:bold;">${pmSign}${p.plusMinus || 0}</td>
+            <td style="text-align:center;">${p.fgm}/${p.fga}</td>
+            <td style="text-align:center;">${fgPct}%</td>
+            <td style="text-align:center;">${p.threepm}/${p.threepa}</td>
+            <td style="text-align:center;">${threePct}%</td>
+            <td style="text-align:center;">${p.ftm}/${p.fta}</td>
+            <td style="text-align:center;">${ftPct}%</td>
+            <td style="text-align:center;">${p.rebounds}</td>
+            <td style="text-align:center;">${p.assists}</td>
+            <td style="text-align:center;">${p.steals}</td>
+            <td style="text-align:center;">${p.blocks}</td>
+            <td style="text-align:center;">${p.turnovers}</td>
+            <td style="text-align:center;">${p.fouls}</td>
+          </tr>`;
+        }).join('');
+
+        // Per-player detail sections with shot charts
+        const playerDetails = sortedPlayers.map(p => {
+          const fgPct = p.fga > 0 ? ((p.fgm / p.fga) * 100).toFixed(1) : '0.0';
+          const threePct = p.threepa > 0 ? ((p.threepm / p.threepa) * 100).toFixed(1) : '0.0';
+          const ftPct = p.fta > 0 ? ((p.ftm / p.fta) * 100).toFixed(1) : '0.0';
+          const pmSign = (p.plusMinus || 0) > 0 ? '+' : '';
+          const safeName = escapeHtml(p.name);
+          const safeJersey = escapeHtml(p.jersey);
+          const courtSVG = generateCourtSVGString(events, p.id, 300);
+
+          // List individual shots for this player
+          const playerShots = events.filter(e =>
+            (e.kind === 'shot' || e.kind === 'ft') && e.playerId === p.id
+          );
+          const shotLines = playerShots.map(e => {
+            const icon = e.result === 'made' ? '✅' : '❌';
+            const label = e.kind === 'ft' ? 'FT' : `${escapeHtml(String(e.points))}pt shot`;
+            const period = e.period ? ` (Period ${escapeHtml(String(e.period))})` : '';
+            return `<li>${icon} ${label}${period}</li>`;
+          }).join('');
+
+          return `<div class="player-section" style="page-break-inside:avoid;margin-bottom:2rem;border:1px solid #ddd;border-radius:6px;padding:1rem;">
+            <h3 style="margin:0 0 0.75rem 0;font-size:1.1rem;">#${safeJersey} ${safeName}</h3>
+            <div style="display:flex;gap:1.5rem;flex-wrap:wrap;align-items:flex-start;">
+              <div style="flex:0 0 auto;">${courtSVG}</div>
+              <div style="flex:1;min-width:200px;">
+                <table style="border-collapse:collapse;font-size:0.9rem;width:100%;">
+                  <tr><td style="padding:0.2rem 0.5rem 0.2rem 0;color:#666;">Points</td><td style="font-weight:bold;">${p.points}</td></tr>
+                  <tr><td style="padding:0.2rem 0.5rem 0.2rem 0;color:#666;">+/-</td><td style="font-weight:bold;">${pmSign}${p.plusMinus || 0}</td></tr>
+                  <tr><td style="padding:0.2rem 0.5rem 0.2rem 0;color:#666;">Field Goals</td><td>${p.fgm}/${p.fga} (${fgPct}%)</td></tr>
+                  <tr><td style="padding:0.2rem 0.5rem 0.2rem 0;color:#666;">3-Pointers</td><td>${p.threepm}/${p.threepa} (${threePct}%)</td></tr>
+                  <tr><td style="padding:0.2rem 0.5rem 0.2rem 0;color:#666;">Free Throws</td><td>${p.ftm}/${p.fta} (${ftPct}%)</td></tr>
+                  <tr><td style="padding:0.2rem 0.5rem 0.2rem 0;color:#666;">Rebounds</td><td>${p.rebounds}</td></tr>
+                  <tr><td style="padding:0.2rem 0.5rem 0.2rem 0;color:#666;">Assists</td><td>${p.assists}</td></tr>
+                  <tr><td style="padding:0.2rem 0.5rem 0.2rem 0;color:#666;">Steals</td><td>${p.steals}</td></tr>
+                  <tr><td style="padding:0.2rem 0.5rem 0.2rem 0;color:#666;">Blocks</td><td>${p.blocks}</td></tr>
+                  <tr><td style="padding:0.2rem 0.5rem 0.2rem 0;color:#666;">Turnovers</td><td>${p.turnovers}</td></tr>
+                  <tr><td style="padding:0.2rem 0.5rem 0.2rem 0;color:#666;">Fouls</td><td>${p.fouls}</td></tr>
+                </table>
+                ${shotLines ? `<div style="margin-top:0.75rem;"><strong style="font-size:0.85rem;">Shot Log:</strong><ul style="margin:0.25rem 0 0 1rem;padding:0;font-size:0.85rem;list-style:none;">${shotLines}</ul></div>` : ''}
+              </div>
+            </div>
+          </div>`;
+        }).join('');
+
+        // Team shot chart
+        const teamCourtSVG = generateCourtSVGString(events, null, 400);
+
+        const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game Report – ${safeOpponent} (${safeDate})</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; font-size: 14px; color: #111; background: #fff; padding: 2rem; }
+    h1 { font-size: 1.8rem; margin-bottom: 0.25rem; }
+    h2 { font-size: 1.2rem; margin: 1.5rem 0 0.75rem; border-bottom: 2px solid #ddd; padding-bottom: 0.3rem; }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 3px solid #111; }
+    .score { font-size: 2.5rem; font-weight: bold; }
+    .result { font-size: 1.2rem; font-weight: bold; color: ${resultColor}; }
+    .meta { color: #555; font-size: 0.9rem; margin-top: 0.3rem; }
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+    .stat-table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+    .stat-table td { padding: 0.3rem 0.5rem; border-bottom: 1px solid #eee; }
+    .stat-table td:first-child { color: #555; }
+    .stat-table td:last-child { font-weight: 600; text-align: right; }
+    .player-table { border-collapse: collapse; width: 100%; font-size: 0.82rem; }
+    .player-table th { background: #f3f4f6; padding: 0.35rem 0.5rem; border: 1px solid #ddd; text-align: center; white-space: nowrap; }
+    .player-table td { padding: 0.3rem 0.5rem; border: 1px solid #eee; }
+    .player-table tr:nth-child(even) td { background: #f9fafb; }
+    @media print {
+      body { padding: 1rem; }
+      .no-print { display: none !important; }
+      a { text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="no-print" style="margin-bottom:1rem;">
+    <button onclick="window.print()" style="padding:0.5rem 1.5rem;font-size:1rem;cursor:pointer;">🖨️ Print / Save as PDF</button>
+  </div>
+
+  <div class="header">
+    <div>
+      <h1>🆚 ${safeOpponent}</h1>
+      <div class="meta">📅 ${safeDate}${safeLocation ? ` &nbsp;•&nbsp; 📍 ${safeLocation}` : ''} &nbsp;•&nbsp; ⏱️ ${game.periods} periods</div>
+    </div>
+    <div style="text-align:right;">
+      <div class="score">${game.homeScore} – ${game.opponentScore}</div>
+      <div class="result">${resultText}</div>
+    </div>
+  </div>
+
+  <h2>📊 Team Statistics</h2>
+  <div class="stats-grid">
+    <table class="stat-table">
+      <tr><td>Final Score</td><td>${game.homeScore} – ${game.opponentScore}</td></tr>
+      <tr><td>Field Goals</td><td>${stats.team.fgm}/${stats.team.fga} (${stats.team.fgPct}%)</td></tr>
+      <tr><td>3-Pointers</td><td>${stats.team.threepm}/${stats.team.threepa} (${stats.team.threePct}%)</td></tr>
+      <tr><td>Free Throws</td><td>${stats.team.ftm}/${stats.team.fta} (${stats.team.ftPct}%)</td></tr>
+      <tr><td>Rebounds</td><td>${stats.team.rebounds} (Off: ${stats.team.oreb}, Def: ${stats.team.dreb})</td></tr>
+      <tr><td>Assists</td><td>${stats.team.assists}</td></tr>
+      <tr><td>Steals</td><td>${stats.team.steals}</td></tr>
+      <tr><td>Blocks</td><td>${stats.team.blocks}</td></tr>
+      <tr><td>Turnovers</td><td>${stats.team.turnovers}</td></tr>
+      <tr><td>Personal Fouls</td><td>${stats.team.fouls}</td></tr>
+    </table>
+    <table class="stat-table">
+      <tr><td>Possessions (est.)</td><td>${possessions.toFixed(1)}</td></tr>
+      <tr><td>Offensive Rating</td><td>${offRating} pts/100</td></tr>
+      <tr><td>Effective FG%</td><td>${eFG}%</td></tr>
+      <tr><td>True Shooting%</td><td>${tsPct}%</td></tr>
+      <tr><td>Assist / TO Ratio</td><td>${astToRatio}</td></tr>
+      <tr><td>Total Events</td><td>${events.filter(e => e.team !== 'opponent').length}</td></tr>
+    </table>
+  </div>
+
+  <h2>🎯 Team Shot Chart</h2>
+  <div style="margin-bottom:1.5rem;">${teamCourtSVG}</div>
+
+  <h2>👥 Player Statistics</h2>
+  <div style="overflow-x:auto;margin-bottom:2rem;">
+    <table class="player-table">
+      <thead>
+        <tr>
+          <th>Player</th><th>#</th><th>PTS</th><th>+/-</th>
+          <th>FGM/A</th><th>FG%</th><th>3PM/A</th><th>3P%</th>
+          <th>FTM/A</th><th>FT%</th><th>REB</th><th>AST</th>
+          <th>STL</th><th>BLK</th><th>TO</th><th>PF</th>
+        </tr>
+      </thead>
+      <tbody>${playerRows}</tbody>
+    </table>
+  </div>
+
+  <h2 style="page-break-before:always;">🏀 Player Details</h2>
+  <p style="font-size:0.85rem;color:#666;margin-bottom:1rem;">Shot chart: 🟢 = made &nbsp; 🔴 = missed</p>
+  ${playerDetails}
+
+  <div style="margin-top:2rem;font-size:0.75rem;color:#999;text-align:center;">
+    Generated by Balls &amp; Buckets · ${new Date().toLocaleString()}
+  </div>
+</body>
+</html>`;
+
+        const win = window.open('', '_blank');
+        if (!win) {
+          showToast('Pop-up blocked. Please allow pop-ups for this site.', 'error');
+          return;
+        }
+        win.document.write(html);
+        win.document.close();
+      } catch (error) {
+        console.error('Error generating print report:', error);
+        showToast('Error generating print report', 'error');
       }
     }
 
