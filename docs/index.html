@@ -1881,11 +1881,20 @@
         .sort((a, b) => (parseInt(a.jersey) || 999) - (parseInt(b.jersey) || 999));
 
       container.innerHTML = sorted.map(p => `
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:0.4rem 0.6rem;background:var(--bg);border-radius:var(--radius);gap:0.5rem;">
-          <span style="font-size:0.9rem;">#${p.jersey} ${p.firstName} ${p.lastName}</span>
-          <button type="button" style="padding:0.2rem 0.5rem;font-size:0.8rem;" aria-label="Remove ${p.firstName} ${p.lastName} from roster" data-remove-player-id="${p._id}">Remove</button>
+        <div class="roster-item-wrapper">
+          <div class="roster-item-actions">
+            <button type="button" class="danger" aria-label="Remove ${p.firstName} ${p.lastName} from roster" data-remove-player-id="${p._id}">Remove</button>
+          </div>
+          <div class="roster-item-content" data-player-id="${p._id}">
+            <span>#${p.jersey} ${p.firstName} ${p.lastName}</span>
+            <button type="button" class="remove-btn" aria-label="Remove ${p.firstName} ${p.lastName} from roster" data-remove-player-id="${p._id}">Remove</button>
+          </div>
         </div>
       `).join('');
+
+      container.querySelectorAll('.roster-item-content').forEach(item => {
+        setupSwipeGesture(item);
+      });
     }
 
     async function updateDefaultRosterBanner() {
