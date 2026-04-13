@@ -1886,6 +1886,7 @@
     async function updateDefaultRosterBanner() {
       const saved = await getFromStore('meta', 'defaultRoster');
       const banner = document.getElementById('defaultRosterBanner');
+      const quickStartBtn = document.getElementById('quickStartBtn');
       if (saved && saved.value && saved.value.players && saved.value.players.length > 0) {
         const { teamName, players } = saved.value;
         const name = teamName || 'My Team';
@@ -1893,8 +1894,10 @@
         document.getElementById('defaultRosterBannerCount').textContent = `(${players.length} player${players.length !== 1 ? 's' : ''})`;
         document.getElementById('loadDefaultRosterBtn').setAttribute('aria-label', `Load default roster: ${name}`);
         banner.style.display = 'block';
+        quickStartBtn.style.display = 'none';
       } else {
         banner.style.display = 'none';
+        quickStartBtn.style.display = '';
       }
     }
 
@@ -3209,10 +3212,12 @@
         return;
       }
 
-      // Clear all stores
+      // Clear game-specific stores and meta keys, but preserve permanent settings (defaultRoster)
       await clearStore('players');
       await clearStore('events');
-      await clearStore('meta');
+      await deleteFromStore('meta', 'currentGame');
+      await deleteFromStore('meta', 'currentPeriod');
+      await deleteFromStore('meta', 'gameFinished');
 
       // Reset state to initial values
       state.players = [];
