@@ -3754,7 +3754,7 @@
         };
 
         const content = JSON.stringify(exportData, null, 2);
-        const filename = `game-${game.date}-data.json`;
+        const filename = makeExportFilename(game, 'json');
         const mimeType = 'application/json';
 
         // Create download
@@ -4233,6 +4233,15 @@
       return stats;
     }
 
+    function makeExportFilename(gameInfo, suffix) {
+      const sanitize = str => (str || '').replace(/[^a-zA-Z0-9åæøÅÆØ]+/g, '-').replace(/^-+|-+$/g, '');
+      const opponent = sanitize(gameInfo.opponent);
+      const parts = ['game', gameInfo.date];
+      if (opponent) parts.push('vs', opponent);
+      if (gameInfo.location) parts.push(sanitize(gameInfo.location));
+      return parts.filter(Boolean).join('-') + '.' + suffix;
+    }
+
     function exportData(format) {
       const stats = calculateStats();
       let content = '';
@@ -4248,7 +4257,7 @@
           const ftPct = p.fta > 0 ? ((p.ftm / p.fta) * 100).toFixed(1) : '0.0';
           content += `"${p.name}",${p.jersey},${p.points},${p.fgm},${p.fga},${fgPct},${p.threepm},${p.threepa},${threePct},${p.ftm},${p.fta},${ftPct},${p.rebounds},${p.assists},${p.steals},${p.blocks},${p.turnovers},${p.fouls}\n`;
         });
-        filename = `game-${state.game.date}-stats.csv`;
+        filename = makeExportFilename(state.game, 'csv');
         mimeType = 'text/csv';
       } else if (format === 'txt') {
         // Plain text export
@@ -4285,7 +4294,7 @@
           content += `  REB: ${p.rebounds}  AST: ${p.assists}  STL: ${p.steals}  BLK: ${p.blocks}  TO: ${p.turnovers}  PF: ${p.fouls}\n`;
         });
 
-        filename = `game-${state.game.date}-stats.txt`;
+        filename = makeExportFilename(state.game, 'txt');
         mimeType = 'text/plain';
       } else if (format === 'json') {
         // JSON export
@@ -4300,7 +4309,7 @@
           events: state.events
         };
         content = JSON.stringify(exportData, null, 2);
-        filename = `game-${state.game.date}-data.json`;
+        filename = makeExportFilename(state.game, 'json');
         mimeType = 'application/json';
       }
 
