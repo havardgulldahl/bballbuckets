@@ -1612,6 +1612,9 @@
       // My Team Roster button
       document.getElementById('myTeamBtn').addEventListener('click', showDefaultRosterDialog);
 
+      // Default roster dialog listeners (attached once during init)
+      bindDefaultRosterDialogListeners();
+
       // Period and game control buttons
       document.getElementById('nextPeriodBtn').addEventListener('click', advancePeriod);
       document.getElementById('finishGameBtn').addEventListener('click', finishGame);
@@ -1807,38 +1810,33 @@
 
       document.getElementById('defaultTeamNameInput').value = defaultRosterState.teamName;
       renderDefaultRosterList();
+      document.getElementById('defaultRosterDialog').showModal();
+    }
 
-      const dialog = document.getElementById('defaultRosterDialog');
-      // Wire up buttons (idempotent — reuse existing listeners via flag)
-      if (!dialog._listenersAttached) {
-        dialog._listenersAttached = true;
-
-        document.getElementById('defaultPlayerForm').addEventListener('submit', (e) => {
-          e.preventDefault();
-          const fd = new FormData(e.target);
-          defaultRosterState.players.push({
-            firstName: fd.get('firstName').trim(),
-            lastName: fd.get('lastName').trim(),
-            jersey: fd.get('jersey').trim()
-          });
-          renderDefaultRosterList();
-          e.target.reset();
-          e.target.querySelector('input').focus();
+    function bindDefaultRosterDialogListeners() {
+      document.getElementById('defaultPlayerForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        defaultRosterState.players.push({
+          firstName: fd.get('firstName').trim(),
+          lastName: fd.get('lastName').trim(),
+          jersey: fd.get('jersey').trim()
         });
+        renderDefaultRosterList();
+        e.target.reset();
+        e.target.querySelector('input').focus();
+      });
 
-        document.getElementById('saveDefaultRosterBtn').addEventListener('click', async () => {
-          defaultRosterState.teamName = document.getElementById('defaultTeamNameInput').value.trim();
-          await persistMeta('defaultRoster', defaultRosterState);
-          dialog.close();
-          showToast('Team roster saved!', 'success');
-        });
+      document.getElementById('saveDefaultRosterBtn').addEventListener('click', async () => {
+        defaultRosterState.teamName = document.getElementById('defaultTeamNameInput').value.trim();
+        await persistMeta('defaultRoster', defaultRosterState);
+        document.getElementById('defaultRosterDialog').close();
+        showToast('Team roster saved!', 'success');
+      });
 
-        document.getElementById('closeDefaultRosterBtn').addEventListener('click', () => {
-          dialog.close();
-        });
-      }
-
-      dialog.showModal();
+      document.getElementById('closeDefaultRosterBtn').addEventListener('click', () => {
+        document.getElementById('defaultRosterDialog').close();
+      });
     }
 
     function renderDefaultRosterList() {
@@ -1854,7 +1852,7 @@
       container.innerHTML = sorted.map(p => `
         <div style="display:flex;align-items:center;justify-content:space-between;padding:0.4rem 0.6rem;background:var(--bg);border-radius:var(--radius);gap:0.5rem;">
           <span style="font-size:0.9rem;">#${p.jersey} ${p.firstName} ${p.lastName}</span>
-          <button type="button" class="danger" style="padding:0.2rem 0.5rem;font-size:0.8rem;" onclick="removeDefaultPlayer(${p._idx})">✕</button>
+          <button type="button" class="danger" style="padding:0.2rem 0.5rem;font-size:0.8rem;" aria-label="Remove ${p.firstName} ${p.lastName} from roster" onclick="removeDefaultPlayer(${p._idx})">✕</button>
         </div>
       `).join('');
     }
@@ -1869,28 +1867,31 @@
       const banner = document.getElementById('defaultRosterBanner');
       if (saved && saved.value && saved.value.players && saved.value.players.length > 0) {
         const { teamName, players } = saved.value;
-        document.getElementById('defaultRosterBannerName').textContent = teamName || 'My Team';
+        const name = teamName || 'My Team';
+        document.getElementById('defaultRosterBannerName').textContent = name;
         document.getElementById('defaultRosterBannerCount').textContent = `(${players.length} player${players.length !== 1 ? 's' : ''})`;
+        document.getElementById('loadDefaultRosterBtn').setAttribute('aria-label', `Load default roster: ${name}`);
         banner.style.display = 'block';
-        // Store for loading
-        banner.dataset.savedRoster = JSON.stringify(saved.value);
       } else {
         banner.style.display = 'none';
       }
     }
 
     async function loadDefaultRosterToGame() {
-      const banner = document.getElementById('defaultRosterBanner');
-      const saved = banner.dataset.savedRoster ? JSON.parse(banner.dataset.savedRoster) : null;
-      if (!saved || !saved.players || saved.players.length === 0) {
+      const saved = await getFromStore('meta', 'defaultRoster');
+      if (!saved || !saved.value || !saved.value.players || saved.value.players.length === 0) {
         showToast('No default roster found', 'error');
         return;
       }
 
       let addedCount = 0;
-      for (const p of saved.players) {
+      let skippedCount = 0;
+      for (const p of saved.value.players) {
         // Skip if jersey already exists
-        if (state.players.some(existing => existing.jersey === p.jersey)) continue;
+        if (state.players.some(existing => existing.jersey === p.jersey)) {
+          skippedCount++;
+          continue;
+        }
         const player = {
           id: generateId(),
           firstName: p.firstName,
@@ -1908,7 +1909,8 @@
 
       renderRosterPreview();
       validateGameState();
-      showToast(`Loaded ${addedCount} player${addedCount !== 1 ? 's' : ''} from My Team!`, 'success');
+      const skippedMsg = skippedCount > 0 ? ` (${skippedCount} skipped – jersey already in use)` : '';
+      showToast(`Loaded ${addedCount} player${addedCount !== 1 ? 's' : ''} from My Team!${skippedMsg}`, 'success');
     }
 
     // ── End Default Team Roster ─────────────────────────────────────────────
