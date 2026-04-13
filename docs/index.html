@@ -3783,8 +3783,6 @@
       try {
         const game = await window.historyDB.getFinishedGame(state.selectedHistoryGame);
         const events = await window.historyDB.getFinishedGameEvents(state.selectedHistoryGame);
-        const players = await window.historyDB.getFinishedGamePlayers(state.selectedHistoryGame);
-
         const exportPayload = {
           schemaVersion: JSON_SCHEMA_VERSION,
           exportedAt: new Date().toISOString(),
@@ -3806,12 +3804,6 @@
           },
           periods: game.periods,
           stats: game.stats,
-          players: players.map(p => ({
-            id: p.originalId || p.id,
-            name: p.name,
-            jersey: p.jersey,
-            position: p.position || ''
-          })),
           events: events.map(e => {
             const { gameId, ...rest } = e;
             return rest;
@@ -3892,7 +3884,7 @@
       if (!Array.isArray(data.events)) {
         throw new Error('Missing required field: "events" (must be an array)');
       }
-      // players is optional: may be a top-level array or derived from stats.players
+      // players is optional for backward compatibility; canonical roster is stats.players
       if (data.players !== undefined && !Array.isArray(data.players)) {
         throw new Error('Invalid field: "players" must be an array');
       }
@@ -3956,10 +3948,10 @@
         originalSchemaVersion: typeof data.schemaVersion === 'number' ? data.schemaVersion : null
       };
 
-      // Normalize players: prefer top-level players array, fall back to stats.players, then empty
-      const rawPlayers = Array.isArray(data.players)
-        ? data.players
-        : (Array.isArray(data.stats && data.stats.players) ? data.stats.players : []);
+      // Normalize players: canonical source is stats.players; fall back to legacy top-level players
+      const rawPlayers = Array.isArray(data.stats && data.stats.players)
+        ? data.stats.players
+        : (Array.isArray(data.players) ? data.players : []);
       const players = rawPlayers
         .filter(p => p && typeof p === 'object')
         .map(p => ({
@@ -4202,12 +4194,6 @@
           },
           periods: state.period,
           stats: stats,
-          players: state.players.map(p => ({
-            id: p.id,
-            name: p.name,
-            jersey: p.jersey,
-            position: p.position || ''
-          })),
           events: state.events
         };
         content = JSON.stringify(exportPayload, null, 2);
