@@ -3774,6 +3774,15 @@
       }
     }
 
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
     function generateCourtSVGString(events, playerId, size) {
       // Generate an inline SVG string for the shot chart
       const w = size || 400;
@@ -3814,7 +3823,7 @@
         const r = Math.max(6, Math.round(10 * w / 500));
         const fill = e.result === 'made' ? 'rgba(50,200,50,0.75)' : 'rgba(200,50,50,0.75)';
         const stroke = e.result === 'made' ? '#32c832' : '#c83232';
-        const label = `${e.playerName || '?'} ${e.points}pt ${e.result}`;
+        const label = escapeHtml(`${e.playerName || '?'} ${e.points}pt ${e.result}`);
         return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="2"><title>${label}</title></circle>`;
       }).join('');
 
@@ -3853,6 +3862,9 @@
         ]);
 
         const stats = game.stats;
+        const safeOpponent = escapeHtml(game.opponent || 'Opponent');
+        const safeDate = escapeHtml(game.date || '');
+        const safeLocation = game.location ? escapeHtml(game.location) : '';
         const resultText = game.homeScore > game.opponentScore ? 'Victory' :
           game.homeScore < game.opponentScore ? 'Loss' : 'Tie';
         const resultColor = game.homeScore > game.opponentScore ? '#22c55e' :
@@ -3881,9 +3893,11 @@
           const ftPct = p.fta > 0 ? ((p.ftm / p.fta) * 100).toFixed(1) : '0.0';
           const pmSign = (p.plusMinus || 0) > 0 ? '+' : '';
           const pmColor = (p.plusMinus || 0) > 0 ? '#22c55e' : (p.plusMinus || 0) < 0 ? '#ef4444' : '#666';
+          const safeName = escapeHtml(p.name);
+          const safeJersey = escapeHtml(p.jersey);
           return `<tr>
-            <td style="font-weight:600;white-space:nowrap;">${p.name}</td>
-            <td style="text-align:center;">${p.jersey}</td>
+            <td style="font-weight:600;white-space:nowrap;">${safeName}</td>
+            <td style="text-align:center;">${safeJersey}</td>
             <td style="text-align:center;font-weight:bold;">${p.points}</td>
             <td style="text-align:center;color:${pmColor};font-weight:bold;">${pmSign}${p.plusMinus || 0}</td>
             <td style="text-align:center;">${p.fgm}/${p.fga}</td>
@@ -3907,6 +3921,8 @@
           const threePct = p.threepa > 0 ? ((p.threepm / p.threepa) * 100).toFixed(1) : '0.0';
           const ftPct = p.fta > 0 ? ((p.ftm / p.fta) * 100).toFixed(1) : '0.0';
           const pmSign = (p.plusMinus || 0) > 0 ? '+' : '';
+          const safeName = escapeHtml(p.name);
+          const safeJersey = escapeHtml(p.jersey);
           const courtSVG = generateCourtSVGString(events, p.id, 300);
 
           // List individual shots for this player
@@ -3915,13 +3931,13 @@
           );
           const shotLines = playerShots.map(e => {
             const icon = e.result === 'made' ? '✅' : '❌';
-            const label = e.kind === 'ft' ? 'FT' : `${e.points}pt shot`;
-            const period = e.period ? ` (Period ${e.period})` : '';
+            const label = e.kind === 'ft' ? 'FT' : `${escapeHtml(String(e.points))}pt shot`;
+            const period = e.period ? ` (Period ${escapeHtml(String(e.period))})` : '';
             return `<li>${icon} ${label}${period}</li>`;
           }).join('');
 
           return `<div class="player-section" style="page-break-inside:avoid;margin-bottom:2rem;border:1px solid #ddd;border-radius:6px;padding:1rem;">
-            <h3 style="margin:0 0 0.75rem 0;font-size:1.1rem;">#${p.jersey} ${p.name}</h3>
+            <h3 style="margin:0 0 0.75rem 0;font-size:1.1rem;">#${safeJersey} ${safeName}</h3>
             <div style="display:flex;gap:1.5rem;flex-wrap:wrap;align-items:flex-start;">
               <div style="flex:0 0 auto;">${courtSVG}</div>
               <div style="flex:1;min-width:200px;">
@@ -3952,7 +3968,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Game Report – ${game.opponent} (${game.date})</title>
+  <title>Game Report – ${safeOpponent} (${safeDate})</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: system-ui, sans-serif; font-size: 14px; color: #111; background: #fff; padding: 2rem; }
@@ -3985,8 +4001,8 @@
 
   <div class="header">
     <div>
-      <h1>🆚 ${game.opponent}</h1>
-      <div class="meta">📅 ${game.date}${game.location ? ` &nbsp;•&nbsp; 📍 ${game.location}` : ''} &nbsp;•&nbsp; ⏱️ ${game.periods} periods</div>
+      <h1>🆚 ${safeOpponent}</h1>
+      <div class="meta">📅 ${safeDate}${safeLocation ? ` &nbsp;•&nbsp; 📍 ${safeLocation}` : ''} &nbsp;•&nbsp; ⏱️ ${game.periods} periods</div>
     </div>
     <div style="text-align:right;">
       <div class="score">${game.homeScore} – ${game.opponentScore}</div>
