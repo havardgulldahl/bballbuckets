@@ -1298,7 +1298,7 @@
   <dialog id="defaultRosterDialog" style="max-width:420px;width:90vw;">
     <h3 style="margin-bottom:0.25rem;">⭐ My Team Roster</h3>
     <p style="color:var(--muted);font-size:0.85rem;margin-bottom:1.25rem;">Save your permanent team roster so you can quickly load it when setting up new games.</p>
-    <label for="defaultTeamNameInput" style="margin-bottom:1rem;display:block;">Team Name <span style="font-weight:normal;font-size:0.8rem;color:var(--muted);">(optional)</span>
+    <label style="margin-bottom:1rem;display:block;">Team Name <span style="font-weight:normal;font-size:0.8rem;color:var(--muted);">(optional)</span>
       <input type="text" id="defaultTeamNameInput" placeholder="e.g. Warriors U17" autocomplete="off" />
     </label>
     <div style="padding:1rem;background:var(--bg-alt);border-radius:var(--radius);margin-bottom:1rem;">
@@ -1807,7 +1807,13 @@
         // Assign stable _id to each player if not present
         defaultRosterState = {
           teamName: saved.value.teamName || '',
-          players: (saved.value.players || []).map(p => ({ ...p, _id: p._id ?? ++_defaultPlayerIdCounter }))
+          players: (saved.value.players || []).map(p => {
+            if (p._id === undefined) {
+              _defaultPlayerIdCounter++;
+              return { ...p, _id: _defaultPlayerIdCounter };
+            }
+            return { ...p };
+          })
         };
       } else {
         defaultRosterState = { teamName: '', players: [] };
