@@ -1175,7 +1175,8 @@
         <button type="button" class="secondary" id="cancelSetupMethodBtn" style="width:100%;">Cancel</button>
       </div>
       <div style="margin-top:0.75rem;text-align:center;">
-        <button type="button" id="openMyTeamFromSetupBtn" class="secondary" style="font-size:0.85rem;padding:0.4rem 0.8rem;opacity:0.85;">⭐ Manage My Team Roster</button>
+        <button type="button" id="openMyTeamFromSetupBtn" class="secondary"
+          style="font-size:0.85rem;padding:0.4rem 0.8rem;opacity:0.85;">⭐ Manage My Team Roster</button>
       </div>
     </div>
 
@@ -1265,13 +1266,15 @@
       style="margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid var(--muted);display:none;">
       <h3 style="margin-bottom:1rem;">Roster Setup</h3>
       <!-- Default roster banner (shown only when a saved default roster exists) -->
-      <div id="defaultRosterBanner" style="display:none;margin-bottom:1rem;padding:0.75rem 1rem;background:var(--accent-soft);border-radius:var(--radius);">
+      <div id="defaultRosterBanner"
+        style="display:none;margin-bottom:1rem;padding:0.75rem 1rem;background:var(--accent-soft);border-radius:var(--radius);">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;flex-wrap:wrap;">
           <div>
             <span style="font-size:0.95rem;font-weight:600;">⭐ <span id="defaultRosterBannerName">My Team</span></span>
             <span id="defaultRosterBannerCount" style="font-size:0.85rem;color:var(--muted);margin-left:0.4rem;"></span>
           </div>
-          <button type="button" id="loadDefaultRosterBtn" style="font-size:0.85rem;padding:0.35rem 0.75rem;">Load My Team</button>
+          <button type="button" id="loadDefaultRosterBtn" style="font-size:0.85rem;padding:0.35rem 0.75rem;">Load My
+            Team</button>
         </div>
       </div>
       <form id="playerForm">
@@ -1295,10 +1298,12 @@
   </dialog>
 
   <!-- Default Team Roster Dialog -->
-  <dialog id="defaultRosterDialog" style="max-width:420px;width:90vw;">
+  <dialog id="defaultRosterDialog" style="max-width:600px;width:90vw;">
     <h3 style="margin-bottom:0.25rem;">⭐ My Team Roster</h3>
-    <p style="color:var(--muted);font-size:0.85rem;margin-bottom:1.25rem;">Save your permanent team roster so you can quickly load it when setting up new games.</p>
-    <label style="margin-bottom:1rem;display:block;">Team Name <span style="font-weight:normal;font-size:0.8rem;color:var(--muted);">(optional)</span>
+    <p style="color:var(--muted);font-size:0.85rem;margin-bottom:1.25rem;">Save your permanent team roster so you can
+      quickly load it when setting up new games.</p>
+    <label style="margin-bottom:1rem;display:block;">Team Name <span
+        style="font-weight:normal;font-size:0.8rem;color:var(--muted);">(optional)</span>
       <input type="text" id="defaultTeamNameInput" placeholder="e.g. Warriors U17" autocomplete="off" />
     </label>
     <div style="padding:1rem;background:var(--bg-alt);border-radius:var(--radius);margin-bottom:1rem;">
