@@ -1394,6 +1394,7 @@
     const dbName = 'hooptrack-db';
     const dbVersion = 1;
     const JSON_SCHEMA_VERSION = 1;
+    const MAX_DESCRIPTION_LENGTH = 2000;
     let dbInstance;
     let courtSVG;
 
@@ -3806,7 +3807,7 @@
           periods: game.periods,
           stats: game.stats,
           players: players.map(p => ({
-            id: p.originalId,
+            id: p.originalId || p.id,
             name: p.name,
             jersey: p.jersey,
             position: p.position || ''
@@ -3865,7 +3866,7 @@
         return;
       }
       // Read value (plain text, never treated as HTML)
-      const description = document.getElementById('historyGameDescriptionInput').value.trim().slice(0, 2000);
+      const description = document.getElementById('historyGameDescriptionInput').value.trim().slice(0, MAX_DESCRIPTION_LENGTH);
       try {
         await window.historyDB.updateFinishedGame(state.selectedHistoryGame, { description });
         showToast('Notes saved', 'success');
@@ -3948,7 +3949,7 @@
           ? (Number(data.finalScore.opponent) || 0) : 0,
         periods: typeof data.periods === 'number' ? data.periods : 4,
         stats: data.stats || null,
-        description: typeof data.description === 'string' ? data.description.trim().slice(0, 2000) : '',
+        description: typeof data.description === 'string' ? data.description.trim().slice(0, MAX_DESCRIPTION_LENGTH) : '',
         imported: true,
         importedAt: new Date().toISOString(),
         originalSchemaVersion: typeof data.schemaVersion === 'number' ? data.schemaVersion : null
@@ -3958,7 +3959,7 @@
       const players = data.players
         .filter(p => p && typeof p === 'object')
         .map(p => ({
-          id: String(p.id || p.originalId || `player-${Math.random().toString(36).slice(2)}`),
+          id: String(p.id || p.originalId || crypto.randomUUID()),
           name: String(p.name || 'Unknown'),
           jersey: p.jersey !== undefined ? p.jersey : '',
           position: String(p.position || '')
@@ -3971,7 +3972,7 @@
           const { gameId: _gid, ...rest } = e;
           return {
             ...rest,
-            id: String(rest.id || `evt-${Math.random().toString(36).slice(2)}`)
+            id: String(rest.id || crypto.randomUUID())
           };
         });
 
