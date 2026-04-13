@@ -96,4 +96,30 @@ test.describe('Game Logic Validation - Simple Tests', () => {
     });
     expect(hasFunctions).toBeTruthy();
   });
+
+  test('can add player without last name', async ({ page }) => {
+    // Setup game
+    await page.click('#setupGameBtn');
+    await page.waitForSelector('#gameSetupDialog', { state: 'visible' });
+    await page.fill('#opponentInput', 'Test Team');
+    await page.fill('#gameDateInput', '2024-01-01');
+    await page.click('button[type="submit"]:has-text("Continue to Roster")');
+    await page.waitForSelector('#rosterSetupSection', { state: 'visible' });
+
+    // Add a player with no last name
+    await page.fill('input[name="firstName"]', 'SingleName');
+    await page.fill('input[name="jersey"]', '42');
+    await page.click('#playerForm button[type="submit"]');
+    await page.waitForTimeout(200);
+
+    // Roster preview should render clean name
+    await expect(page.locator('#rosterPreview')).toContainText('#42 SingleName');
+    await expect(page.locator('#rosterPreview')).not.toContainText('undefined');
+
+    // Finish setup and verify player list also renders without undefined
+    await page.click('#finishSetupBtn');
+    await page.waitForTimeout(300);
+    await expect(page.locator('#playerList')).toContainText('#42 SingleName');
+    await expect(page.locator('#playerList')).not.toContainText('undefined');
+  });
 });

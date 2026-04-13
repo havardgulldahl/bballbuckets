@@ -237,8 +237,8 @@ function convertNIFPlayerToApp(nifPlayer) {
   }
   
   return {
-    firstName: nifPlayer.firstName,
-    lastName: nifPlayer.lastName,
+    firstName: String(nifPlayer.firstName || '').trim(),
+    lastName: String(nifPlayer.lastName || '').trim(),
     jersey: nifPlayer.number || '',
     positions: nifPlayer.position || '',
     gradYear: gradYear,

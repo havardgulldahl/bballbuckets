@@ -1265,7 +1265,7 @@
       <form id="playerForm">
         <div style="display:grid;grid-template-columns:8em 8em 4em;gap:0.5rem;margin-bottom:0.5rem;">
           <input type="text" name="firstName" placeholder="First Name" required autocomplete="off" />
-          <input type="text" name="lastName" placeholder="Last Name" autocomplete="off" />
+          <input type="text" name="lastName" placeholder="Last Name (optional)" autocomplete="off" />
           <input type="text" name="jersey" placeholder="#" maxlength="3" required autocomplete="off" />
         </div>
         <button type="submit" style="width:100%;">Add Player</button>
@@ -1353,6 +1353,21 @@
     let dbInstance;
     let courtSVG;
 
+    function normalizeNamePart(value) {
+      return String(value || '').trim();
+    }
+
+    function formatPlayerName(player) {
+      const firstName = normalizeNamePart(player?.firstName);
+      const lastName = normalizeNamePart(player?.lastName);
+      const fullName = [firstName, lastName].filter(Boolean).join(' ');
+      return fullName || 'Unknown Player';
+    }
+
+    function formatPlayerShortName(player) {
+      return normalizeNamePart(player?.lastName) || normalizeNamePart(player?.firstName) || 'Unknown Player';
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       init();
     });
@@ -1396,12 +1411,31 @@
 
     async function hydrateState() {
       state.players = await getAllFromStore('players');
-      // Migrate existing players to have onCourt property
+      // Migrate existing players to have onCourt and normalized name properties.
       state.players = state.players.map(p => {
+        const normalizedFirstName = normalizeNamePart(p.firstName);
+        const normalizedLastName = normalizeNamePart(p.lastName);
+        let needsUpdate = false;
+
+        if (p.firstName !== normalizedFirstName) {
+          p.firstName = normalizedFirstName;
+          needsUpdate = true;
+        }
+
+        if (p.lastName !== normalizedLastName) {
+          p.lastName = normalizedLastName;
+          needsUpdate = true;
+        }
+
         if (p.onCourt === undefined) {
           p.onCourt = false;
+          needsUpdate = true;
+        }
+
+        if (needsUpdate) {
           putInStore('players', p); // Update in DB
         }
+
         return p;
       });
 
@@ -2218,9 +2252,9 @@
       const formData = new FormData(e.target);
       const player = {
         id: generateId(),
-        firstName: formData.get('firstName'),
-        lastName: formData.get('lastName'),
-        jersey: formData.get('jersey'),
+        firstName: normalizeNamePart(formData.get('firstName')),
+        lastName: normalizeNamePart(formData.get('lastName')),
+        jersey: String(formData.get('jersey') || '').trim(),
         positions: '',
         gradYear: null,
         dominantHand: 'Right',
@@ -2232,7 +2266,7 @@
       renderRosterPreview();
       validateGameState();
       e.target.reset();
-      showToast(`${player.firstName} ${player.lastName} added`, 'success');
+      showToast(`${formatPlayerName(player)} added`, 'success');
     }
 
     function handleQuickStart() {
@@ -2286,7 +2320,7 @@
             <button type="button" onclick="removePlayer('${p.id}')" class="danger">Remove</button>
           </div>
           <div class="roster-item-content" data-player-id="${p.id}">
-            <span>#${p.jersey} ${p.firstName} ${p.lastName}</span>
+            <span>#${p.jersey} ${formatPlayerName(p)}</span>
             <button type="button" onclick="removePlayer('${p.id}')" class="remove-btn">Remove</button>
           </div>
         </div>
@@ -2323,7 +2357,7 @@
         const animClass = state.lastToggledPlayerId === p.id ? 'just-moved' : '';
         return `
         <div class="player-chip ${!hasEvent ? 'disabled' : ''} ${p.onCourt ? 'on-court' : ''} ${animClass}" ${hasEvent ? `onclick="selectPlayer('${p.id}')"` : ''}>
-          <span><strong>#${p.jersey}</strong> ${p.firstName} ${p.lastName}</span>
+          <span><strong>#${p.jersey}</strong> ${formatPlayerName(p)}</span>
           <label class="court-toggle" onclick="event.stopPropagation();">
             <input type="checkbox" ${p.onCourt ? 'checked' : ''} onchange="toggleCourt('${p.id}')" />
             <span class="slider"></span>
@@ -2361,7 +2395,7 @@
         timestamp: Date.now(),
         period: state.period,
         playerId: playerId,
-        playerName: `${player.firstName} ${player.lastName}`,
+        playerName: formatPlayerName(player),
         playerJersey: player.jersey,
         kind: state.selectedEvent.kind,
         points: state.selectedEvent.points,
@@ -2388,7 +2422,7 @@
       }
 
       // Generate a nice message based on event and player
-      const msg = `#${player.jersey} ${player.lastName} - ${event.kind.charAt(0).toUpperCase() + event.kind.slice(1)}${event.points ? ` (+${event.points})` : ''} ${event.result ? `(${event.result})` : ''}`;
+      const msg = `#${player.jersey} ${formatPlayerShortName(player)} - ${event.kind.charAt(0).toUpperCase() + event.kind.slice(1)}${event.points ? ` (+${event.points})` : ''} ${event.result ? `(${event.result})` : ''}`;
       showToast(msg, 'success');
 
       // Auto-select assist after made 2pt or 3pt shot
@@ -2435,7 +2469,7 @@
       // Pre-fill the form with player data
       const form = document.getElementById('playerForm');
       form.firstName.value = player.firstName;
-      form.lastName.value = player.lastName;
+      form.lastName.value = player.lastName || '';
       form.jersey.value = player.jersey;
 
       // Remove the player so it can be re-added with updated info
@@ -2503,7 +2537,7 @@
         timestamp: Date.now(),
         period: state.period,
         playerId: playerId,
-        playerName: `${player.firstName} ${player.lastName}`,
+        playerName: formatPlayerName(player),
         playerJersey: player.jersey,
         kind: 'substitution',
         subtype: player.onCourt ? 'in' : 'out',
@@ -2518,7 +2552,7 @@
       await putInStore('players', player);
       validateGameState();
       renderPlayerList();
-      showToast(`${player.firstName} ${player.lastName} ${player.onCourt ? 'on court' : 'benched'}`, 'success');
+      showToast(`${formatPlayerName(player)} ${player.onCourt ? 'on court' : 'benched'}`, 'success');
 
       // Clear the animation flag after animation completes
       setTimeout(() => {
@@ -2828,7 +2862,7 @@
 
         container.innerHTML = sortedPlayers.map(p => `
           <div class="player-chip" style="margin-bottom:0.5rem;">
-            <span><strong>#${p.jersey}</strong> ${p.firstName} ${p.lastName}</span>
+            <span><strong>#${p.jersey}</strong> ${formatPlayerName(p)}</span>
             <label class="court-toggle" onclick="event.stopPropagation();">
               <input type="checkbox" ${p.onCourt ? 'checked' : ''} onchange="toggleCourt('${p.id}')" />
               <span class="slider"></span>
@@ -4156,7 +4190,7 @@
       state.players.forEach(player => {
         stats.players.push({
           id: player.id,
-          name: `${player.firstName} ${player.lastName}`,
+          name: formatPlayerName(player),
           jersey: player.jersey,
           points: 0,
           fgm: 0, fga: 0,
