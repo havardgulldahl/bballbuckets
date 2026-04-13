@@ -1010,6 +1010,7 @@
       <button id="newGameBtn" style="display:none;" title="New Game">➕</button>
       <button id="exportBtn" style="display:none;" title="Export Data">💾</button>
       <button id="historyBtn" title="Game History">📊</button>
+      <button id="myTeamBtn" title="My Team Roster">⭐</button>
       <button id="setupGameBtn" title="Setup Game">⚙️</button>
     </div>
   </header>
@@ -1218,6 +1219,10 @@
       <div style="margin-top:1rem;">
         <button type="button" class="secondary" id="cancelSetupMethodBtn" style="width:100%;">Cancel</button>
       </div>
+      <div style="margin-top:0.75rem;text-align:center;">
+        <button type="button" id="openMyTeamFromSetupBtn" class="secondary"
+          style="font-size:0.85rem;padding:0.4rem 0.8rem;opacity:0.85;">⭐ Manage My Team Roster</button>
+      </div>
     </div>
 
     <!-- Step 2a: NIF Import Flow -->
@@ -1305,6 +1310,18 @@
     <div id="rosterSetupSection"
       style="margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid var(--muted);display:none;">
       <h3 style="margin-bottom:1rem;">Roster Setup</h3>
+      <!-- Default roster banner (shown only when a saved default roster exists) -->
+      <div id="defaultRosterBanner"
+        style="display:none;margin-bottom:1rem;padding:0.75rem 1rem;background:var(--accent-soft);border-radius:var(--radius);">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;flex-wrap:wrap;">
+          <div>
+            <span style="font-size:0.95rem;font-weight:600;">⭐ <span id="defaultRosterBannerName">My Team</span></span>
+            <span id="defaultRosterBannerCount" style="font-size:0.85rem;color:var(--muted);margin-left:0.4rem;"></span>
+          </div>
+          <button type="button" id="loadDefaultRosterBtn" style="font-size:0.85rem;padding:0.35rem 0.75rem;">Load My
+            Team</button>
+        </div>
+      </div>
       <form id="playerForm">
         <div style="display:grid;grid-template-columns:8em 8em 4em;gap:0.5rem;margin-bottom:0.5rem;">
           <input type="text" name="firstName" placeholder="First Name" required autocomplete="off" />
@@ -1322,6 +1339,38 @@
         <button type="button" class="secondary" id="quickStartBtn" style="flex:1;">⚡ Quick Start</button>
         <button type="button" id="finishSetupBtn" style="flex:1;">Finish Setup</button>
       </div>
+    </div>
+  </dialog>
+
+  <!-- Default Team Roster Dialog -->
+  <dialog id="defaultRosterDialog" style="max-width:600px;width:90vw;">
+    <h3 style="margin-bottom:0.25rem;">⭐ My Team Roster</h3>
+    <p style="color:var(--muted);font-size:0.85rem;margin-bottom:1.25rem;">Save your permanent team roster so you can
+      quickly load it when setting up new games.</p>
+    <label style="margin-bottom:1rem;display:block;">Team Name <span
+        style="font-weight:normal;font-size:0.8rem;color:var(--muted);">(optional)</span>
+      <input type="text" id="defaultTeamNameInput" placeholder="e.g. Warriors U17" autocomplete="off" />
+    </label>
+    <div style="padding:1rem;background:var(--bg-alt);border-radius:var(--radius);margin-bottom:1rem;">
+      <div style="font-size:0.85rem;font-weight:600;margin-bottom:0.75rem;color:var(--muted);">ADD PLAYER</div>
+      <form id="defaultPlayerForm">
+        <div style="display:grid;grid-template-columns:1fr 1fr 4em;gap:0.4rem;margin-bottom:0.4rem;">
+          <input type="text" name="firstName" placeholder="First Name" required autocomplete="off" />
+          <input type="text" name="lastName" placeholder="Last Name" required autocomplete="off" />
+          <input type="text" name="jersey" placeholder="#" maxlength="3" required autocomplete="off" />
+        </div>
+        <button type="submit" style="width:100%;font-size:0.9rem;">+ Add Player</button>
+      </form>
+    </div>
+    <div style="margin-bottom:1rem;">
+      <div style="font-size:0.85rem;font-weight:600;margin-bottom:0.5rem;color:var(--muted);">ROSTER</div>
+      <div id="defaultRosterList" style="max-height:220px;overflow-y:auto;display:grid;gap:0.35rem;">
+        <div class="empty-state">No players added yet</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:0.5rem;">
+      <button type="button" class="secondary" id="closeDefaultRosterBtn" style="flex:1;">Close</button>
+      <button type="button" id="saveDefaultRosterBtn" style="flex:1;">💾 Save Roster</button>
     </div>
   </dialog>
 
@@ -1648,6 +1697,12 @@
       // Game setup button
       document.getElementById('setupGameBtn').addEventListener('click', showGameSetup);
 
+      // My Team Roster button
+      document.getElementById('myTeamBtn').addEventListener('click', showDefaultRosterDialog);
+
+      // Default roster dialog listeners (attached once during init)
+      bindDefaultRosterDialogListeners();
+
       // Period and game control buttons
       document.getElementById('nextPeriodBtn').addEventListener('click', advancePeriod);
       document.getElementById('finishGameBtn').addEventListener('click', finishGame);
@@ -1686,6 +1741,7 @@
 
         // Show roster section
         document.getElementById('rosterSetupSection').style.display = 'block';
+        updateDefaultRosterBanner();
         e.target.querySelector('button[type="submit"]').textContent = 'Update Game Info';
         showToast('Game info saved! Now add players.', 'success');
       });
@@ -1700,6 +1756,10 @@
       document.getElementById('manualSetupBtn').addEventListener('click', startManualSetup);
       document.getElementById('cancelSetupMethodBtn').addEventListener('click', () => {
         document.getElementById('gameSetupDialog').close();
+      });
+      document.getElementById('openMyTeamFromSetupBtn').addEventListener('click', () => {
+        document.getElementById('gameSetupDialog').close();
+        showDefaultRosterDialog();
       });
 
       // NIF flow navigation
@@ -1717,6 +1777,9 @@
 
       // Quick start
       document.getElementById('quickStartBtn').addEventListener('click', handleQuickStart);
+
+      // Load default roster into game
+      document.getElementById('loadDefaultRosterBtn').addEventListener('click', loadDefaultRosterToGame);
 
       // Finish setup
       document.getElementById('finishSetupBtn').addEventListener('click', () => {
@@ -1825,6 +1888,160 @@
       });
     }
 
+    // ── Default Team Roster ──────────────────────────────────────────────────
+
+    // In-memory working copy for the dialog; each player gets a stable _id for deletion
+    let defaultRosterState = { teamName: '', players: [] };
+    let _defaultPlayerIdCounter = 0;
+
+    async function showDefaultRosterDialog() {
+      // Load saved roster from DB
+      const saved = await getFromStore('meta', 'defaultRoster');
+      if (saved) {
+        // Assign stable _id to each player if not present
+        defaultRosterState = {
+          teamName: saved.value.teamName || '',
+          players: (saved.value.players || []).map(p => {
+            if (p._id === undefined) {
+              _defaultPlayerIdCounter++;
+              return { ...p, _id: _defaultPlayerIdCounter };
+            }
+            return { ...p };
+          })
+        };
+      } else {
+        defaultRosterState = { teamName: '', players: [] };
+      }
+
+      document.getElementById('defaultTeamNameInput').value = defaultRosterState.teamName;
+      renderDefaultRosterList();
+      document.getElementById('defaultRosterDialog').showModal();
+    }
+
+    function bindDefaultRosterDialogListeners() {
+      document.getElementById('defaultPlayerForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        defaultRosterState.players.push({
+          _id: ++_defaultPlayerIdCounter,
+          firstName: fd.get('firstName').trim(),
+          lastName: fd.get('lastName').trim(),
+          jersey: fd.get('jersey').trim()
+        });
+        renderDefaultRosterList();
+        e.target.reset();
+        e.target.querySelector('input').focus();
+      });
+
+      document.getElementById('saveDefaultRosterBtn').addEventListener('click', async () => {
+        defaultRosterState.teamName = document.getElementById('defaultTeamNameInput').value.trim();
+        // Strip internal _id before persisting (not needed in storage)
+        const toSave = {
+          teamName: defaultRosterState.teamName,
+          players: defaultRosterState.players.map(({ _id, ...rest }) => rest)
+        };
+        await persistMeta('defaultRoster', toSave);
+        document.getElementById('defaultRosterDialog').close();
+        showToast('Team roster saved!', 'success');
+      });
+
+      document.getElementById('closeDefaultRosterBtn').addEventListener('click', () => {
+        document.getElementById('defaultRosterDialog').close();
+      });
+
+      // Event delegation for remove buttons in the roster list
+      document.getElementById('defaultRosterList').addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-remove-player-id]');
+        if (!btn) return;
+        const id = parseInt(btn.dataset.removePlayerId, 10);
+        defaultRosterState.players = defaultRosterState.players.filter(p => p._id !== id);
+        renderDefaultRosterList();
+      });
+    }
+
+    function renderDefaultRosterList() {
+      const container = document.getElementById('defaultRosterList');
+      if (defaultRosterState.players.length === 0) {
+        container.innerHTML = '<div class="empty-state">No players added yet</div>';
+        return;
+      }
+
+      const sorted = [...defaultRosterState.players]
+        .sort((a, b) => (parseInt(a.jersey) || 999) - (parseInt(b.jersey) || 999));
+
+      container.innerHTML = sorted.map(p => `
+        <div class="roster-item-wrapper">
+          <div class="roster-item-actions">
+            <button type="button" class="danger" aria-label="Remove ${p.firstName} ${p.lastName} from roster" data-remove-player-id="${p._id}">Remove</button>
+          </div>
+          <div class="roster-item-content" data-player-id="${p._id}">
+            <span>#${p.jersey} ${p.firstName} ${p.lastName}</span>
+            <button type="button" class="remove-btn" aria-label="Remove ${p.firstName} ${p.lastName} from roster" data-remove-player-id="${p._id}">Remove</button>
+          </div>
+        </div>
+      `).join('');
+
+      container.querySelectorAll('.roster-item-content').forEach(item => {
+        setupSwipeGesture(item);
+      });
+    }
+
+    async function updateDefaultRosterBanner() {
+      const saved = await getFromStore('meta', 'defaultRoster');
+      const banner = document.getElementById('defaultRosterBanner');
+      const quickStartBtn = document.getElementById('quickStartBtn');
+      if (saved && saved.value && saved.value.players && saved.value.players.length > 0) {
+        const { teamName, players } = saved.value;
+        const name = teamName || 'My Team';
+        document.getElementById('defaultRosterBannerName').textContent = name;
+        document.getElementById('defaultRosterBannerCount').textContent = `(${players.length} player${players.length !== 1 ? 's' : ''})`;
+        document.getElementById('loadDefaultRosterBtn').setAttribute('aria-label', `Load default roster: ${name}`);
+        banner.style.display = 'block';
+        quickStartBtn.style.display = 'none';
+      } else {
+        banner.style.display = 'none';
+        quickStartBtn.style.display = 'block';
+      }
+    }
+
+    async function loadDefaultRosterToGame() {
+      const saved = await getFromStore('meta', 'defaultRoster');
+      if (!saved || !saved.value || !saved.value.players || saved.value.players.length === 0) {
+        showToast('No default roster found', 'error');
+        return;
+      }
+
+      let addedCount = 0;
+      let skippedCount = 0;
+      for (const p of saved.value.players) {
+        // Skip if jersey already exists
+        if (state.players.some(existing => existing.jersey === p.jersey)) {
+          skippedCount++;
+          continue;
+        }
+        const player = {
+          id: generateId(),
+          firstName: p.firstName,
+          lastName: p.lastName,
+          jersey: p.jersey,
+          positions: '',
+          gradYear: null,
+          dominantHand: 'Right',
+          onCourt: false
+        };
+        state.players.push(player);
+        await putInStore('players', player);
+        addedCount++;
+      }
+
+      renderRosterPreview();
+      validateGameState();
+      const skippedMsg = skippedCount > 0 ? ` (${skippedCount} skipped – jersey already in use)` : '';
+      showToast(`Loaded ${addedCount} player${addedCount !== 1 ? 's' : ''} from My Team!${skippedMsg}`, 'success');
+    }
+
+    // ── End Default Team Roster ─────────────────────────────────────────────
+
     function showGameSetup() {
       const dialog = document.getElementById('gameSetupDialog');
 
@@ -1835,6 +2052,7 @@
         document.getElementById('ruleSetSelect').value = state.game.ruleSet || 'NFHS';
         document.getElementById('locationInput').value = state.game.location || '';
         document.getElementById('rosterSetupSection').style.display = 'block';
+        updateDefaultRosterBanner();
       } else {
         // Clear form fields and set today's date
         document.getElementById('opponentInput').value = '';
@@ -2286,6 +2504,7 @@
         document.getElementById('rosterSetupSection').style.display = 'block';
 
         renderRosterPreview();
+        updateDefaultRosterBanner();
         showToast(`Imported ${players.length} players from NIF!`, 'success');
       } catch (error) {
         document.getElementById('nifLoadingState').style.display = 'none';
@@ -3096,10 +3315,12 @@
         return;
       }
 
-      // Clear all stores
+      // Clear game-specific stores and meta keys, but preserve permanent settings (defaultRoster)
       await clearStore('players');
       await clearStore('events');
-      await clearStore('meta');
+      await deleteFromStore('meta', 'currentGame');
+      await deleteFromStore('meta', 'currentPeriod');
+      await deleteFromStore('meta', 'gameFinished');
 
       // Reset state to initial values
       state.players = [];
