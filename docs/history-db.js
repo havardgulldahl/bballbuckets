@@ -105,6 +105,27 @@ export async function getFinishedGamePlayers(gameId) {
   });
 }
 
+export async function updateFinishedGame(gameId, updates) {
+  const db = await openHistoryDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(['finishedGames'], 'readwrite');
+    const store = transaction.objectStore('finishedGames');
+    const getReq = store.get(gameId);
+    getReq.onsuccess = () => {
+      const existing = getReq.result;
+      if (!existing) {
+        reject(new Error('Game not found'));
+        return;
+      }
+      const updated = { ...existing, ...updates };
+      const putReq = store.put(updated);
+      putReq.onsuccess = () => resolve(updated);
+      putReq.onerror = () => reject(putReq.error);
+    };
+    getReq.onerror = () => reject(getReq.error);
+  });
+}
+
 export async function deleteFinishedGame(gameId) {
   const db = await openHistoryDB();
   return new Promise((resolve, reject) => {
