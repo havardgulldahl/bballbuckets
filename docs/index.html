@@ -1298,7 +1298,7 @@
   <dialog id="defaultRosterDialog" style="max-width:420px;width:90vw;">
     <h3 style="margin-bottom:0.25rem;">⭐ My Team Roster</h3>
     <p style="color:var(--muted);font-size:0.85rem;margin-bottom:1.25rem;">Save your permanent team roster so you can quickly load it when setting up new games.</p>
-    <label style="margin-bottom:1rem;display:block;">Team Name <span style="font-weight:normal;font-size:0.8rem;color:var(--muted);">(optional)</span>
+    <label for="defaultTeamNameInput" style="margin-bottom:1rem;display:block;">Team Name <span style="font-weight:normal;font-size:0.8rem;color:var(--muted);">(optional)</span>
       <input type="text" id="defaultTeamNameInput" placeholder="e.g. Warriors U17" autocomplete="off" />
     </label>
     <div style="padding:1rem;background:var(--bg-alt);border-radius:var(--radius);margin-bottom:1rem;">
@@ -1796,14 +1796,19 @@
 
     // ── Default Team Roster ──────────────────────────────────────────────────
 
-    // In-memory working copy for the dialog
+    // In-memory working copy for the dialog; each player gets a stable _id for deletion
     let defaultRosterState = { teamName: '', players: [] };
+    let _defaultPlayerIdCounter = 0;
 
     async function showDefaultRosterDialog() {
       // Load saved roster from DB
       const saved = await getFromStore('meta', 'defaultRoster');
       if (saved) {
-        defaultRosterState = { teamName: saved.value.teamName || '', players: [...(saved.value.players || [])] };
+        // Assign stable _id to each player if not present
+        defaultRosterState = {
+          teamName: saved.value.teamName || '',
+          players: (saved.value.players || []).map(p => ({ ...p, _id: p._id ?? ++_defaultPlayerIdCounter }))
+        };
       } else {
         defaultRosterState = { teamName: '', players: [] };
       }
@@ -1818,6 +1823,7 @@
         e.preventDefault();
         const fd = new FormData(e.target);
         defaultRosterState.players.push({
+          _id: ++_defaultPlayerIdCounter,
           firstName: fd.get('firstName').trim(),
           lastName: fd.get('lastName').trim(),
           jersey: fd.get('jersey').trim()
@@ -1829,13 +1835,27 @@
 
       document.getElementById('saveDefaultRosterBtn').addEventListener('click', async () => {
         defaultRosterState.teamName = document.getElementById('defaultTeamNameInput').value.trim();
-        await persistMeta('defaultRoster', defaultRosterState);
+        // Strip internal _id before persisting (not needed in storage)
+        const toSave = {
+          teamName: defaultRosterState.teamName,
+          players: defaultRosterState.players.map(({ _id, ...rest }) => rest)
+        };
+        await persistMeta('defaultRoster', toSave);
         document.getElementById('defaultRosterDialog').close();
         showToast('Team roster saved!', 'success');
       });
 
       document.getElementById('closeDefaultRosterBtn').addEventListener('click', () => {
         document.getElementById('defaultRosterDialog').close();
+      });
+
+      // Event delegation for remove buttons in the roster list
+      document.getElementById('defaultRosterList').addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-remove-player-id]');
+        if (!btn) return;
+        const id = parseInt(btn.dataset.removePlayerId, 10);
+        defaultRosterState.players = defaultRosterState.players.filter(p => p._id !== id);
+        renderDefaultRosterList();
       });
     }
 
@@ -1846,20 +1866,15 @@
         return;
       }
 
-      const sorted = [...defaultRosterState.players].map((p, i) => ({ ...p, _idx: i }))
+      const sorted = [...defaultRosterState.players]
         .sort((a, b) => (parseInt(a.jersey) || 999) - (parseInt(b.jersey) || 999));
 
       container.innerHTML = sorted.map(p => `
         <div style="display:flex;align-items:center;justify-content:space-between;padding:0.4rem 0.6rem;background:var(--bg);border-radius:var(--radius);gap:0.5rem;">
           <span style="font-size:0.9rem;">#${p.jersey} ${p.firstName} ${p.lastName}</span>
-          <button type="button" class="danger" style="padding:0.2rem 0.5rem;font-size:0.8rem;" aria-label="Remove ${p.firstName} ${p.lastName} from roster" onclick="removeDefaultPlayer(${p._idx})">✕</button>
+          <button type="button" class="danger" style="padding:0.2rem 0.5rem;font-size:0.8rem;" aria-label="Remove ${p.firstName} ${p.lastName} from roster" data-remove-player-id="${p._id}">✕</button>
         </div>
       `).join('');
-    }
-
-    function removeDefaultPlayer(index) {
-      defaultRosterState.players.splice(index, 1);
-      renderDefaultRosterList();
     }
 
     async function updateDefaultRosterBanner() {
