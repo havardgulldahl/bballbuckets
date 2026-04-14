@@ -87,6 +87,61 @@ test.describe('Game Logic Validation - Simple Tests', () => {
     expect(scoreText).toContain('2');
   });
 
+  test('persisted shot coordinates are normalized and rounded', async ({ page }) => {
+    // Setup game
+    await page.click('#setupGameBtn');
+    await page.waitForSelector('#gameSetupDialog', { state: 'visible' });
+    await page.fill('#opponentInput', 'Test Team');
+    await page.fill('#gameDateInput', '2024-01-01');
+    await page.click('button[type="submit"]:has-text("Continue to Roster")');
+    await page.waitForSelector('#rosterSetupSection', { state: 'visible' });
+    await page.click('#quickStartBtn');
+    await page.click('#finishSetupBtn');
+    await page.waitForTimeout(500);
+
+    const courtSVG = page.locator('#courtSVG');
+    await courtSVG.click({ position: { x: 333, y: 140 } });
+    await page.click('button[data-kind="shot"][data-points="2"][data-result="made"]');
+    await page.click('.player-chip:first-child');
+    await page.waitForTimeout(400);
+
+    const storedShot = await page.evaluate(async () => {
+      const readEvents = () => new Promise((resolve, reject) => {
+        const request = indexedDB.open('hooptrack-db');
+        request.onerror = () => reject(request.error?.message || 'Failed to open IndexedDB');
+        request.onsuccess = () => {
+          const db = request.result;
+          const tx = db.transaction('events', 'readonly');
+          const store = tx.objectStore('events');
+          const getAllRequest = store.getAll();
+          getAllRequest.onerror = () => reject(getAllRequest.error?.message || 'Failed to read events');
+          getAllRequest.onsuccess = () => {
+            db.close();
+            resolve(getAllRequest.result.filter(event => event.kind === 'shot').at(-1) || null);
+          };
+        };
+      });
+
+      return await readEvents();
+    });
+
+    expect(storedShot).toBeTruthy();
+    expect(storedShot.coordinates).toBeTruthy();
+    expect(storedShot.coordinates.space).toBe('normalized');
+    expect(storedShot.coordinates.x).toBeGreaterThan(0);
+    expect(storedShot.coordinates.x).toBeLessThanOrEqual(1);
+    expect(storedShot.coordinates.y).toBeGreaterThan(0);
+    expect(storedShot.coordinates.y).toBeLessThanOrEqual(1);
+
+    const decimalPlaces = value => {
+      const text = String(value);
+      return text.includes('.') ? text.split('.')[1].length : 0;
+    };
+
+    expect(decimalPlaces(storedShot.coordinates.x)).toBeLessThanOrEqual(3);
+    expect(decimalPlaces(storedShot.coordinates.y)).toBeLessThanOrEqual(3);
+  });
+
   test('validation functions are defined', async ({ page }) => {
     // Check that validation functions exist in window
     const hasFunctions = await page.evaluate(() => {

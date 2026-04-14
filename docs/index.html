@@ -1545,10 +1545,14 @@
 
     const dbName = 'hooptrack-db';
     const dbVersion = 1;
-    const JSON_SCHEMA_VERSION = 1;
+    const JSON_SCHEMA_VERSION = 2;
     const MAX_DESCRIPTION_LENGTH = 2000;
     const MAX_SHARE_HASH_CHARS = 32000;
     const PLAYER_KEY_DEBOUNCE_MS = 200;
+    const COURT_VIEWBOX_WIDTH = 500;
+    const COURT_VIEWBOX_HEIGHT = 517;
+    const STORED_COORDINATE_DECIMALS = 3;
+    const DRAWN_COORDINATE_DECIMALS = 1;
     let dbInstance;
     let courtSVG;
     let keyboardAlertAudioCtx = null;
@@ -1566,6 +1570,85 @@
 
     function formatPlayerShortName(player) {
       return normalizeNamePart(player?.lastName) || normalizeNamePart(player?.firstName) || 'Unknown Player';
+    }
+
+    function clamp(value, min, max) {
+      return Math.min(Math.max(value, min), max);
+    }
+
+    function roundToDecimals(value, decimals) {
+      const factor = 10 ** decimals;
+      return Math.round(value * factor) / factor;
+    }
+
+    function toFiniteNumber(value) {
+      const num = Number(value);
+      return Number.isFinite(num) ? num : null;
+    }
+
+    function buildNormalizedCoordinates(x, y) {
+      return {
+        x: roundToDecimals(clamp(x, 0, 1), STORED_COORDINATE_DECIMALS),
+        y: roundToDecimals(clamp(y, 0, 1), STORED_COORDINATE_DECIMALS),
+        space: 'normalized'
+      };
+    }
+
+    function normalizeSelectedPositionFromViewBox(position) {
+      if (!position || typeof position !== 'object') return null;
+
+      const x = toFiniteNumber(position.x);
+      const y = toFiniteNumber(position.y);
+      if (x === null || y === null) return null;
+
+      return buildNormalizedCoordinates(
+        x / COURT_VIEWBOX_WIDTH,
+        y / COURT_VIEWBOX_HEIGHT
+      );
+    }
+
+    function canonicalizeStoredCoordinates(coordinates) {
+      if (!coordinates || typeof coordinates !== 'object') return null;
+
+      const x = toFiniteNumber(coordinates.x);
+      const y = toFiniteNumber(coordinates.y);
+      if (x === null || y === null) return null;
+
+      if (coordinates.space === 'normalized') {
+        return buildNormalizedCoordinates(x, y);
+      }
+
+      return buildNormalizedCoordinates(
+        x / COURT_VIEWBOX_WIDTH,
+        y / COURT_VIEWBOX_HEIGHT
+      );
+    }
+
+    function getCourtRenderCoordinates(coordinates) {
+      if (!coordinates || typeof coordinates !== 'object') return null;
+
+      const x = toFiniteNumber(coordinates.x);
+      const y = toFiniteNumber(coordinates.y);
+      if (x === null || y === null) return null;
+
+      if (coordinates.space === 'normalized') {
+        return {
+          x: roundToDecimals(clamp(x, 0, 1) * COURT_VIEWBOX_WIDTH, DRAWN_COORDINATE_DECIMALS),
+          y: roundToDecimals(clamp(y, 0, 1) * COURT_VIEWBOX_HEIGHT, DRAWN_COORDINATE_DECIMALS)
+        };
+      }
+
+      return {
+        x: roundToDecimals(clamp(x, 0, COURT_VIEWBOX_WIDTH), DRAWN_COORDINATE_DECIMALS),
+        y: roundToDecimals(clamp(y, 0, COURT_VIEWBOX_HEIGHT), DRAWN_COORDINATE_DECIMALS)
+      };
+    }
+
+    function mapEventsForExport(events) {
+      return events.map(event => ({
+        ...event,
+        coordinates: canonicalizeStoredCoordinates(event.coordinates)
+      }));
     }
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -1642,6 +1725,30 @@
       });
 
       state.events = await getAllFromStore('events');
+      const eventUpdates = [];
+      state.events = state.events.map(event => {
+        const normalizedCoordinates = canonicalizeStoredCoordinates(event.coordinates);
+        if (normalizedCoordinates === null && event.coordinates == null) {
+          return event;
+        }
+
+        const prevSerialized = event.coordinates ? JSON.stringify(event.coordinates) : null;
+        const nextSerialized = normalizedCoordinates ? JSON.stringify(normalizedCoordinates) : null;
+
+        if (prevSerialized !== nextSerialized) {
+          const updatedEvent = {
+            ...event,
+            coordinates: normalizedCoordinates
+          };
+          eventUpdates.push(putInStore('events', updatedEvent));
+          return updatedEvent;
+        }
+
+        return event;
+      });
+      if (eventUpdates.length) {
+        await Promise.all(eventUpdates);
+      }
       const metaGame = await getFromStore('meta', 'currentGame');
       if (metaGame) {
         state.game = metaGame.value;
@@ -1668,8 +1775,8 @@
       const lineColor = getComputedStyle(document.documentElement).getPropertyValue('--court-line').trim();
 
       // Half court + center line dimensions (55% of full court: 500 x 517)
-      const w = 500;
-      const h = 517;
+      const w = COURT_VIEWBOX_WIDTH;
+      const h = COURT_VIEWBOX_HEIGHT;
 
       // Clear SVG
       courtSVG.innerHTML = '';
@@ -1776,10 +1883,12 @@
 
       // Draw previous shots
       state.events.filter(e => e.kind === 'shot' && e.coordinates).forEach(event => {
+        const point = getCourtRenderCoordinates(event.coordinates);
+        if (!point) return;
         const color = event.result === 'made' ? 'rgba(50, 200, 50, 0.6)' : 'rgba(200, 50, 50, 0.6)';
         const shot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        shot.setAttribute('cx', event.coordinates.x);
-        shot.setAttribute('cy', event.coordinates.y);
+        shot.setAttribute('cx', point.x);
+        shot.setAttribute('cy', point.y);
         shot.setAttribute('r', '6');
         shot.setAttribute('fill', color);
         shot.setAttribute('stroke', 'none');
@@ -1788,9 +1897,11 @@
 
       // Draw selected position if exists
       if (state.selectedPosition) {
+        const point = getCourtRenderCoordinates(state.selectedPosition);
+        if (!point) return;
         const selected = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        selected.setAttribute('cx', state.selectedPosition.x);
-        selected.setAttribute('cy', state.selectedPosition.y);
+        selected.setAttribute('cx', point.x);
+        selected.setAttribute('cy', point.y);
         selected.setAttribute('r', '12');
         selected.setAttribute('fill', 'rgba(255, 100, 100, 0.6)');
         selected.setAttribute('stroke', '#c00');
@@ -1918,7 +2029,7 @@
         pt.y = e.clientY;
         const svgPt = pt.matrixTransform(courtSVG.getScreenCTM().inverse());
 
-        state.selectedPosition = { x: svgPt.x, y: svgPt.y };
+        state.selectedPosition = normalizeSelectedPositionFromViewBox(svgPt);
 
         drawCourt();
         showToast('Position selected (optional).', 'success');
@@ -3356,8 +3467,12 @@
         return null;
       }
 
-      // Get court dimensions from SVG
-      const w = 500;
+      const shotPoint = getCourtRenderCoordinates(event.coordinates);
+      if (!shotPoint) {
+        return null;
+      }
+
+      const w = COURT_VIEWBOX_WIDTH;
       const h = 940;
 
       // Check both baskets (top and bottom)
@@ -3369,8 +3484,8 @@
         const basketY = yBase + yDir * 63.5; // 5.25 feet from baseline
 
         // Calculate distance from shot to basket
-        const dx = event.coordinates.x - basketX;
-        const dy = event.coordinates.y - basketY;
+        const dx = shotPoint.x - basketX;
+        const dy = shotPoint.y - basketY;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
         // 3-point line radius is 237.5 units (19'9")
@@ -4022,8 +4137,8 @@
       const lineColor = getComputedStyle(document.documentElement).getPropertyValue('--court-line').trim();
 
       // Half court + center line dimensions (55% of full court: 500 x 517) - same as scoring view
-      const w = 500;
-      const h = 517;
+      const w = COURT_VIEWBOX_WIDTH;
+      const h = COURT_VIEWBOX_HEIGHT;
 
       // Clear SVG
       courtSVG.innerHTML = '';
@@ -4136,13 +4251,14 @@
         (!playerId || e.playerId === playerId)
       );
 
-      // Draw shots - no transformation needed, coordinates are now consistent
       shotEvents.forEach(event => {
+        const point = getCourtRenderCoordinates(event.coordinates);
+        if (!point) return;
         const color = event.result === 'made' ? 'rgba(50, 200, 50, 0.7)' : 'rgba(200, 50, 50, 0.7)';
         const shot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
 
-        shot.setAttribute('cx', event.coordinates.x);
-        shot.setAttribute('cy', event.coordinates.y);
+        shot.setAttribute('cx', point.x);
+        shot.setAttribute('cy', point.y);
         shot.setAttribute('r', '12');
         shot.setAttribute('fill', color);
         shot.setAttribute('stroke', event.result === 'made' ? 'rgba(50, 200, 50, 1)' : 'rgba(200, 50, 50, 1)');
@@ -4484,7 +4600,7 @@
     function generateCourtSVGString(events, playerId, size) {
       // Generate an inline SVG string for the shot chart
       const w = size || 400;
-      const h = Math.round(w * 517 / 500);
+      const h = Math.round(w * COURT_VIEWBOX_HEIGHT / COURT_VIEWBOX_WIDTH);
       const lineColor = '#888';
 
       const yBase = h - 16;
@@ -4516,8 +4632,10 @@
       );
 
       const shotDots = shotEvents.map(e => {
-        const cx = Math.round(e.coordinates.x * w / 500);
-        const cy = Math.round(e.coordinates.y * h / 517);
+        const point = getCourtRenderCoordinates(e.coordinates);
+        if (!point) return '';
+        const cx = Math.round(point.x * w / COURT_VIEWBOX_WIDTH);
+        const cy = Math.round(point.y * h / COURT_VIEWBOX_HEIGHT);
         const r = Math.max(6, Math.round(10 * w / 500));
         const fill = e.result === 'made' ? 'rgba(50,200,50,0.75)' : 'rgba(200,50,50,0.75)';
         const stroke = e.result === 'made' ? '#32c832' : '#c83232';
@@ -4835,7 +4953,7 @@
         },
         periods: state.period,
         stats,
-        events: state.events
+        events: mapEventsForExport(state.events)
       };
     }
 
@@ -4854,7 +4972,7 @@
         },
         periods: game.periods,
         stats: game.stats,
-        events: events.map(e => {
+        events: mapEventsForExport(events).map(e => {
           const { gameId, ...rest } = e;
           return rest;
         })
@@ -5067,7 +5185,8 @@
           const { gameId: _gid, ...rest } = e;
           return {
             ...rest,
-            id: String(rest.id || generateId())
+            id: String(rest.id || generateId()),
+            coordinates: canonicalizeStoredCoordinates(rest.coordinates)
           };
         });
 

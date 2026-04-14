@@ -88,6 +88,28 @@ test.describe('Import Game JSON', () => {
     await expect(header).toContainText('55');
   });
 
+  test('imported legacy coordinates still render the history shot chart', async ({ page }) => {
+    await page.click('#historyBtn');
+    await page.waitForSelector('#historyView', { state: 'visible' });
+
+    const [fileChooser] = await Promise.all([
+      page.waitForEvent('filechooser'),
+      page.click('#importGameJSONBtn'),
+    ]);
+
+    const exampleFilePath = path.resolve(__dirname, 'example-game-data.json');
+    await fileChooser.setFiles(exampleFilePath);
+    await page.waitForTimeout(1000);
+
+    const gameCard = page.locator('#historyList').locator('text=TSU17').first();
+    await gameCard.click();
+    await page.waitForSelector('#historyDetailView', { state: 'visible', timeout: 5000 });
+
+    const shotTitles = page.locator('#historyCourtSVG title');
+    await expect(shotTitles.first()).toContainText('pt');
+    expect(await shotTitles.count()).toBeGreaterThan(0);
+  });
+
   test('importing invalid JSON shows an error toast', async ({ page }) => {
     await page.click('#historyBtn');
     await page.waitForSelector('#historyView', { state: 'visible' });
