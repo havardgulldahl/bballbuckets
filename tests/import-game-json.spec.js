@@ -1,6 +1,7 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
 const path = require('path');
+const fs = require('fs');
 
 test.describe('Import Game JSON', () => {
   test.beforeEach(async ({ page }) => {
@@ -130,5 +131,29 @@ test.describe('Import Game JSON', () => {
 
     const toast = page.locator('.toast');
     await expect(toast).toContainText('Import failed', { timeout: 5000, ignoreCase: true });
+  });
+
+  test('imports a shared game from URL hash link', async ({ page }) => {
+    const exampleFilePath = path.resolve(__dirname, 'example-game-data.json');
+    const payload = JSON.parse(fs.readFileSync(exampleFilePath, 'utf8'));
+    payload.schemaVersion = 1;
+
+    const encoded = Buffer.from(JSON.stringify(payload), 'utf8')
+      .toString('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/g, '');
+
+    page.on('dialog', async dialog => {
+      await dialog.accept();
+    });
+
+    await page.goto(`/#game=${encoded}`);
+    await page.waitForLoadState('networkidle');
+
+    const toast = page.locator('.toast');
+    await expect(toast).toContainText('imported from link', { timeout: 5000, ignoreCase: true });
+    await expect(page.locator('#historyView')).toBeVisible();
+    await expect(page.locator('#historyList')).toContainText('TSU17');
   });
 });

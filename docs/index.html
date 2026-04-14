@@ -1195,10 +1195,26 @@
   <dialog id="exportDialog">
     <h3>Export Game Data</h3>
     <div style="display:flex;flex-direction:column;gap:1rem;">
+      <button type="button" id="shareGameBtn" style="width:100%;">Share Game</button>
+      <button type="button" id="copyShareLinkBtn" style="width:100%;">Copy Share Link</button>
       <button type="button" id="exportCSVBtn" style="width:100%;">Export as CSV</button>
       <button type="button" id="exportTxtBtn" style="width:100%;">Export as Text</button>
       <button type="button" id="exportJSONBtn" style="width:100%;">Export as JSON</button>
       <button type="button" class="secondary" id="closeExportBtn" style="width:100%;margin-top:0.5rem;">Close</button>
+    </div>
+  </dialog>
+
+  <!-- History Export Dialog -->
+  <dialog id="historyExportDialog">
+    <h3>Export Game Data</h3>
+    <div style="display:flex;flex-direction:column;gap:1rem;">
+      <button type="button" id="shareHistoryGameBtn" style="width:100%;">Share Game</button>
+      <button type="button" id="copyHistoryShareLinkBtn" style="width:100%;">Copy Share Link</button>
+      <button type="button" id="historyExportCSVBtn" style="width:100%;">Export as CSV</button>
+      <button type="button" id="historyExportTxtBtn" style="width:100%;">Export as Text</button>
+      <button type="button" id="historyExportJSONBtn" style="width:100%;">Export as JSON</button>
+      <button type="button" class="secondary" id="closeHistoryExportBtn"
+        style="width:100%;margin-top:0.5rem;">Close</button>
     </div>
   </dialog>
 
@@ -1531,6 +1547,7 @@
     const dbVersion = 1;
     const JSON_SCHEMA_VERSION = 1;
     const MAX_DESCRIPTION_LENGTH = 2000;
+    const MAX_SHARE_HASH_CHARS = 32000;
     const PLAYER_KEY_DEBOUNCE_MS = 200;
     let dbInstance;
     let courtSVG;
@@ -1563,8 +1580,10 @@
       updateUI();
       registerServiceWorker();
 
+      const importedFromSharedLink = await maybeImportSharedGameFromHash();
+
       // Show game setup dialog if no game exists
-      if (!state.game) {
+      if (!state.game && !importedFromSharedLink) {
         showGameSetup();
       }
     }
@@ -1798,6 +1817,8 @@
       document.getElementById('historyBtn').addEventListener('click', showHistoryView);
 
       // Export dialog buttons
+      document.getElementById('shareGameBtn').addEventListener('click', shareCurrentGame);
+      document.getElementById('copyShareLinkBtn').addEventListener('click', copyCurrentGameShareLink);
       document.getElementById('exportCSVBtn').addEventListener('click', () => exportData('csv'));
       document.getElementById('exportTxtBtn').addEventListener('click', () => exportData('txt'));
       document.getElementById('exportJSONBtn').addEventListener('click', () => exportData('json'));
@@ -1938,7 +1959,15 @@
       // History view navigation
       document.getElementById('backToLiveGameBtn').addEventListener('click', showLiveGameView);
       document.getElementById('backToHistoryListBtn').addEventListener('click', showHistoryView);
-      document.getElementById('exportHistoryGameBtn').addEventListener('click', exportHistoryGame);
+      document.getElementById('exportHistoryGameBtn').addEventListener('click', showHistoryExportDialog);
+      document.getElementById('shareHistoryGameBtn').addEventListener('click', shareHistoryGame);
+      document.getElementById('copyHistoryShareLinkBtn').addEventListener('click', copyHistoryGameShareLink);
+      document.getElementById('historyExportCSVBtn').addEventListener('click', () => exportHistoryData('csv'));
+      document.getElementById('historyExportTxtBtn').addEventListener('click', () => exportHistoryData('txt'));
+      document.getElementById('historyExportJSONBtn').addEventListener('click', () => exportHistoryData('json'));
+      document.getElementById('closeHistoryExportBtn').addEventListener('click', () => {
+        document.getElementById('historyExportDialog').close();
+      });
       document.getElementById('printHistoryGameBtn').addEventListener('click', () => printHistoryGameReport(state.selectedHistoryGame));
       document.getElementById('deleteHistoryGameBtn').addEventListener('click', deleteHistoryGame);
       document.getElementById('saveHistoryGameDescriptionBtn').addEventListener('click', saveHistoryGameDescription);
@@ -4285,60 +4314,161 @@
       }
     }
 
-    async function exportHistoryGame() {
+    function showHistoryExportDialog() {
       if (!state.selectedHistoryGame) {
         showToast('No game selected', 'error');
         return;
       }
+      document.getElementById('historyExportDialog').showModal();
+    }
 
+    async function exportHistoryData(format) {
+      if (!state.selectedHistoryGame) {
+        showToast('No game selected', 'error');
+        return;
+      }
       try {
         const game = await window.historyDB.getFinishedGame(state.selectedHistoryGame);
         const events = await window.historyDB.getFinishedGameEvents(state.selectedHistoryGame);
-        const exportPayload = {
-          schemaVersion: JSON_SCHEMA_VERSION,
-          exportedAt: new Date().toISOString(),
-          exportedBy: {
-            userAgent: navigator.userAgent,
-            platform: navigator.platform || 'unknown',
-            app: 'bballbuckets'
-          },
-          description: game.description || '',
-          game: {
-            opponent: game.opponent,
-            date: game.date,
-            location: game.location || '',
-            ruleSet: game.ruleSet || 'FIBA'
-          },
-          finalScore: {
-            home: game.homeScore,
-            opponent: game.opponentScore
-          },
-          periods: game.periods,
-          stats: game.stats,
-          events: events.map(e => {
-            const { gameId, ...rest } = e;
-            return rest;
-          })
-        };
+        const players = (game.stats && Array.isArray(game.stats.players)) ? game.stats.players : [];
+        const team = (game.stats && game.stats.team) ? game.stats.team : {};
 
-        const content = JSON.stringify(exportData, null, 2);
-        const filename = makeExportFilename(game, 'json');
-        const mimeType = 'application/json';
+        let content = '';
+        let filename = '';
+        let mimeType = '';
 
-        const blob = new Blob([content], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        if (format === 'csv') {
+          content = 'Player,Jersey,Points,FGM,FGA,FG%,3PM,3PA,3P%,FTM,FTA,FT%,REB,AST,STL,BLK,TO,PF\n';
+          players.forEach(p => {
+            const fgPct = p.fga > 0 ? ((p.fgm / p.fga) * 100).toFixed(1) : '0.0';
+            const threePct = p.threepa > 0 ? ((p.threepm / p.threepa) * 100).toFixed(1) : '0.0';
+            const ftPct = p.fta > 0 ? ((p.ftm / p.fta) * 100).toFixed(1) : '0.0';
+            content += `"${p.name}",${p.jersey},${p.points},${p.fgm},${p.fga},${fgPct},${p.threepm},${p.threepa},${threePct},${p.ftm},${p.fta},${ftPct},${p.rebounds},${p.assists},${p.steals},${p.blocks},${p.turnovers},${p.fouls}\n`;
+          });
+          filename = makeExportFilename(game, 'csv');
+          mimeType = 'text/csv';
+        } else if (format === 'txt') {
+          content = `Balls & Buckets - Game Statistics\n`;
+          content += `${'='.repeat(50)}\n\n`;
+          content += `Game: vs ${game.opponent}\n`;
+          content += `Date: ${game.date}\n`;
+          content += `Location: ${game.location || 'N/A'}\n`;
+          content += `Final Score: ${game.homeScore} - ${game.opponentScore}\n`;
+          content += `Periods: ${game.periods}\n\n`;
+          content += `Team Statistics:\n`;
+          content += `${'-'.repeat(50)}\n`;
+          content += `Field Goals: ${team.fgm || 0}/${team.fga || 0} (${team.fgPct || '0.0'}%)\n`;
+          content += `3-Pointers: ${team.threepm || 0}/${team.threepa || 0} (${team.threePct || '0.0'}%)\n`;
+          content += `Free Throws: ${team.ftm || 0}/${team.fta || 0} (${team.ftPct || '0.0'}%)\n`;
+          content += `Rebounds: ${team.rebounds || 0} (Off: ${team.oreb || 0}, Def: ${team.dreb || 0})\n`;
+          content += `Assists: ${team.assists || 0}\n`;
+          content += `Steals: ${team.steals || 0}\n`;
+          content += `Blocks: ${team.blocks || 0}\n`;
+          content += `Turnovers: ${team.turnovers || 0}\n`;
+          content += `Fouls: ${team.fouls || 0}\n\n`;
+          content += `Player Statistics:\n`;
+          content += `${'-'.repeat(50)}\n`;
+          players.forEach(p => {
+            const fgPct = p.fga > 0 ? ((p.fgm / p.fga) * 100).toFixed(1) : '0.0';
+            const threePct = p.threepa > 0 ? ((p.threepm / p.threepa) * 100).toFixed(1) : '0.0';
+            const ftPct = p.fta > 0 ? ((p.ftm / p.fta) * 100).toFixed(1) : '0.0';
+            content += `\n#${p.jersey} ${p.name}\n`;
+            content += `  Points: ${p.points}\n`;
+            content += `  FG: ${p.fgm}/${p.fga} (${fgPct}%)  3P: ${p.threepm}/${p.threepa} (${threePct}%)  FT: ${p.ftm}/${p.fta} (${ftPct}%)\n`;
+            content += `  REB: ${p.rebounds}  AST: ${p.assists}  STL: ${p.steals}  BLK: ${p.blocks}  TO: ${p.turnovers}  PF: ${p.fouls}\n`;
+          });
+          filename = makeExportFilename(game, 'txt');
+          mimeType = 'text/plain';
+        } else if (format === 'json') {
+          const exportPayload = buildHistoryGameExportPayload(game, events);
+          content = JSON.stringify(exportPayload, null, 2);
+          filename = makeExportFilename(game, 'json');
+          mimeType = 'application/json';
+        }
 
-        showToast('Game exported as JSON', 'success');
+        downloadContent(content, mimeType, filename);
+        showToast(`Exported as ${format.toUpperCase()}`, 'success');
+        document.getElementById('historyExportDialog').close();
       } catch (error) {
         console.error('Error exporting game:', error);
         showToast('Error exporting game', 'error');
+      }
+    }
+
+    async function shareHistoryGame() {
+      if (!state.selectedHistoryGame) {
+        showToast('No game selected', 'error');
+        return;
+      }
+      try {
+        const game = await window.historyDB.getFinishedGame(state.selectedHistoryGame);
+        const events = await window.historyDB.getFinishedGameEvents(state.selectedHistoryGame);
+        const payload = buildHistoryGameExportPayload(game, events);
+        const filename = makeExportFilename(game, 'json');
+        const jsonContent = JSON.stringify(payload, null, 2);
+
+        if (navigator.share) {
+          try {
+            const file = new File([jsonContent], filename, { type: 'application/json' });
+            if (canShareFiles(file)) {
+              await navigator.share({
+                title: 'Balls & Buckets Game',
+                text: buildGameShareText(payload),
+                files: [file]
+              });
+              showToast('Game shared', 'success');
+              document.getElementById('historyExportDialog').close();
+              return;
+            }
+            const { url } = buildShareUrlForPayload(payload);
+            await navigator.share({
+              title: 'Balls & Buckets Game',
+              text: buildGameShareText(payload),
+              url
+            });
+            showToast('Shared game link', 'success');
+            document.getElementById('historyExportDialog').close();
+            return;
+          } catch (error) {
+            if (error && error.name === 'AbortError') {
+              showToast('Share canceled', 'error');
+              return;
+            }
+            console.error('Web Share failed:', error);
+          }
+        }
+
+        downloadContent(jsonContent, 'application/json', filename);
+        showToast('Sharing unavailable. Downloaded JSON file instead.', 'success');
+        document.getElementById('historyExportDialog').close();
+      } catch (error) {
+        console.error('Error sharing game:', error);
+        showToast('Error sharing game', 'error');
+      }
+    }
+
+    async function copyHistoryGameShareLink() {
+      if (!state.selectedHistoryGame) {
+        showToast('No game selected', 'error');
+        return;
+      }
+      try {
+        const game = await window.historyDB.getFinishedGame(state.selectedHistoryGame);
+        const events = await window.historyDB.getFinishedGameEvents(state.selectedHistoryGame);
+        const payload = buildHistoryGameExportPayload(game, events);
+        const { url, hashChars } = buildShareUrlForPayload(payload);
+
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(url);
+          showToast(`Share link copied (${hashChars} chars)`, 'success');
+        } else {
+          window.prompt('Copy this share link:', url);
+          showToast('Share link ready to copy', 'success');
+        }
+        document.getElementById('historyExportDialog').close();
+      } catch (error) {
+        console.error('Could not create share link:', error);
+        showToast(error.message || 'Could not create share link', 'error');
       }
     }
 
@@ -4681,6 +4811,319 @@
       }
     }
 
+    function buildExportMetadata(description = '') {
+      return {
+        schemaVersion: JSON_SCHEMA_VERSION,
+        exportedAt: new Date().toISOString(),
+        exportedBy: {
+          userAgent: navigator.userAgent,
+          platform: navigator.platform || 'unknown',
+          app: 'bballbuckets'
+        },
+        description
+      };
+    }
+
+    function buildLiveGameExportPayload() {
+      const stats = calculateStats();
+      return {
+        ...buildExportMetadata(''),
+        game: state.game,
+        finalScore: {
+          home: state.homeScore,
+          opponent: state.opponentScore
+        },
+        periods: state.period,
+        stats,
+        events: state.events
+      };
+    }
+
+    function buildHistoryGameExportPayload(game, events) {
+      return {
+        ...buildExportMetadata(game.description || ''),
+        game: {
+          opponent: game.opponent,
+          date: game.date,
+          location: game.location || '',
+          ruleSet: game.ruleSet || 'FIBA'
+        },
+        finalScore: {
+          home: game.homeScore,
+          opponent: game.opponentScore
+        },
+        periods: game.periods,
+        stats: game.stats,
+        events: events.map(e => {
+          const { gameId, ...rest } = e;
+          return rest;
+        })
+      };
+    }
+
+    function downloadContent(content, mimeType, filename) {
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function buildGameShareText(payload) {
+      return `Balls & Buckets game vs ${payload.game.opponent} (${payload.game.date})\nFinal score: ${payload.finalScore.home}-${payload.finalScore.opponent}`;
+    }
+
+    function bytesToBase64(bytes) {
+      let binary = '';
+      const chunkSize = 0x8000;
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        const chunk = bytes.subarray(i, i + chunkSize);
+        binary += String.fromCharCode(...chunk);
+      }
+      return btoa(binary);
+    }
+
+    function base64ToBytes(base64) {
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      return bytes;
+    }
+
+    function encodePayloadForShareHash(payload) {
+      const json = JSON.stringify(payload);
+      const bytes = new TextEncoder().encode(json);
+      const encoded = bytesToBase64(bytes)
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/g, '');
+
+      return {
+        encoded,
+        jsonBytes: bytes.length,
+        hashChars: encoded.length
+      };
+    }
+
+    function decodePayloadFromShareHash(encoded) {
+      const normalized = String(encoded)
+        .replace(/-/g, '+')
+        .replace(/_/g, '/');
+      const padLength = (4 - (normalized.length % 4)) % 4;
+      const padded = normalized + '='.repeat(padLength);
+      const bytes = base64ToBytes(padded);
+      const json = new TextDecoder().decode(bytes);
+      return JSON.parse(json);
+    }
+
+    function buildShareUrlForPayload(payload) {
+      const { encoded, jsonBytes, hashChars } = encodePayloadForShareHash(payload);
+      if (hashChars > MAX_SHARE_HASH_CHARS) {
+        throw new Error(`Shared link too large (${hashChars} chars). Use JSON file sharing instead.`);
+      }
+
+      const url = new URL(window.location.href);
+      url.hash = `game=${encoded}`;
+      return {
+        url: url.toString(),
+        jsonBytes,
+        hashChars
+      };
+    }
+
+    function clearShareHash() {
+      if (!window.location.hash) return;
+      const cleanUrl = `${window.location.pathname}${window.location.search}`;
+      window.history.replaceState(null, '', cleanUrl);
+    }
+
+    function canShareFiles(file) {
+      if (!navigator.share) return false;
+      if (typeof navigator.canShare !== 'function') return false;
+      try {
+        return navigator.canShare({ files: [file] });
+      } catch (error) {
+        return false;
+      }
+    }
+
+    async function shareCurrentGame() {
+      if (!state.game) {
+        showToast('No live game to share', 'error');
+        return;
+      }
+
+      const payload = buildLiveGameExportPayload();
+      const filename = makeExportFilename(state.game, 'json');
+      const jsonContent = JSON.stringify(payload, null, 2);
+
+      if (navigator.share) {
+        try {
+          const file = new File([jsonContent], filename, { type: 'application/json' });
+
+          if (canShareFiles(file)) {
+            await navigator.share({
+              title: 'Balls & Buckets Game',
+              text: buildGameShareText(payload),
+              files: [file]
+            });
+            showToast('Game shared', 'success');
+            document.getElementById('exportDialog').close();
+            return;
+          }
+
+          const { url } = buildShareUrlForPayload(payload);
+          await navigator.share({
+            title: 'Balls & Buckets Game',
+            text: buildGameShareText(payload),
+            url
+          });
+          showToast('Shared game link', 'success');
+          document.getElementById('exportDialog').close();
+          return;
+        } catch (error) {
+          if (error && error.name === 'AbortError') {
+            showToast('Share canceled', 'error');
+            return;
+          }
+          console.error('Web Share failed:', error);
+        }
+      }
+
+      downloadContent(jsonContent, 'application/json', filename);
+      showToast('Sharing unavailable. Downloaded JSON file instead.', 'success');
+      document.getElementById('exportDialog').close();
+    }
+
+    async function copyCurrentGameShareLink() {
+      if (!state.game) {
+        showToast('No live game to share', 'error');
+        return;
+      }
+
+      try {
+        const payload = buildLiveGameExportPayload();
+        const { url, hashChars } = buildShareUrlForPayload(payload);
+
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(url);
+          showToast(`Share link copied (${hashChars} chars)`, 'success');
+        } else {
+          window.prompt('Copy this share link:', url);
+          showToast('Share link ready to copy', 'success');
+        }
+
+        document.getElementById('exportDialog').close();
+      } catch (error) {
+        console.error('Could not create share link:', error);
+        showToast(error.message || 'Could not create share link', 'error');
+      }
+    }
+
+    async function importValidatedGameData(data, source = 'file') {
+      const gameId = `game-${Date.now()}-imported`;
+
+      const historyGameData = {
+        id: gameId,
+        timestamp: Date.now(),
+        date: data.game.date.trim(),
+        opponent: data.game.opponent.trim(),
+        location: typeof data.game.location === 'string' ? data.game.location : '',
+        ruleSet: typeof data.game.ruleSet === 'string' ? data.game.ruleSet : 'FIBA',
+        homeScore: typeof data.finalScore === 'object' && data.finalScore !== null
+          ? (Number(data.finalScore.home) || 0) : 0,
+        opponentScore: typeof data.finalScore === 'object' && data.finalScore !== null
+          ? (Number(data.finalScore.opponent) || 0) : 0,
+        periods: typeof data.periods === 'number' ? data.periods : 4,
+        stats: data.stats || null,
+        description: typeof data.description === 'string' ? data.description.trim().slice(0, MAX_DESCRIPTION_LENGTH) : '',
+        imported: true,
+        importedAt: new Date().toISOString(),
+        importedFrom: source,
+        originalSchemaVersion: typeof data.schemaVersion === 'number' ? data.schemaVersion : null
+      };
+
+      const rawPlayers = Array.isArray(data.stats && data.stats.players)
+        ? data.stats.players
+        : (Array.isArray(data.players) ? data.players : []);
+      const players = rawPlayers
+        .filter(p => p && typeof p === 'object')
+        .map(p => ({
+          id: String(p.id || p.originalId || generateId()),
+          name: String(p.name || 'Unknown'),
+          jersey: p.jersey !== undefined ? p.jersey : '',
+          position: String(p.position || '')
+        }));
+
+      const events = data.events
+        .filter(e => e && typeof e === 'object')
+        .map(e => {
+          const { gameId: _gid, ...rest } = e;
+          return {
+            ...rest,
+            id: String(rest.id || generateId())
+          };
+        });
+
+      await window.historyDB.saveGameToHistory({
+        id: gameId,
+        game: historyGameData,
+        events,
+        players
+      });
+
+      return historyGameData;
+    }
+
+    async function maybeImportSharedGameFromHash() {
+      const hash = window.location.hash && window.location.hash.startsWith('#')
+        ? window.location.hash.slice(1)
+        : '';
+      if (!hash) return false;
+
+      const params = new URLSearchParams(hash);
+      const encodedGame = params.get('game');
+      if (!encodedGame) return false;
+
+      let data;
+      try {
+        data = decodePayloadFromShareHash(encodedGame);
+        validateImportedGameJSON(data);
+      } catch (error) {
+        console.error('Invalid shared game payload:', error);
+        showToast('Shared link is invalid or corrupted', 'error');
+        clearShareHash();
+        return false;
+      }
+
+      const confirmed = window.confirm(
+        `Import shared game?\n\nOpponent: ${data.game.opponent}\nDate: ${data.game.date}\nEvents: ${data.events.length}`
+      );
+
+      clearShareHash();
+      if (!confirmed) {
+        showToast('Shared game import canceled', 'error');
+        return false;
+      }
+
+      try {
+        const importedGame = await importValidatedGameData(data, 'url');
+        showToast(`Game vs ${importedGame.opponent} imported from link!`, 'success');
+        await showHistoryView();
+        return true;
+      } catch (error) {
+        console.error('Error importing shared game:', error);
+        showToast('Error saving shared game', 'error');
+        return false;
+      }
+    }
+
     function validateImportedGameJSON(data) {
       if (!data || typeof data !== 'object' || Array.isArray(data)) {
         throw new Error('Invalid format: expected a JSON object');
@@ -4738,61 +5181,9 @@
         return;
       }
 
-      // Build a new unique game ID to avoid collisions
-      const gameId = `game-${Date.now()}-imported`;
-
-      // Build game metadata, applying defaults for missing optional fields
-      const historyGameData = {
-        id: gameId,
-        timestamp: Date.now(),
-        date: data.game.date.trim(),
-        opponent: data.game.opponent.trim(),
-        location: typeof data.game.location === 'string' ? data.game.location : '',
-        ruleSet: typeof data.game.ruleSet === 'string' ? data.game.ruleSet : 'FIBA',
-        homeScore: typeof data.finalScore === 'object' && data.finalScore !== null
-          ? (Number(data.finalScore.home) || 0) : 0,
-        opponentScore: typeof data.finalScore === 'object' && data.finalScore !== null
-          ? (Number(data.finalScore.opponent) || 0) : 0,
-        periods: typeof data.periods === 'number' ? data.periods : 4,
-        stats: data.stats || null,
-        description: typeof data.description === 'string' ? data.description.trim().slice(0, MAX_DESCRIPTION_LENGTH) : '',
-        imported: true,
-        importedAt: new Date().toISOString(),
-        originalSchemaVersion: typeof data.schemaVersion === 'number' ? data.schemaVersion : null
-      };
-
-      // Normalize players: canonical source is stats.players; fall back to legacy top-level players
-      const rawPlayers = Array.isArray(data.stats && data.stats.players)
-        ? data.stats.players
-        : (Array.isArray(data.players) ? data.players : []);
-      const players = rawPlayers
-        .filter(p => p && typeof p === 'object')
-        .map(p => ({
-          id: String(p.id || p.originalId || generateId()),
-          name: String(p.name || 'Unknown'),
-          jersey: p.jersey !== undefined ? p.jersey : '',
-          position: String(p.position || '')
-        }));
-
-      // Normalize events: strip gameId fields, ensure id field
-      const events = data.events
-        .filter(e => e && typeof e === 'object')
-        .map(e => {
-          const { gameId: _gid, ...rest } = e;
-          return {
-            ...rest,
-            id: String(rest.id || generateId())
-          };
-        });
-
       try {
-        await window.historyDB.saveGameToHistory({
-          id: gameId,
-          game: historyGameData,
-          events,
-          players
-        });
-        showToast(`Game vs ${historyGameData.opponent} imported!`, 'success');
+        const importedGame = await importValidatedGameData(data, 'file');
+        showToast(`Game vs ${importedGame.opponent} imported!`, 'success');
         showHistoryView();
       } catch (err) {
         console.error('Error importing game:', err);
@@ -5000,39 +5391,14 @@
         mimeType = 'text/plain';
       } else if (format === 'json') {
         // JSON export
-        const exportPayload = {
-          schemaVersion: JSON_SCHEMA_VERSION,
-          exportedAt: new Date().toISOString(),
-          exportedBy: {
-            userAgent: navigator.userAgent,
-            platform: navigator.platform || 'unknown',
-            app: 'bballbuckets'
-          },
-          description: '',
-          game: state.game,
-          finalScore: {
-            home: state.homeScore,
-            opponent: state.opponentScore
-          },
-          periods: state.period,
-          stats: stats,
-          events: state.events
-        };
-        content = JSON.stringify(exportData, null, 2);
+        const exportPayload = buildLiveGameExportPayload();
+        content = JSON.stringify(exportPayload, null, 2);
         filename = makeExportFilename(state.game, 'json');
         mimeType = 'application/json';
       }
 
       // Create download
-      const blob = new Blob([content], { type: mimeType });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      downloadContent(content, mimeType, filename);
 
       showToast(`Exported as ${format.toUpperCase()}`, 'success');
       document.getElementById('exportDialog').close();
