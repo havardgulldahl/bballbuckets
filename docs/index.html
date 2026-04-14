@@ -496,6 +496,24 @@
       gap: 0.5rem;
     }
 
+    .player-list.keyboard-feedback {
+      animation: keyboardFlash 220ms ease;
+    }
+
+    @keyframes keyboardFlash {
+      0% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+      }
+
+      40% {
+        box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.75);
+      }
+
+      100% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+      }
+    }
+
     /* Animation for player position changes */
     @keyframes slideDown {
       from {
@@ -885,6 +903,43 @@
       gap: 1.5rem;
     }
 
+    .shortcut-legend-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(150px, 1fr));
+      gap: 0.5rem;
+      margin: 0.75rem 0 1rem;
+    }
+
+    .shortcut-legend-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.55rem 0.7rem;
+      border-radius: var(--radius);
+      background: var(--accent-soft);
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      font-size: 0.88rem;
+    }
+
+    .shortcut-legend-row kbd {
+      font-family: inherit;
+      font-weight: 700;
+      background: var(--bg-alt);
+      border: 1px solid var(--muted);
+      border-bottom-width: 2px;
+      border-radius: 6px;
+      padding: 0.15rem 0.4rem;
+      min-width: 2.2rem;
+      text-align: center;
+    }
+
+    @media (max-width: 640px) {
+      .shortcut-legend-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
     .stat-card {
       background: var(--bg-alt);
       border-radius: var(--radius);
@@ -1200,6 +1255,35 @@
     </div>
   </dialog>
 
+  <!-- Keyboard Shortcut Legend Dialog -->
+  <dialog id="shortcutLegendDialog" style="max-width:760px;width:min(92vw,760px);">
+    <h3>Keyboard Legend</h3>
+    <p style="color:var(--muted);font-size:0.9rem;margin:0.25rem 0 0.65rem;">Left hand shortcuts for rapid live logging
+    </p>
+
+    <div class="shortcut-legend-grid">
+      <div class="shortcut-legend-row"><span>Made 2</span><kbd>Q</kbd></div>
+      <div class="shortcut-legend-row"><span>Made 3</span><kbd>E</kbd></div>
+      <div class="shortcut-legend-row"><span>Miss 2</span><kbd>W</kbd></div>
+      <div class="shortcut-legend-row"><span>Miss 3</span><kbd>R</kbd></div>
+      <div class="shortcut-legend-row"><span>Def Reb</span><kbd>A</kbd></div>
+      <div class="shortcut-legend-row"><span>Off Reb</span><kbd>Shift+A</kbd></div>
+      <div class="shortcut-legend-row"><span>Foul</span><kbd>S</kbd></div>
+      <div class="shortcut-legend-row"><span>Turnover</span><kbd>D</kbd></div>
+      <div class="shortcut-legend-row"><span>Made FT</span><kbd>F</kbd></div>
+      <div class="shortcut-legend-row"><span>Miss FT</span><kbd>Shift+F</kbd></div>
+      <div class="shortcut-legend-row"><span>Block</span><kbd>B</kbd></div>
+      <div class="shortcut-legend-row"><span>Undo</span><kbd>Z</kbd></div>
+      <div class="shortcut-legend-row"><span>Select/Log Player</span><kbd>1-9</kbd></div>
+      <div class="shortcut-legend-row"><span>Show Legend</span><kbd>?</kbd></div>
+    </div>
+
+    <p style="margin:0 0 1rem;color:var(--muted);font-size:0.85rem;">For shots (Q/W/E/R), click court position first,
+      then choose player 1-9.</p>
+
+    <button type="button" class="secondary" id="closeShortcutLegendBtn" style="width:100%;">Close</button>
+  </dialog>
+
   <!-- Game Setup Dialog -->
   <dialog id="gameSetupDialog">
     <!-- Step 1: Choose setup method -->
@@ -1438,6 +1522,7 @@
       validationWarnings: [],
       validationErrors: [],
       lastToggledPlayerId: null,
+      keyboardLastPlayerKeyAt: 0,
       currentView: 'live', // 'live', 'history', 'historyDetail'
       selectedHistoryGame: null
     };
@@ -1446,8 +1531,10 @@
     const dbVersion = 1;
     const JSON_SCHEMA_VERSION = 1;
     const MAX_DESCRIPTION_LENGTH = 2000;
+    const PLAYER_KEY_DEBOUNCE_MS = 200;
     let dbInstance;
     let courtSVG;
+    let keyboardAlertAudioCtx = null;
 
     function normalizeNamePart(value) {
       return String(value || '').trim();
@@ -1819,30 +1906,12 @@
       // Event buttons
       document.querySelectorAll('.event-pad button, .event-pad-primary button, .event-pad-secondary button').forEach(btn => {
         btn.addEventListener('click', () => {
-          if (!state.game) {
-            showToast('Please setup game first', 'error');
-            return;
-          }
-
-          if (state.gameFinished) {
-            showToast('Game is finished', 'error');
-            return;
-          }
-
-          state.selectedEvent = {
-            kind: btn.dataset.kind,
-            points: btn.dataset.points ? parseInt(btn.dataset.points) : 0,
-            result: btn.dataset.result || null,
-            subtype: btn.dataset.subtype || null
-          };
-
-          // Add class to show roster on mobile
-          document.body.classList.add('event-selected');
-
-          renderPlayerList();
-          showToast('Event selected. Choose a player.', 'success');
+          selectEventFromDataset(btn.dataset);
         });
       });
+
+      // Keyboard shortcuts for laptop logging workflow
+      document.addEventListener('keydown', handleKeyboardShortcuts);
 
       // Clear position button
       document.getElementById('clearPositionBtn').addEventListener('click', clearSelection);
@@ -1886,6 +1955,187 @@
       document.getElementById('closeScoreAdjustBtn').addEventListener('click', () => {
         document.getElementById('scoreAdjustDialog').close();
       });
+
+      document.getElementById('closeShortcutLegendBtn').addEventListener('click', () => {
+        document.getElementById('shortcutLegendDialog').close();
+      });
+    }
+
+    function selectEventFromDataset(dataset, options = {}) {
+      if (!state.game) {
+        showToast('Please setup game first', 'error');
+        return false;
+      }
+
+      if (state.gameFinished) {
+        showToast('Game is finished', 'error');
+        return false;
+      }
+
+      state.selectedEvent = {
+        kind: dataset.kind,
+        points: dataset.points ? parseInt(dataset.points, 10) : 0,
+        result: dataset.result || null,
+        subtype: dataset.subtype || null
+      };
+
+      // Add class to show roster on mobile
+      document.body.classList.add('event-selected');
+
+      renderPlayerList();
+      if (!options.silentToast) {
+        showToast('Event selected. Choose a player.', 'success');
+      }
+      return true;
+    }
+
+    function getSortedPlayersForSelection() {
+      return [...state.players].sort((a, b) => {
+        if (a.onCourt === b.onCourt) {
+          const jerseyA = parseInt(a.jersey) || 999;
+          const jerseyB = parseInt(b.jersey) || 999;
+          return jerseyA - jerseyB;
+        }
+        return a.onCourt ? -1 : 1;
+      });
+    }
+
+    function isTextInputTarget(target) {
+      if (!target || !(target instanceof Element)) return false;
+      const tag = target.tagName;
+      return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable;
+    }
+
+    function hasOpenDialog() {
+      return !!document.querySelector('dialog[open]');
+    }
+
+    function isTouchDeviceShortcutsDisabled() {
+      return navigator.maxTouchPoints > 0 && window.matchMedia('(pointer: coarse)').matches;
+    }
+
+    function flashKeyboardFeedback(message = 'No mapped player for that key') {
+      const playerList = document.getElementById('playerList');
+      if (playerList) {
+        playerList.classList.remove('keyboard-feedback');
+        void playerList.offsetWidth;
+        playerList.classList.add('keyboard-feedback');
+      }
+
+      playKeyboardAlertTone();
+      showToast(message, 'warning');
+    }
+
+    function playKeyboardAlertTone() {
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return;
+
+        if (!keyboardAlertAudioCtx) {
+          keyboardAlertAudioCtx = new AudioContextClass();
+        }
+
+        const osc = keyboardAlertAudioCtx.createOscillator();
+        const gain = keyboardAlertAudioCtx.createGain();
+        osc.type = 'square';
+        osc.frequency.value = 220;
+        gain.gain.value = 0.02;
+
+        osc.connect(gain);
+        gain.connect(keyboardAlertAudioCtx.destination);
+
+        const now = keyboardAlertAudioCtx.currentTime;
+        gain.gain.setValueAtTime(0.02, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.09);
+
+        osc.start(now);
+        osc.stop(now + 0.1);
+      } catch (err) {
+        // Silent fallback if browser blocks audio context.
+      }
+    }
+
+    function getKeyboardEventDefinition(event) {
+      const key = event.key.toLowerCase();
+
+      if (key === 'q') return { kind: 'shot', points: 2, result: 'made', subtype: null, requiresShotPosition: true };
+      if (key === 'e') return { kind: 'shot', points: 3, result: 'made', subtype: null, requiresShotPosition: true };
+      if (key === 'w') return { kind: 'shot', points: 2, result: 'missed', subtype: null, requiresShotPosition: true };
+      if (key === 'r') return { kind: 'shot', points: 3, result: 'missed', subtype: null, requiresShotPosition: true };
+      if (key === 'a') return { kind: 'rebound', points: 0, result: null, subtype: event.shiftKey ? 'offensive' : 'defensive' };
+      if (key === 's') return { kind: 'foul', points: 0, result: null, subtype: 'personal' };
+      if (key === 'd') return { kind: 'turnover', points: 0, result: null, subtype: 'liveBall' };
+      if (key === 'f') return { kind: 'ft', points: 0, result: event.shiftKey ? 'missed' : 'made', subtype: null };
+      if (key === 'b') return { kind: 'block', points: 0, result: null, subtype: null };
+
+      return null;
+    }
+
+    function handleKeyboardShortcuts(event) {
+      if (event.defaultPrevented) return;
+      if (isTouchDeviceShortcutsDisabled()) return;
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
+      if (isTextInputTarget(event.target)) return;
+      if (state.currentView !== 'live') return;
+
+      const key = event.key.toLowerCase();
+      const isLegendKey = key === '?' || (key === '/' && event.shiftKey);
+
+      if (isLegendKey) {
+        event.preventDefault();
+        const legendDialog = document.getElementById('shortcutLegendDialog');
+        if (!legendDialog.open) {
+          legendDialog.showModal();
+        }
+        return;
+      }
+
+      if (hasOpenDialog()) return;
+
+      if (key === 'z') {
+        event.preventDefault();
+        undoLastEvent();
+        return;
+      }
+
+      if (/^[1-9]$/.test(key)) {
+        event.preventDefault();
+
+        if (!state.selectedEvent) {
+          flashKeyboardFeedback('Select an event first, then choose player 1-9');
+          return;
+        }
+
+        const now = Date.now();
+        if (now - state.keyboardLastPlayerKeyAt < PLAYER_KEY_DEBOUNCE_MS) {
+          return;
+        }
+        state.keyboardLastPlayerKeyAt = now;
+
+        const index = parseInt(key, 10) - 1;
+        const sortedPlayers = getSortedPlayersForSelection();
+        const selectedPlayer = sortedPlayers[index];
+
+        if (!selectedPlayer) {
+          flashKeyboardFeedback(`No player mapped to ${key}`);
+          return;
+        }
+
+        window.selectPlayer(selectedPlayer.id);
+        return;
+      }
+
+      const eventDefinition = getKeyboardEventDefinition(event);
+      if (!eventDefinition) return;
+
+      if (eventDefinition.kind === 'shot' && !state.selectedPosition) {
+        event.preventDefault();
+        flashKeyboardFeedback('Click shot position on court first, then use Q/W/E/R');
+        return;
+      }
+
+      event.preventDefault();
+      selectEventFromDataset(eventDefinition, { silentToast: true });
     }
 
     // ── Default Team Roster ──────────────────────────────────────────────────
