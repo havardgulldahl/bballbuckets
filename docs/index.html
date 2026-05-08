@@ -4715,6 +4715,57 @@
         return;
       }
 
+      const win = window.open('', '_blank');
+      if (!win) {
+        showToast('Pop-up blocked. Please allow pop-ups for this site.', 'error');
+        return;
+      }
+
+      win.document.write(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Preparing Report…</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 2rem;
+      font-family: system-ui, sans-serif;
+      background: #fff;
+      color: #111;
+    }
+
+    .status {
+      max-width: 28rem;
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    .status h1 {
+      margin: 0 0 0.75rem;
+      font-size: 1.35rem;
+    }
+
+    .status p {
+      margin: 0;
+      color: #555;
+      font-size: 0.95rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="status">
+    <h1>Preparing printable report…</h1>
+    <p>This tab was opened immediately so printing works on iPhone and iPad Safari.</p>
+  </div>
+</body>
+</html>`);
+      win.document.close();
+
       try {
         const [game, events, players] = await Promise.all([
           window.historyDB.getFinishedGame(gameId),
@@ -4861,6 +4912,10 @@
       body { padding: 1rem; }
       .no-print { display: none !important; }
       a { text-decoration: none; }
+      .player-section + .player-section {
+        break-before: page;
+        page-break-before: always;
+      }
     }
   </style>
 </head>
@@ -4936,15 +4991,63 @@
 </body>
 </html>`;
 
-        const win = window.open('', '_blank');
-        if (!win) {
-          showToast('Pop-up blocked. Please allow pop-ups for this site.', 'error');
+        if (win.closed) {
+          showToast('Print tab was closed before the report finished loading.', 'error');
           return;
         }
+
+        win.document.open();
         win.document.write(html);
         win.document.close();
       } catch (error) {
         console.error('Error generating print report:', error);
+        if (!win.closed) {
+          win.document.open();
+          win.document.write(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Report Error</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 2rem;
+      font-family: system-ui, sans-serif;
+      background: #fff;
+      color: #111;
+    }
+
+    .status {
+      max-width: 28rem;
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    .status h1 {
+      margin: 0 0 0.75rem;
+      font-size: 1.35rem;
+    }
+
+    .status p {
+      margin: 0;
+      color: #555;
+      font-size: 0.95rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="status">
+    <h1>Unable to prepare report</h1>
+    <p>Please close this tab and try again.</p>
+  </div>
+</body>
+</html>`);
+          win.document.close();
+        }
         showToast('Error generating print report', 'error');
       }
     }
