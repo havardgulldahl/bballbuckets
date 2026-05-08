@@ -1,156 +1,423 @@
 # bballbuckets
-Live logger for Basketball analysis
 
-Runs live on https://havardgulldahl.github.io/bballbuckets/
+Offline-first basketball stat tracking for live games, optimized for phones and tablets.
 
-## The plan
+Current app version: 1.3.3
 
-Here’s a practical blueprint for a modern, mobile-first HTML5 app to capture and analyze live basketball stats for ages 15–18, with feature recommendations grounded in how top apps work and what the literature in youth sport science and coaching suggests.
+Live app: https://havardgulldahl.github.io/bballbuckets/
 
-Key goals for this age group
+## What the app does today
 
-    Low cognitive load during live play: fast, error-tolerant inputs.
-    Development-focused: analytics that support learning, not just winning.
-    Data integrity and privacy: youth data must be handled carefully.
-    Offline-first: gyms often have poor Wi‑Fi.
+The app is a single-page PWA for recording one team during a game and reviewing the result afterward. It stores live data locally in IndexedDB, works without a backend for normal stat tracking, and keeps a separate history database for completed or imported games.
 
-Core live-game features
+Implemented functionality:
 
-    Roster and roles
-        Quick roster creation with jersey, position, height, dominant hand, and graduation year.
-        Bench/active toggles, foul trouble flags, and minutes tracking.
-    Possession-driven event logging
-        One-tap events: FGA (2/3, made/missed), FTA, assists, turnovers (type), steals, blocks, rebounds (O/D), fouls (type), deflections, charges, plus/minus.
-        Context tags: play type (transition/half-court), shot location (zones or half-court chart), defense type faced (man/zone/press), lineup ID.
-        Undo/Correct flow with a big “Undo” and “Edit last N events” panel.
-    Shot chart
-        Tap-to-place shots with auto zone coding; heatmap layers; filter by player, quarter, shot type, shot quality.
-    Lineup and rotation tracker
-        On/off substitutions with pre-set lineups and quick “swap” controls.
-        Auto plus/minus, net rating (per 100 poss), and time on court.
-    Possession and pace
-        Running estimate of possessions, pace, and time-of-possession.
-        Team efficiency (OffRtg, DefRtg, eFG%, TS%).
-    Foul and clock helpers
-        Team foul counters, bonus/double-bonus alerts, player foul alerts.
-        Quarter/half configuration (FIBA/NFHS), timeouts tracking.
-    Offline-first and sync
-        Local storage/IndexedDB for events.
-        Conflict-free merge on reconnect; export to JSON/CSV.
-    Live outputs
-        Real-time scoreboard view, player box score, lineup impact.
-        QR code “fan view” read-only scoreboard for parents.
+- Manual game setup with opponent, date, location, rule set, and roster entry.
+- Quick Start roster creation for fast testing and scrimmage use.
+- NIF import flow for official season, tournament, team, match, and roster lookup through the proxy-backed federation integration.
+- Live event logging for shots, free throws, rebounds, assists, steals, blocks, turnovers, fouls, substitutions, and opponent scoring.
+- Court-based shot selection with stored shot coordinates.
+- On-court tracking with player chips sorted to keep active players first.
+- Undo of the most recent event.
+- Period progression and game finishing flow.
+- Real-time score header and box score calculations.
+- Hollinger Game Score and estimated GameScore36 values.
+- Validation warnings and errors for duplicate jerseys, invalid lineup size, benched-player logging, and suspicious 3-point locations.
+- History view for finished and imported games.
+- History detail view with stat tables, notes, shot chart, and printable report output.
+- Export of live and historical games as JSON, CSV, and TXT.
+- Web Share support for JSON files or compact share links when supported by the browser.
+- JSON import from file and from shared URL hash links.
+- Theme support and mobile-specific two-step event logging flow.
+- Service worker caching for installability and offline shell behavior.
 
-Advanced coaching features (development-focused)
+## Repository layout
 
-    Shot quality and decision grading
-        Quick “Shot Quality” tag (Great/Good/Contested/Bad) or 1–5 scale.
-        Expected points (xP) by zone and shot type tailored to age group.
-    Turnover taxonomy
-        Live tag by cause: passing, ball-handling, offensive foul, violation (travel, 3-sec, 5-sec), forced vs unforced.
-    Defensive events
-        Contests, deflections, help rotations, box-outs (binary), closeouts graded (late/controlled).
-    Play tagging and playlists
-        Tag possessions: ATO, set name, BLOB/SLOB, press breaks, special situations.
-        Auto-generate video clip lists using timestamps to sync with film later.
-    Player development dashboards
-        28-day rolling trends for each player: shot zones, turnover types, foul types, rim attempts, FT rate.
-        Age-appropriate targets (e.g., 3+ rim attempts per half, TO rate <18%, PF <4 per 32 min).
-    Workload and readiness
-        Minutes and high-intensity flag (pressing, back-to-back) to support safe workloads.
-    Objective plus subjective
-        Coach quick ratings postgame: effort, communication, shot discipline.
-        Player self-reflection micro-surveys.
+```text
+.
+|- docs/
+|  |- index.html              Main app UI, styles, and most application logic
+|  |- app.js                  Service worker registration and update prompt
+|  |- db.js                   IndexedDB helper for the live game database
+|  |- history-db.js           IndexedDB helper for finished game history
+|  |- nif.js                  NIF federation API client used by the setup flow
+|  |- sw.js                   Service worker and cache strategy
+|  |- manifest.webmanifest    PWA manifest
+|  `- VALIDATION.md           Notes about in-app validation behavior
+|- src/
+|  `- index.ts                Worker/proxy source used for NIF integration
+|- tests/                     Playwright tests and example JSON fixtures
+|- wrangler.jsonc             Worker configuration
+`- package.json               Test scripts and repo version
+```
 
-Age-specific considerations from literature and best practice
+## Running locally
 
-    Simplicity of inputs improves reliability: Research on notational analysis in youth sport highlights error spikes with complex taxonomies under time pressure. Keep live tagging minimal; add detail in review.
-    Development over outcome: Youth coaching literature encourages measurable process goals (shot selection, defensive positioning) rather than only outcome stats. Provide “decision quality” and “effort” metrics and de-emphasize raw points.
-    Physical maturation variance: Wide variability in 15–18. Normalize metrics per possession and per minute; compare players to themselves via rolling windows rather than only team averages.
-    Injury risk and foul discipline: High foul rates and fatigue correlate with injury and turnover spikes. Include foul type and minutes load alerts.
-    Privacy and guardianship: Comply with local laws (e.g., COPPA isn’t typically applicable to 15–18, but FERPA may be for school teams). Implement parental/guardian consent options and restrict public sharing.
+The app itself has no frontend build step. Serve the docs directory as static files.
 
-Benchmarks: how this compares to existing apps
+```bash
+cd docs
+python3 -m http.server 8080
+```
 
-    Hudl Assist / Hudl Focus
-        Strengths: Automated team stats from video, robust film tools.
-        Gap your app can fill: Real-time, offline, simple in-game tagging with youth-appropriate KPIs; quick fan scoreboard without accounts; custom player development dashboards.
-    HomeCourt / Noah / ShotTracker
-        Strengths: Sensor/AI shot tracking, biomechanics, arc/entry analytics.
-        Gap: Many are practice-focused or hardware-dependent. Your app: inexpensive, game-context tagging (defense, lineup, decision quality) with no hardware.
-    FIBA LiveStats / Genius Sports
-        Strengths: Pro-level spec and live publishing.
-        Gap: Steep learning curve and heavy schema; not tailored to youth decisions or teaching. Your app: simplified UX with educational insights.
-    GameChanger Basketball
-        Strengths: Parent-friendly scoring, live game streams, community features.
-        Gap: Limited advanced analytics and coaching-grade tagging; less nuance around shot quality, defensive scheme context, and lineup impact for development.
+Then open http://localhost:8080.
 
-Recommended metrics set
+For Playwright tests:
 
-    Traditional: PTS, FGM/FGA (2/3), 3PM, FTM/FTA, REB (O/D), AST, STL, BLK, TOV, PF, +/-.
-    Efficiency: eFG%, TS%, ORB%, DRB%, AST/TOV, Usage (est), ORtg/DRtg, Net.
-    Youth-focused: Shot quality grade, Rim rate (% attempts at rim), Paint touches, FT rate (FTA/FGA), Turnover type mix, Foul type mix, Contested defensive rebounds, Deflections, Help rotations.
-    Lineup: Net rating per lineup, pace per lineup, turnover pressure rate, opponent shot quality allowed.
+```bash
+npm install
+npm test
+```
 
-UX and interaction design
+Useful test commands:
 
-    One-handable tagging on phones; large buttons, color-coded outcomes.
-    Two-pane layout on tablets: court on left, event pad on right.
-    Context-aware pads: if you log a missed 3, the UI prompts for rebound team; if turnover, prompt for type.
-    Haptics for confirmations; “long-press for advanced”.
-    Big Undo and History drawer with swipe-to-correct.
-    Accessibility: high-contrast theme, dyslexic-friendly font option, screen reader labels.
+- `npm test`
+- `npm test -- tests/import-game-json.spec.js`
+- `npm test -- tests/game-validation.spec.js`
+- `npm test -- tests/roster-sorting.spec.js`
 
-Data model essentials
+## Live game workflow
 
-    Entities: Game, Team, Player, Lineup (array of playerIds), Possession, Event.
-    Event schema example:
-        id, timestamp, period, gameClock, teamId, playerId, lineupId, type, subtype, coordinates, tags, value, videoTimestamp.
-    Storage: IndexedDB for offline queue; background sync to a backend (if any). Versioning for schema evolution.
+### 1. Start a game
 
-Analytics and reporting
+You can begin from one of three setup paths:
 
-    Live panels: Score, pace, eFG%, TO%, ORB%, FT rate; top lineups; foul trouble.
-    Postgame:
-        Player report cards with process metrics and video timestamps.
-        Shot charts with zone eFG% vs team baseline and expected points.
-        Turnover map by cause and pressure.
-        Situational: ATO efficiency, BLOB/SLOB, press break success, end-of-quarter possessions.
-    Season:
-        Rolling 5-game trends, age-adjusted targets, workload charts.
-        Export CSV and JSON; printable PDF summaries.
+- Manual setup: enter opponent and date, then build the roster by hand.
+- Quick Start: add a sample five-player roster for testing.
+- NIF import: fetch seasons, tournaments, teams, matches, and roster data from the Norwegian Basketball Federation integration.
 
-Technical stack guidance for an HTML5 app
+Imported NIF games also store NIF-specific metadata such as match and tournament IDs inside the current game object.
 
-    Frontend: PWA with responsive layout (mobile-first), Service Worker for offline caching, IndexedDB for events, Web Share API for exporting.
-    Performance: Virtualized lists for history, debounced writes, requestIdleCallback for sync.
-    Visualization: Canvas or SVG for court/shot charts; WebGL optional for heatmaps.
-    Testing: Simulated game runner to stress-test event rates.
-    Accessibility and i18n: ARIA roles, RTL support, number/date locales.
+### 2. Track live events
 
-Data privacy and safeguards
+During a live game the app lets you:
 
-    Roles and permissions: Coach (edit), Assistant (live tag), Spectator (read-only), Player (view personal).
-    Consent management: Parental/guardian consent recording if applicable; school compliance.
-    Anonymization: Option to hide names in public links; share stats as numbers only.
-    Backups: Encrypted at rest; export keys for coaches.
+- Log made or missed 2-point and 3-point shots.
+- Log made or missed free throws.
+- Log rebounds with offensive or defensive subtype.
+- Log assists, steals, blocks, turnovers, and fouls.
+- Toggle players in and out of the on-court lineup, which creates substitution events.
+- Record opponent scoring separately.
+- Tap the court before a shot to attach shot coordinates.
+- Undo the last logged event.
 
-MVP vs. nice-to-have
+On smaller screens the app switches to a two-step flow: choose an event first, then choose the player.
 
-    MVP
-        Offline event logging with Undo/Correction.
-        Shot chart with zones; player/team box score; simple lineup tracking.
-        Foul/bonus alerts; CSV/JSON export; PWA installable.
-    Next
-        Fan view; expected points models; defensive tagging; video timestamp sync; season dashboards.
-    Later
-        Computer vision assist (optional), roster import via spreadsheet, API for Hudl/MaxPreps, injury/workload integration.
+### 3. Review and finish
 
-Validation plan
+The live game view continuously recalculates:
 
-    Shadow tag 3–5 scrimmages to tune the event pad.
-    Measure tag latency (target <2s per event) and correction rate.
-    Coach interviews for which metrics change practice plans.
-    A/B test two layouts: “court-first” vs “pad-first.”
+- Team shooting splits.
+- Player counting stats.
+- Hollinger Game Score.
+- Estimated GameScore36 based on tracked substitution timeline.
+- Scoreboard totals.
+
+When the game is finished, it can be saved to history and exported or shared.
+
+## Validation behavior
+
+The app surfaces non-blocking validation messages in the UI while you work.
+
+Current validations:
+
+- Duplicate jersey numbers on the tracked roster.
+- More than five players on court.
+- Fewer than five players on court once active play has started.
+- Logging a home-team event to a player currently marked as benched.
+- Logging a 3-point shot from a location that appears to be inside the arc.
+
+These are warnings and errors only. They do not block data entry.
+
+## History, sharing, and export
+
+Finished and imported games are stored separately from the live game database. From history, the app supports:
+
+- Viewing completed games.
+- Reviewing team and player stats.
+- Rendering a historical shot chart.
+- Saving a free-text game note/description.
+- Exporting as JSON.
+- Sharing as a file or share link.
+- Printing a report for paper or PDF output.
+- Deleting a saved historical game.
+
+The live game export dialog supports:
+
+- JSON export.
+- CSV export.
+- TXT export.
+- Web Share of the current game.
+- Copying a compact share URL when the payload fits the configured size limit.
+
+## Storage model
+
+### Live game IndexedDB
+
+The live app database stores:
+
+- `players`
+- `games`
+- `events`
+- `meta`
+
+The current game, current period, and game-finished state are persisted in `meta`.
+
+### History IndexedDB
+
+The history database stores:
+
+- `finishedGames`
+- `finishedEvents`
+- `finishedPlayers`
+
+This separation allows the app to keep a current in-progress game while maintaining an archive of completed or imported games.
+
+## JSON file format
+
+Current export schema version: `3`
+
+JSON export is the canonical interchange format for a game. Both live-game export and history export use the same top-level shape.
+
+### Top-level fields
+
+Required for import:
+
+- `game` object
+- `game.opponent` non-empty string
+- `game.date` non-empty string
+- `events` array
+
+Written by current exports:
+
+- `schemaVersion`: number
+- `exportedAt`: ISO-8601 timestamp
+- `exportedBy`: object with `userAgent`, `platform`, and `app`
+- `description`: string
+- `game`: object
+- `finalScore`: object
+- `periods`: number
+- `stats`: object
+- `events`: array
+
+Backward-compatible import behavior:
+
+- `players` at the top level is still accepted on import.
+- `schemaVersion` is optional on import but must be numeric if present.
+- Older coordinate objects without `space: "normalized"` are accepted and migrated.
+
+### Canonical structure
+
+```json
+{
+  "schemaVersion": 3,
+  "exportedAt": "2026-05-08T12:34:56.000Z",
+  "exportedBy": {
+    "userAgent": "...",
+    "platform": "Linux x86_64",
+    "app": "bballbuckets"
+  },
+  "description": "Optional notes for the game",
+  "game": {
+    "opponent": "TSU17",
+    "date": "2026-04-12",
+    "location": "Tromsohallen",
+    "ruleSet": "FIBA"
+  },
+  "finalScore": {
+    "home": 61,
+    "opponent": 55
+  },
+  "periods": 4,
+  "stats": {
+    "team": {
+      "fgm": 25,
+      "fga": 53,
+      "fgPct": "47.2",
+      "threepm": 4,
+      "threepa": 9,
+      "threePct": "44.4",
+      "ftm": 7,
+      "fta": 10,
+      "ftPct": "70.0",
+      "rebounds": 5,
+      "oreb": 0,
+      "dreb": 5,
+      "assists": 6,
+      "steals": 0,
+      "blocks": 0,
+      "turnovers": 0,
+      "fouls": 0
+    },
+    "players": [
+      {
+        "id": "player-1",
+        "name": "Alex A",
+        "jersey": "12",
+        "points": 6,
+        "fgm": 3,
+        "fga": 7,
+        "threepm": 0,
+        "threepa": 2,
+        "ftm": 0,
+        "fta": 0,
+        "rebounds": 0,
+        "oreb": 0,
+        "dreb": 0,
+        "assists": 2,
+        "steals": 0,
+        "blocks": 0,
+        "turnovers": 0,
+        "fouls": 0,
+        "gameScore": 2.4,
+        "estimatedMinutes": 18,
+        "onCourtShare": 0.5,
+        "gameScore36Estimated": 4.8
+      }
+    ],
+    "meta": {
+      "estimatedGameMinutes": 40,
+      "trackedDurationMs": 1800000,
+      "validLineupRatio": 0.92,
+      "openingLineupCount": 5,
+      "lineupConfidence": "medium",
+      "lineupConfidenceReasons": [
+        "only 92% of tracked time had exactly 5 players on court"
+      ],
+      "hasSubstitutionTimeline": true
+    }
+  },
+  "events": [
+    {
+      "id": "event-1",
+      "timestamp": 1775980943614,
+      "period": 1,
+      "playerId": "player-1",
+      "playerName": "Alex A",
+      "playerJersey": "12",
+      "kind": "shot",
+      "points": 2,
+      "result": "made",
+      "subtype": null,
+      "coordinates": {
+        "x": 0.487,
+        "y": 0.873,
+        "space": "normalized"
+      },
+      "team": "home"
+    }
+  ]
+}
+```
+
+### `game`
+
+The `game` object currently uses these fields:
+
+- `opponent`: required string.
+- `date`: required string, typically `YYYY-MM-DD`.
+- `location`: optional string.
+- `ruleSet`: optional string, defaults to `FIBA` during import when missing.
+
+Additional metadata may also appear for NIF-imported live games, for example:
+
+- `nifMatchId`
+- `nifTournamentId`
+- `isHomeTeam`
+
+Import ignores extra fields it does not need.
+
+### `finalScore`
+
+- `home`: numeric home-team score.
+- `opponent`: numeric opponent score.
+
+If `finalScore` is missing during import, both values fall back to `0`.
+
+### `stats`
+
+`stats` is included in exports for convenience, but import can recompute compatible stats from players and events when needed.
+
+`stats.players` is the preferred roster source during import. If it is not available, the importer falls back to a top-level `players` array.
+
+Player stat objects may contain computed fields such as:
+
+- `gameScore`
+- `estimatedMinutes`
+- `onCourtShare`
+- `gameScore36Estimated`
+
+These derived values are safe to include. If older files omit them, the app normalizes the stats.
+
+### `events`
+
+Each event should be an object. Current event kinds written by the app include:
+
+- `shot`
+- `ft`
+- `rebound`
+- `assist`
+- `steal`
+- `block`
+- `turnover`
+- `foul`
+- `substitution`
+
+Common event fields:
+
+- `id`: string.
+- `timestamp`: epoch milliseconds.
+- `period`: game period number.
+- `playerId`: string or `null` for opponent events.
+- `playerName`: string.
+- `playerJersey`: string.
+- `kind`: event type.
+- `points`: numeric value, mainly for shots.
+- `result`: `made`, `missed`, or `null` depending on event kind.
+- `subtype`: optional event subtype such as `offensive`, `defensive`, `in`, or `out`.
+- `coordinates`: optional object.
+- `team`: `home` or `opponent`.
+
+History export removes `gameId` from events. Imported events are stored internally with a new history game ID.
+
+### Coordinates
+
+Schema version 3 exports always write coordinates in canonical normalized form:
+
+```json
+{
+  "x": 0.487,
+  "y": 0.873,
+  "space": "normalized"
+}
+```
+
+Rules:
+
+- `x` and `y` are clamped to the range `0..1`.
+- Values are rounded to three decimals.
+- `space` is always `normalized` on export.
+
+Import is backward compatible with older files that stored raw SVG coordinates such as:
+
+```json
+{
+  "x": 243.67,
+  "y": 451.46
+}
+```
+
+Older coordinate payloads are converted to normalized coordinates when the file is imported or when legacy live data is hydrated.
+
+## Offline and update behavior
+
+The app shell is cached by the service worker and the app prompts the user when a new version is available. When testing service-worker changes, use a hard refresh or unregister the existing service worker if you appear to be running stale assets.
+
+## Notes for contributors
+
+- The shipped app has no bundler for the frontend. Edit the files in `docs/` directly.
+- The NIF integration depends on the worker/proxy configuration in `src/` and `wrangler.jsonc`.
+- Playwright covers viewport behavior, validation, roster ordering, and JSON import paths.
+- If you change the JSON export structure, bump `JSON_SCHEMA_VERSION` in the app and update this README.
 
 
