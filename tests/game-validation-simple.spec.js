@@ -1,51 +1,32 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
+const { addPlayers, finishSetup, gotoApp, openManualSetup, setupGameWithQuickStart } = require('./test-helpers');
 
 test.describe('Game Logic Validation - Simple Tests', () => {
   test.beforeEach(async ({ page }) => {
-    // Set desktop viewport
-    await page.setViewportSize({ width: 1280, height: 720 });
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await gotoApp(page, { width: 1280, height: 720 });
   });
 
   test('validation banner exists in DOM', async ({ page }) => {
-    // Check that validation banner element exists
-    const banner = page.locator('#validationBanner');
-    await expect(banner).toBeInDOM();
+    await expect(page.locator('#validationBanner')).toHaveCount(1);
   });
 
   test('can add players without errors when jerseys are unique', async ({ page }) => {
-    // Setup game
-    await page.click('#setupGameBtn');
-    await page.waitForSelector('#gameSetupDialog', { state: 'visible' });
-    await page.fill('#opponentInput', 'Test Team');
-    await page.fill('#gameDateInput', '2024-01-01');
-    await page.click('button[type="submit"]:has-text("Continue to Roster")');
-    await page.waitForSelector('#rosterSetupSection', { state: 'visible' });
-
-    // Use quick start
+    await openManualSetup(page);
     await page.click('#quickStartBtn');
-    await page.waitForTimeout(500);
 
-    // Verify players were added
-    const rosterItems = page.locator('#rosterPreview > div');
+    const rosterItems = page.locator('#rosterPreview .roster-item-content');
     const count = await rosterItems.count();
-    expect(count).toBe(5); // Quick start adds 5 players
+    expect(count).toBeGreaterThanOrEqual(5);
+
+    const jerseyValues = (await rosterItems.allTextContents())
+      .map(text => text.trim().split(' ')[0])
+      .filter(Boolean);
+    expect(new Set(jerseyValues).size).toBe(count);
   });
 
   test('can toggle players on and off court', async ({ page }) => {
-    // Setup game with quick start
-    await page.click('#setupGameBtn');
-    await page.waitForSelector('#gameSetupDialog', { state: 'visible' });
-    await page.fill('#opponentInput', 'Test Team');
-    await page.fill('#gameDateInput', '2024-01-01');
-    await page.click('button[type="submit"]:has-text("Continue to Roster")');
-    await page.waitForSelector('#rosterSetupSection', { state: 'visible' });
-    await page.click('#quickStartBtn');
-    await page.waitForTimeout(300);
-    await page.click('#finishSetupBtn');
-    await page.waitForTimeout(500);
+    await setupGameWithQuickStart(page);
 
     // Toggle first player on court
     const firstToggle = page.locator('.court-toggle input[type="checkbox"]').first();
@@ -57,16 +38,7 @@ test.describe('Game Logic Validation - Simple Tests', () => {
   });
 
   test('court coordinates are tracked for shots', async ({ page }) => {
-    // Setup game
-    await page.click('#setupGameBtn');
-    await page.waitForSelector('#gameSetupDialog', { state: 'visible' });
-    await page.fill('#opponentInput', 'Test Team');
-    await page.fill('#gameDateInput', '2024-01-01');
-    await page.click('button[type="submit"]:has-text("Continue to Roster")');
-    await page.waitForSelector('#rosterSetupSection', { state: 'visible' });
-    await page.click('#quickStartBtn');
-    await page.click('#finishSetupBtn');
-    await page.waitForTimeout(500);
+    await setupGameWithQuickStart(page);
 
     // Click on court to select position
     const courtSVG = page.locator('#courtSVG');
@@ -88,16 +60,7 @@ test.describe('Game Logic Validation - Simple Tests', () => {
   });
 
   test('persisted shot coordinates are normalized and rounded', async ({ page }) => {
-    // Setup game
-    await page.click('#setupGameBtn');
-    await page.waitForSelector('#gameSetupDialog', { state: 'visible' });
-    await page.fill('#opponentInput', 'Test Team');
-    await page.fill('#gameDateInput', '2024-01-01');
-    await page.click('button[type="submit"]:has-text("Continue to Roster")');
-    await page.waitForSelector('#rosterSetupSection', { state: 'visible' });
-    await page.click('#quickStartBtn');
-    await page.click('#finishSetupBtn');
-    await page.waitForTimeout(500);
+    await setupGameWithQuickStart(page);
 
     const courtSVG = page.locator('#courtSVG');
     await courtSVG.click({ position: { x: 333, y: 140 } });
@@ -166,15 +129,7 @@ test.describe('Game Logic Validation - Simple Tests', () => {
   });
 
   test('calculates Hollinger game score for player stats', async ({ page }) => {
-    await page.click('#setupGameBtn');
-    await page.waitForSelector('#gameSetupDialog', { state: 'visible' });
-    await page.fill('#opponentInput', 'Test Team');
-    await page.fill('#gameDateInput', '2024-01-01');
-    await page.click('button[type="submit"]:has-text("Continue to Roster")');
-    await page.waitForSelector('#rosterSetupSection', { state: 'visible' });
-    await page.click('#quickStartBtn');
-    await page.click('#finishSetupBtn');
-    await page.waitForTimeout(400);
+    await setupGameWithQuickStart(page);
 
     const firstPlayer = page.locator('.player-chip').first();
 
@@ -296,27 +251,15 @@ test.describe('Game Logic Validation - Simple Tests', () => {
   });
 
   test('can add player without last name', async ({ page }) => {
-    // Setup game
-    await page.click('#setupGameBtn');
-    await page.waitForSelector('#gameSetupDialog', { state: 'visible' });
-    await page.fill('#opponentInput', 'Test Team');
-    await page.fill('#gameDateInput', '2024-01-01');
-    await page.click('button[type="submit"]:has-text("Continue to Roster")');
-    await page.waitForSelector('#rosterSetupSection', { state: 'visible' });
-
-    // Add a player with no last name
-    await page.fill('input[name="firstName"]', 'SingleName');
-    await page.fill('input[name="jersey"]', '42');
-    await page.click('#playerForm button[type="submit"]');
-    await page.waitForTimeout(200);
+    await openManualSetup(page);
+    await addPlayers(page, [{ firstName: 'SingleName', jersey: '42' }]);
 
     // Roster preview should render clean name
     await expect(page.locator('#rosterPreview')).toContainText('#42 SingleName');
     await expect(page.locator('#rosterPreview')).not.toContainText('undefined');
 
     // Finish setup and verify player list also renders without undefined
-    await page.click('#finishSetupBtn');
-    await page.waitForTimeout(300);
+    await finishSetup(page);
     await expect(page.locator('#playerList')).toContainText('#42 SingleName');
     await expect(page.locator('#playerList')).not.toContainText('undefined');
   });

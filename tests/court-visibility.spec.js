@@ -1,14 +1,10 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
+const { addPlayers, finishSetup, gotoApp, openManualSetup } = require('./test-helpers');
 
 test.describe('Court visibility on different viewports', () => {
   test('court section should be hidden on mobile viewport', async ({ page }) => {
-    // Set mobile viewport
-    await page.setViewportSize({ width: 375, height: 667 });
-    await page.goto('/');
-
-    // Wait for the page to load
-    await page.waitForLoadState('networkidle');
+    await gotoApp(page, { width: 375, height: 667 });
 
     // Check that court section is not visible
     const courtSection = page.locator('#courtSection');
@@ -22,12 +18,7 @@ test.describe('Court visibility on different viewports', () => {
   });
 
   test('court section should be visible on tablet viewport', async ({ page }) => {
-    // Set tablet viewport
-    await page.setViewportSize({ width: 768, height: 1024 });
-    await page.goto('/');
-
-    // Wait for the page to load
-    await page.waitForLoadState('networkidle');
+    await gotoApp(page, { width: 768, height: 1024 });
 
     // Check that court section is visible
     const courtSection = page.locator('#courtSection');
@@ -41,12 +32,7 @@ test.describe('Court visibility on different viewports', () => {
   });
 
   test('court section should be visible on desktop viewport', async ({ page }) => {
-    // Set desktop viewport
-    await page.setViewportSize({ width: 1280, height: 720 });
-    await page.goto('/');
-
-    // Wait for the page to load
-    await page.waitForLoadState('networkidle');
+    await gotoApp(page, { width: 1280, height: 720 });
 
     // Check that court section is visible
     const courtSection = page.locator('#courtSection');
@@ -60,12 +46,7 @@ test.describe('Court visibility on different viewports', () => {
   });
 
   test('layout adjusts correctly on mobile', async ({ page }) => {
-    // Set mobile viewport
-    await page.setViewportSize({ width: 375, height: 667 });
-    await page.goto('/');
-
-    // Wait for the page to load
-    await page.waitForLoadState('networkidle');
+    await gotoApp(page, { width: 375, height: 667 });
 
     // Check that main grid is using single column layout on mobile
     const main = page.locator('main');
@@ -80,36 +61,10 @@ test.describe('Court visibility on different viewports', () => {
   });
 
   test('two-stage mobile flow: roster appears after event selection', async ({ page }) => {
-    // Set mobile viewport
-    await page.setViewportSize({ width: 375, height: 667 });
-    await page.goto('/');
-
-    // Wait for the page to load
-    await page.waitForLoadState('networkidle');
-
-    // Setup a game first
-    const setupBtn = page.locator('#setupGameBtn');
-    await setupBtn.click();
-
-    // Choose manual setup
-    const manualSetupBtn = page.locator('#manualSetupBtn');
-    await manualSetupBtn.click();
-
-    // Fill in game details
-    await page.locator('#opponentInput').fill('Test Opponent');
-    await page.locator('#gameSetupForm button[type="submit"]').click();
-
-    // Add a player
-    await page.locator('input[name="firstName"]').fill('John');
-    await page.locator('input[name="lastName"]').fill('Doe');
-    await page.locator('input[name="jersey"]').fill('23');
-    await page.locator('#playerForm button[type="submit"]').click();
-
-    // Finish setup
-    await page.locator('#finishSetupBtn').click();
-
-    // Wait for modal to close
-    await page.waitForTimeout(500);
+    await gotoApp(page, { width: 375, height: 667 });
+    await openManualSetup(page, { opponent: 'Test Opponent' });
+    await addPlayers(page, [{ firstName: 'John', lastName: 'Doe', jersey: '23' }]);
+    await finishSetup(page);
 
     // Initial state: event section visible, roster not visible
     const eventSection = page.locator('#eventSection');
