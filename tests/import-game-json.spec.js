@@ -2,18 +2,12 @@
 const { test, expect } = require('@playwright/test');
 const path = require('path');
 const fs = require('fs');
+const { dismissSetupDialog, gotoApp } = require('./test-helpers');
 
 test.describe('Import Game JSON', () => {
   test.beforeEach(async ({ page }) => {
-    await page.setViewportSize({ width: 1280, height: 720 });
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
-    // Dismiss the game setup dialog that opens automatically when no game exists
-    const dialog = page.locator('#gameSetupDialog');
-    if (await dialog.isVisible()) {
-      await page.keyboard.press('Escape');
-      await page.waitForTimeout(200);
-    }
+    await gotoApp(page, { width: 1280, height: 720 });
+    await dismissSetupDialog(page);
   });
 
   test('import button and file input are present in history view', async ({ page }) => {
