@@ -1152,11 +1152,11 @@
         <div class="event-pad-secondary">
           <button type="button" data-kind="rebound" data-subtype="offensive">Off Reb</button>
           <button type="button" data-kind="rebound" data-subtype="defensive">Def Reb</button>
+          <button type="button" data-kind="steal">Steal</button>
           <button type="button" data-kind="turnover" data-subtype="liveBall">Turnover</button>
           <button type="button" data-kind="foul" data-subtype="personal">Foul</button>
           <button type="button" data-kind="assist">Assist</button>
           <button type="button" data-kind="block">Block</button>
-          <!-- button type="button" data-kind="steal">Steal</button -->
           <!-- button type="button" data-kind="deflection">Deflection</button -->
         </div>
         <div style="margin-top:1rem;">
@@ -1285,6 +1285,7 @@
       <div class="shortcut-legend-row"><span>Def Reb</span><kbd>A</kbd></div>
       <div class="shortcut-legend-row"><span>Off Reb</span><kbd>Shift+A</kbd></div>
       <div class="shortcut-legend-row"><span>Foul</span><kbd>S</kbd></div>
+      <div class="shortcut-legend-row"><span>Steal</span><kbd>Shift+D</kbd></div>
       <div class="shortcut-legend-row"><span>Turnover</span><kbd>D</kbd></div>
       <div class="shortcut-legend-row"><span>Made FT</span><kbd>F</kbd></div>
       <div class="shortcut-legend-row"><span>Miss FT</span><kbd>Shift+F</kbd></div>
@@ -1553,6 +1554,7 @@
     const COURT_VIEWBOX_HEIGHT = 517;
     const STORED_COORDINATE_DECIMALS = 3;
     const DRAWN_COORDINATE_DECIMALS = 1;
+    const MIN_ESTIMATED_MINUTES_FOR_RATE_STATS = 0.5;
     let dbInstance;
     let courtSVG;
     let keyboardAlertAudioCtx = null;
@@ -1570,6 +1572,16 @@
 
     function formatPlayerShortName(player) {
       return normalizeNamePart(player?.lastName) || normalizeNamePart(player?.firstName) || 'Unknown Player';
+    }
+
+    function getPlayerDisplayName(player) {
+      const explicitName = normalizeNamePart(player?.name);
+      return explicitName || formatPlayerName(player);
+    }
+
+    function getPlayerMatchId(player) {
+      const matchId = player?.originalId || player?.id;
+      return matchId === undefined || matchId === null ? '' : String(matchId);
     }
 
     function clamp(value, min, max) {
@@ -2204,7 +2216,10 @@
       if (key === 'r') return { kind: 'shot', points: 3, result: 'missed', subtype: null, requiresShotPosition: true };
       if (key === 'a') return { kind: 'rebound', points: 0, result: null, subtype: event.shiftKey ? 'offensive' : 'defensive' };
       if (key === 's') return { kind: 'foul', points: 0, result: null, subtype: 'personal' };
-      if (key === 'd') return { kind: 'turnover', points: 0, result: null, subtype: 'liveBall' };
+      if (key === 'd') {
+        if (event.shiftKey) return { kind: 'steal', points: 0, result: null, subtype: null };
+        return { kind: 'turnover', points: 0, result: null, subtype: 'liveBall' };
+      }
       if (key === 'f') return { kind: 'ft', points: 0, result: event.shiftKey ? 'missed' : 'made', subtype: null };
       if (key === 'b') return { kind: 'block', points: 0, result: null, subtype: null };
 
@@ -3872,7 +3887,7 @@
 
     function renderHistoryGameStats(game, events, players) {
       const statsContainer = document.getElementById('historyGameStats');
-      const stats = game.stats;
+      const stats = getCompatibleGameStats(game.stats, players, events, game, game.periods);
 
       let html = '';
 
@@ -3960,6 +3975,18 @@
         </div>
       `;
 
+      if (stats.meta?.lineupConfidence === 'low') {
+        const warningText = stats.meta.lineupConfidenceReasons.map(reason => escapeHtml(reason)).join('; ');
+        html += `
+          <div class="stat-card" style="grid-column: 1 / -1; border-left: 4px solid var(--warning);">
+            <h3>⚠️ Estimated Minutes Warning</h3>
+            <div style="font-size:0.9rem;line-height:1.45;">
+              GameScore36 (estimated) has low confidence for this game because ${warningText}.
+            </div>
+          </div>
+        `;
+      }
+
       // Shot Chart Card
       html += `
         <div class="stat-card" style="grid-column: 1 / -1;">
@@ -3982,6 +4009,8 @@
                   <th class="sortable" onclick="sortHistoryPlayerStats('points')" style="text-align:center;">#</th>
                   <th class="sortable" onclick="sortHistoryPlayerStats('points')" style="text-align:center;">PTS</th>
                   <th class="sortable" onclick="sortHistoryPlayerStats('plusMinus')" style="text-align:center;">+/-</th>
+                  <th class="sortable" onclick="sortHistoryPlayerStats('gameScore')" style="text-align:center;">GmSc</th>
+                  <th class="sortable" onclick="sortHistoryPlayerStats('gameScore36Estimated')" style="text-align:center;">GmSc36 Est</th>
                   <th class="sortable" onclick="sortHistoryPlayerStats('fgm')" style="text-align:center;">FGM/A</th>
                   <th class="sortable" onclick="sortHistoryPlayerStats('fgPct')" style="text-align:center;">FG%</th>
                   <th class="sortable" onclick="sortHistoryPlayerStats('threepm')" style="text-align:center;">3PM/A</th>
@@ -4024,6 +4053,8 @@
             <td style="text-align:center;">${player.jersey}</td>
             <td style="text-align:center;font-weight:bold;">${player.points}</td>
             <td style="text-align:center;font-weight:bold;color:${pmColor};">${pmSign}${player.plusMinus || 0}</td>
+            <td style="text-align:center;">${player.gameScore.toFixed(1)}</td>
+            <td style="text-align:center;">${formatEstimatedMetricValue(player.gameScore36Estimated)}</td>
             <td style="text-align:center;">${player.fgm}/${player.fga}</td>
             <td style="text-align:center;">${fgPct}</td>
             <td style="text-align:center;">${player.threepm}/${player.threepa}</td>
@@ -4359,7 +4390,7 @@
           window.historyDB.getFinishedGameEvents(gameId),
           window.historyDB.getFinishedGamePlayers(gameId)
         ]).then(([game, events, players]) => {
-          const stats = game.stats;
+          const stats = getCompatibleGameStats(game.stats, players, events, game, game.periods);
 
           // Recalculate plus/minus for sorting
           const playersWithPlusMinus = calculatePlusMinus(events, players);
@@ -4409,6 +4440,8 @@
                 <td style="text-align:center;">${player.jersey}</td>
                 <td style="text-align:center;font-weight:bold;">${player.points}</td>
                 <td style="text-align:center;font-weight:bold;color:${pmColor};">${pmSign}${player.plusMinus || 0}</td>
+                <td style="text-align:center;">${player.gameScore.toFixed(1)}</td>
+                <td style="text-align:center;">${formatEstimatedMetricValue(player.gameScore36Estimated)}</td>
                 <td style="text-align:center;">${player.fgm}/${player.fga}</td>
                 <td style="text-align:center;">${fgPct}</td>
                 <td style="text-align:center;">${player.threepm}/${player.threepa}</td>
@@ -4446,20 +4479,25 @@
       try {
         const game = await window.historyDB.getFinishedGame(state.selectedHistoryGame);
         const events = await window.historyDB.getFinishedGameEvents(state.selectedHistoryGame);
-        const players = (game.stats && Array.isArray(game.stats.players)) ? game.stats.players : [];
-        const team = (game.stats && game.stats.team) ? game.stats.team : {};
+        const historyPlayers = await window.historyDB.getFinishedGamePlayers(state.selectedHistoryGame);
+        const stats = getCompatibleGameStats(game.stats, historyPlayers, events, game, game.periods);
+        const players = Array.isArray(stats.players) ? stats.players : [];
+        const team = stats.team || {};
+        const reportWarning = stats.meta?.lineupConfidence === 'low'
+          ? `Warning: GameScore36 (estimated) has low confidence because ${stats.meta.lineupConfidenceReasons.join('; ')}.`
+          : '';
 
         let content = '';
         let filename = '';
         let mimeType = '';
 
         if (format === 'csv') {
-          content = 'Player,Jersey,Points,FGM,FGA,FG%,3PM,3PA,3P%,FTM,FTA,FT%,REB,AST,STL,BLK,TO,PF\n';
+          content = 'Player,Jersey,Points,GmSc,GmSc36Est,FGM,FGA,FG%,3PM,3PA,3P%,FTM,FTA,FT%,REB,AST,STL,BLK,TO,PF\n';
           players.forEach(p => {
             const fgPct = p.fga > 0 ? ((p.fgm / p.fga) * 100).toFixed(1) : '0.0';
             const threePct = p.threepa > 0 ? ((p.threepm / p.threepa) * 100).toFixed(1) : '0.0';
             const ftPct = p.fta > 0 ? ((p.ftm / p.fta) * 100).toFixed(1) : '0.0';
-            content += `"${p.name}",${p.jersey},${p.points},${p.fgm},${p.fga},${fgPct},${p.threepm},${p.threepa},${threePct},${p.ftm},${p.fta},${ftPct},${p.rebounds},${p.assists},${p.steals},${p.blocks},${p.turnovers},${p.fouls}\n`;
+            content += `"${p.name}",${p.jersey},${p.points},${p.gameScore.toFixed(1)},${formatEstimatedMetricValue(p.gameScore36Estimated)},${p.fgm},${p.fga},${fgPct},${p.threepm},${p.threepa},${threePct},${p.ftm},${p.fta},${ftPct},${p.rebounds},${p.assists},${p.steals},${p.blocks},${p.turnovers},${p.fouls}\n`;
           });
           filename = makeExportFilename(game, 'csv');
           mimeType = 'text/csv';
@@ -4482,6 +4520,9 @@
           content += `Blocks: ${team.blocks || 0}\n`;
           content += `Turnovers: ${team.turnovers || 0}\n`;
           content += `Fouls: ${team.fouls || 0}\n\n`;
+          if (reportWarning) {
+            content += `${reportWarning}\n\n`;
+          }
           content += `Player Statistics:\n`;
           content += `${'-'.repeat(50)}\n`;
           players.forEach(p => {
@@ -4490,13 +4531,15 @@
             const ftPct = p.fta > 0 ? ((p.ftm / p.fta) * 100).toFixed(1) : '0.0';
             content += `\n#${p.jersey} ${p.name}\n`;
             content += `  Points: ${p.points}\n`;
+            content += `  Hollinger Game Score: ${p.gameScore.toFixed(1)}\n`;
+            content += `  GameScore36 (estimated): ${formatEstimatedMetricValue(p.gameScore36Estimated)}\n`;
             content += `  FG: ${p.fgm}/${p.fga} (${fgPct}%)  3P: ${p.threepm}/${p.threepa} (${threePct}%)  FT: ${p.ftm}/${p.fta} (${ftPct}%)\n`;
             content += `  REB: ${p.rebounds}  AST: ${p.assists}  STL: ${p.steals}  BLK: ${p.blocks}  TO: ${p.turnovers}  PF: ${p.fouls}\n`;
           });
           filename = makeExportFilename(game, 'txt');
           mimeType = 'text/plain';
         } else if (format === 'json') {
-          const exportPayload = buildHistoryGameExportPayload(game, events);
+          const exportPayload = buildHistoryGameExportPayload(game, events, historyPlayers);
           content = JSON.stringify(exportPayload, null, 2);
           filename = makeExportFilename(game, 'json');
           mimeType = 'application/json';
@@ -4519,7 +4562,8 @@
       try {
         const game = await window.historyDB.getFinishedGame(state.selectedHistoryGame);
         const events = await window.historyDB.getFinishedGameEvents(state.selectedHistoryGame);
-        const payload = buildHistoryGameExportPayload(game, events);
+        const players = await window.historyDB.getFinishedGamePlayers(state.selectedHistoryGame);
+        const payload = buildHistoryGameExportPayload(game, events, players);
         const filename = makeExportFilename(game, 'json');
         const jsonContent = JSON.stringify(payload, null, 2);
 
@@ -4571,7 +4615,8 @@
       try {
         const game = await window.historyDB.getFinishedGame(state.selectedHistoryGame);
         const events = await window.historyDB.getFinishedGameEvents(state.selectedHistoryGame);
-        const payload = buildHistoryGameExportPayload(game, events);
+        const players = await window.historyDB.getFinishedGamePlayers(state.selectedHistoryGame);
+        const payload = buildHistoryGameExportPayload(game, events, players);
         const { url, hashChars } = buildShareUrlForPayload(payload);
 
         if (navigator.clipboard && window.isSecureContext) {
@@ -4677,7 +4722,7 @@
           window.historyDB.getFinishedGamePlayers(gameId)
         ]);
 
-        const stats = game.stats;
+        const stats = getCompatibleGameStats(game.stats, players, events, game, game.periods);
         const safeOpponent = escapeHtml(game.opponent || 'Opponent');
         const safeDate = escapeHtml(game.date || '');
         const safeLocation = game.location ? escapeHtml(game.location) : '';
@@ -4685,6 +4730,9 @@
           game.homeScore < game.opponentScore ? 'Loss' : 'Tie';
         const resultColor = game.homeScore > game.opponentScore ? '#22c55e' :
           game.homeScore < game.opponentScore ? '#ef4444' : '#f59e0b';
+        const reportWarning = stats.meta?.lineupConfidence === 'low'
+          ? `GameScore36 (estimated) has low confidence because ${stats.meta.lineupConfidenceReasons.join('; ')}.`
+          : '';
 
         // Advanced metrics
         const possessions = stats.team.fga + 0.44 * stats.team.fta - stats.team.oreb + stats.team.turnovers;
@@ -4716,6 +4764,8 @@
             <td style="text-align:center;">${safeJersey}</td>
             <td style="text-align:center;font-weight:bold;">${p.points}</td>
             <td style="text-align:center;color:${pmColor};font-weight:bold;">${pmSign}${p.plusMinus || 0}</td>
+            <td style="text-align:center;">${p.gameScore.toFixed(1)}</td>
+            <td style="text-align:center;">${formatEstimatedMetricValue(p.gameScore36Estimated)}</td>
             <td style="text-align:center;">${p.fgm}/${p.fga}</td>
             <td style="text-align:center;">${fgPct}%</td>
             <td style="text-align:center;">${p.threepm}/${p.threepa}</td>
@@ -4760,6 +4810,9 @@
                 <table style="border-collapse:collapse;font-size:0.9rem;width:100%;">
                   <tr><td style="padding:0.2rem 0.5rem 0.2rem 0;color:#666;">Points</td><td style="font-weight:bold;">${p.points}</td></tr>
                   <tr><td style="padding:0.2rem 0.5rem 0.2rem 0;color:#666;">+/-</td><td style="font-weight:bold;">${pmSign}${p.plusMinus || 0}</td></tr>
+                  <tr><td style="padding:0.2rem 0.5rem 0.2rem 0;color:#666;">Hollinger Game Score</td><td>${p.gameScore.toFixed(1)}</td></tr>
+                  <tr><td style="padding:0.2rem 0.5rem 0.2rem 0;color:#666;">Estimated Minutes</td><td>${formatEstimatedMetricValue(p.estimatedMinutes)}</td></tr>
+                  <tr><td style="padding:0.2rem 0.5rem 0.2rem 0;color:#666;">GameScore36 (estimated)</td><td>${formatEstimatedMetricValue(p.gameScore36Estimated)}</td></tr>
                   <tr><td style="padding:0.2rem 0.5rem 0.2rem 0;color:#666;">Field Goals</td><td>${p.fgm}/${p.fga} (${fgPct}%)</td></tr>
                   <tr><td style="padding:0.2rem 0.5rem 0.2rem 0;color:#666;">3-Pointers</td><td>${p.threepm}/${p.threepa} (${threePct}%)</td></tr>
                   <tr><td style="padding:0.2rem 0.5rem 0.2rem 0;color:#666;">Free Throws</td><td>${p.ftm}/${p.fta} (${ftPct}%)</td></tr>
@@ -4794,6 +4847,7 @@
     .score { font-size: 2.5rem; font-weight: bold; }
     .result { font-size: 1.2rem; font-weight: bold; color: ${resultColor}; }
     .meta { color: #555; font-size: 0.9rem; margin-top: 0.3rem; }
+    .warning-box { margin: 1rem 0 1.5rem; padding: 0.85rem 1rem; border-left: 4px solid #f59e0b; background: #fffbeb; color: #92400e; }
     .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
     .stat-table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
     .stat-table td { padding: 0.3rem 0.5rem; border-bottom: 1px solid #eee; }
@@ -4825,6 +4879,8 @@
       <div class="result">${resultText}</div>
     </div>
   </div>
+
+  ${reportWarning ? `<div class="warning-box"><strong>Estimated Metrics Warning:</strong> ${escapeHtml(reportWarning)}</div>` : ''}
 
   <h2>📊 Team Statistics</h2>
   <div class="stats-grid">
@@ -4859,6 +4915,8 @@
       <thead>
         <tr>
           <th>Player</th><th>#</th><th>PTS</th><th>+/-</th>
+          <th>GmSc</th>
+          <th>GmSc36 Est</th>
           <th>FGM/A</th><th>FG%</th><th>3PM/A</th><th>3P%</th>
           <th>FTM/A</th><th>FT%</th><th>REB</th><th>AST</th>
           <th>STL</th><th>BLK</th><th>TO</th><th>PF</th>
@@ -4957,7 +5015,8 @@
       };
     }
 
-    function buildHistoryGameExportPayload(game, events) {
+    function buildHistoryGameExportPayload(game, events, players = []) {
+      const stats = getCompatibleGameStats(game.stats, players, events, game, game.periods);
       return {
         ...buildExportMetadata(game.description || ''),
         game: {
@@ -4971,7 +5030,7 @@
           opponent: game.opponentScore
         },
         periods: game.periods,
-        stats: game.stats,
+        stats,
         events: mapEventsForExport(events).map(e => {
           const { gameId, ...rest } = e;
           return rest;
@@ -5147,26 +5206,6 @@
     async function importValidatedGameData(data, source = 'file') {
       const gameId = `game-${Date.now()}-imported`;
 
-      const historyGameData = {
-        id: gameId,
-        timestamp: Date.now(),
-        date: data.game.date.trim(),
-        opponent: data.game.opponent.trim(),
-        location: typeof data.game.location === 'string' ? data.game.location : '',
-        ruleSet: typeof data.game.ruleSet === 'string' ? data.game.ruleSet : 'FIBA',
-        homeScore: typeof data.finalScore === 'object' && data.finalScore !== null
-          ? (Number(data.finalScore.home) || 0) : 0,
-        opponentScore: typeof data.finalScore === 'object' && data.finalScore !== null
-          ? (Number(data.finalScore.opponent) || 0) : 0,
-        periods: typeof data.periods === 'number' ? data.periods : 4,
-        stats: data.stats || null,
-        description: typeof data.description === 'string' ? data.description.trim().slice(0, MAX_DESCRIPTION_LENGTH) : '',
-        imported: true,
-        importedAt: new Date().toISOString(),
-        importedFrom: source,
-        originalSchemaVersion: typeof data.schemaVersion === 'number' ? data.schemaVersion : null
-      };
-
       const rawPlayers = Array.isArray(data.stats && data.stats.players)
         ? data.stats.players
         : (Array.isArray(data.players) ? data.players : []);
@@ -5189,6 +5228,28 @@
             coordinates: canonicalizeStoredCoordinates(rest.coordinates)
           };
         });
+
+      const compatibleStats = getCompatibleGameStats(data.stats, players, events, data.game, data.periods);
+
+      const historyGameData = {
+        id: gameId,
+        timestamp: Date.now(),
+        date: data.game.date.trim(),
+        opponent: data.game.opponent.trim(),
+        location: typeof data.game.location === 'string' ? data.game.location : '',
+        ruleSet: typeof data.game.ruleSet === 'string' ? data.game.ruleSet : 'FIBA',
+        homeScore: typeof data.finalScore === 'object' && data.finalScore !== null
+          ? (Number(data.finalScore.home) || 0) : 0,
+        opponentScore: typeof data.finalScore === 'object' && data.finalScore !== null
+          ? (Number(data.finalScore.opponent) || 0) : 0,
+        periods: typeof data.periods === 'number' ? data.periods : 4,
+        stats: compatibleStats,
+        description: typeof data.description === 'string' ? data.description.trim().slice(0, MAX_DESCRIPTION_LENGTH) : '',
+        imported: true,
+        importedAt: new Date().toISOString(),
+        importedFrom: source,
+        originalSchemaVersion: typeof data.schemaVersion === 'number' ? data.schemaVersion : null
+      };
 
       await window.historyDB.saveGameToHistory({
         id: gameId,
@@ -5317,6 +5378,9 @@
     function showStats() {
       const stats = calculateStats();
       const container = document.getElementById('statsContent');
+      const reportWarning = stats.meta?.lineupConfidence === 'low'
+        ? `Warning: GameScore36 (estimated) has low confidence because ${stats.meta.lineupConfidenceReasons.join('; ')}.`
+        : '';
 
       let html = '<div style="font-family:monospace;white-space:pre-wrap;">';
       html += `<strong>Final Score:</strong> ${state.homeScore} - ${state.opponentScore}\n\n`;
@@ -5337,9 +5401,15 @@
       html += `Turnovers: ${stats.team.turnovers}\n`;
       html += `Fouls: ${stats.team.fouls}\n\n`;
 
+      if (reportWarning) {
+        html += `<strong>${reportWarning}</strong>\n\n`;
+      }
+
       html += `<strong>Player Stats:</strong>\n\n`;
       stats.players.forEach(p => {
         html += `#${p.jersey} ${p.name}\n`;
+        html += `  GmSc: ${p.gameScore.toFixed(1)}\n`;
+        html += `  GmSc36 (estimated): ${formatEstimatedMetricValue(p.gameScore36Estimated)}\n`;
         html += `  PTS: ${p.points}, FG: ${p.fgm}/${p.fga}, 3P: ${p.threepm}/${p.threepa}, FT: ${p.ftm}/${p.fta}\n`;
         html += `  REB: ${p.rebounds}, AST: ${p.assists}, STL: ${p.steals}, BLK: ${p.blocks}\n`;
         html += `  TO: ${p.turnovers}, PF: ${p.fouls}\n\n`;
@@ -5351,8 +5421,8 @@
       document.getElementById('statsDialog').showModal();
     }
 
-    function calculateStats() {
-      const stats = {
+    function createEmptyStats() {
+      return {
         team: {
           fgm: 0, fga: 0, fgPct: 0,
           threepm: 0, threepa: 0, threePct: 0,
@@ -5363,25 +5433,259 @@
         },
         players: []
       };
+    }
+
+    function calculateHollingerGameScore(playerStats) {
+      const rebounds = Number(playerStats.rebounds) || 0;
+      const oreb = Number(playerStats.oreb) || 0;
+      const hasExplicitDreb = playerStats.dreb !== undefined && playerStats.dreb !== null && playerStats.dreb !== '';
+      const dreb = hasExplicitDreb ? (Number(playerStats.dreb) || 0) : Math.max(0, rebounds - oreb);
+
+      return playerStats.points
+        + (0.4 * playerStats.fgm)
+        - (0.7 * playerStats.fga)
+        - (0.4 * (playerStats.fta - playerStats.ftm))
+        + (0.7 * oreb)
+        + (0.3 * dreb)
+        + playerStats.steals
+        + (0.7 * playerStats.assists)
+        + (0.7 * playerStats.blocks)
+        - (0.4 * playerStats.fouls)
+        - playerStats.turnovers;
+    }
+
+    function getRegulationMinutesForGame(gameContext, periods = null) {
+      const totalPeriods = Math.max(1, Number(periods ?? gameContext?.periods ?? 4) || 4);
+      const ruleSet = String(gameContext?.ruleSet || 'FIBA').toUpperCase();
+      const minutesPerPeriod = ruleSet === 'NFHS' ? 8 : 10;
+      return totalPeriods * minutesPerPeriod;
+    }
+
+    function formatEstimatedMetricValue(value) {
+      return Number.isFinite(value) ? value.toFixed(1) : '—';
+    }
+
+    function normalizePlayerStat(playerStat) {
+      const rebounds = Number(playerStat.rebounds) || 0;
+      const oreb = Number(playerStat.oreb) || 0;
+      const hasExplicitDreb = playerStat.dreb !== undefined && playerStat.dreb !== null && playerStat.dreb !== '';
+      const dreb = hasExplicitDreb ? (Number(playerStat.dreb) || 0) : Math.max(0, rebounds - oreb);
+
+      playerStat.rebounds = rebounds;
+      playerStat.oreb = oreb;
+      playerStat.dreb = dreb;
+      playerStat.points = Number(playerStat.points) || 0;
+      playerStat.fgm = Number(playerStat.fgm) || 0;
+      playerStat.fga = Number(playerStat.fga) || 0;
+      playerStat.threepm = Number(playerStat.threepm) || 0;
+      playerStat.threepa = Number(playerStat.threepa) || 0;
+      playerStat.ftm = Number(playerStat.ftm) || 0;
+      playerStat.fta = Number(playerStat.fta) || 0;
+      playerStat.assists = Number(playerStat.assists) || 0;
+      playerStat.steals = Number(playerStat.steals) || 0;
+      playerStat.blocks = Number(playerStat.blocks) || 0;
+      playerStat.turnovers = Number(playerStat.turnovers) || 0;
+      playerStat.fouls = Number(playerStat.fouls) || 0;
+      playerStat.gameScore = calculateHollingerGameScore(playerStat);
+      playerStat.estimatedMinutes = Number(playerStat.estimatedMinutes) || 0;
+      playerStat.onCourtShare = Number(playerStat.onCourtShare) || 0;
+      playerStat.gameScore36Estimated = Number.isFinite(Number(playerStat.gameScore36Estimated))
+        ? Number(playerStat.gameScore36Estimated)
+        : null;
+      return playerStat;
+    }
+
+    function normalizeStats(stats) {
+      const normalized = stats && typeof stats === 'object' ? stats : createEmptyStats();
+      if (!normalized.team || typeof normalized.team !== 'object') {
+        normalized.team = createEmptyStats().team;
+      }
+      if (!Array.isArray(normalized.players)) {
+        normalized.players = [];
+      }
+
+      normalized.players = normalized.players.map(normalizePlayerStat);
+      return normalized;
+    }
+
+    function applyEstimatedLineupMetrics(stats, players = state.players, events = state.events, gameContext = state.game, periods = state.period) {
+      const normalizedStats = normalizeStats(stats);
+      const playerList = Array.isArray(players) ? players : [];
+      const timedEvents = (Array.isArray(events) ? events : [])
+        .filter(event => event && Number.isFinite(Number(event.timestamp)))
+        .map(event => ({ ...event, timestamp: Number(event.timestamp) }))
+        .sort((a, b) => a.timestamp - b.timestamp);
+      const metricsByMatchId = new Map();
+
+      normalizedStats.players.forEach(player => {
+        const matchId = getPlayerMatchId(player);
+        if (matchId) {
+          metricsByMatchId.set(matchId, { trackedMs: 0 });
+        }
+      });
+
+      playerList.forEach(player => {
+        const matchId = getPlayerMatchId(player);
+        if (matchId && !metricsByMatchId.has(matchId)) {
+          metricsByMatchId.set(matchId, { trackedMs: 0 });
+        }
+      });
+
+      const onCourtStatus = new Map();
+      metricsByMatchId.forEach((_value, matchId) => {
+        onCourtStatus.set(matchId, false);
+      });
+
+      const firstTrackedAction = timedEvents.find(event => event.kind !== 'substitution');
+      const firstTrackedActionTimestamp = firstTrackedAction ? firstTrackedAction.timestamp : null;
+      let trackedDurationMs = 0;
+      let validLineupMs = 0;
+      let hasSubstitutionEvents = false;
+      let openingLineupCount = 0;
+      let openingLineupCaptured = firstTrackedActionTimestamp === null;
+
+      for (let index = 0; index < timedEvents.length;) {
+        const currentTimestamp = timedEvents[index].timestamp;
+
+        while (index < timedEvents.length && timedEvents[index].timestamp === currentTimestamp) {
+          const event = timedEvents[index];
+          if (event.kind === 'substitution') {
+            hasSubstitutionEvents = true;
+            onCourtStatus.set(String(event.playerId), event.subtype === 'in');
+          }
+          index++;
+        }
+
+        if (!openingLineupCaptured && firstTrackedActionTimestamp !== null && currentTimestamp >= firstTrackedActionTimestamp) {
+          openingLineupCount = Array.from(onCourtStatus.values()).filter(Boolean).length;
+          openingLineupCaptured = true;
+        }
+
+        const nextTimestamp = index < timedEvents.length ? timedEvents[index].timestamp : null;
+        if (nextTimestamp === null) {
+          continue;
+        }
+
+        const intervalMs = Math.max(0, nextTimestamp - currentTimestamp);
+        if (!intervalMs) {
+          continue;
+        }
+
+        trackedDurationMs += intervalMs;
+
+        const onCourtIds = [];
+        onCourtStatus.forEach((isOnCourt, matchId) => {
+          if (isOnCourt && metricsByMatchId.has(matchId)) {
+            onCourtIds.push(matchId);
+          }
+        });
+
+        if (onCourtIds.length === 5) {
+          validLineupMs += intervalMs;
+        }
+
+        onCourtIds.forEach(matchId => {
+          metricsByMatchId.get(matchId).trackedMs += intervalMs;
+        });
+      }
+
+      if (!openingLineupCaptured) {
+        openingLineupCount = Array.from(onCourtStatus.values()).filter(Boolean).length;
+      }
+
+      const validLineupRatio = trackedDurationMs > 0 ? (validLineupMs / trackedDurationMs) : 0;
+      const estimatedGameMinutes = getRegulationMinutesForGame(gameContext, periods);
+      const confidenceReasons = [];
+
+      if (timedEvents.length < 2) {
+        confidenceReasons.push('not enough timed events were logged');
+      }
+      if (!hasSubstitutionEvents) {
+        confidenceReasons.push('no substitution events were logged');
+      }
+      if (firstTrackedActionTimestamp !== null && openingLineupCount !== 5) {
+        confidenceReasons.push(`opening lineup was tracked as ${openingLineupCount} players instead of 5`);
+      }
+      if (trackedDurationMs > 0 && validLineupRatio < 0.75) {
+        confidenceReasons.push(`only ${(validLineupRatio * 100).toFixed(0)}% of tracked time had exactly 5 players on court`);
+      }
+
+      const lineupConfidence = confidenceReasons.length
+        ? 'low'
+        : (trackedDurationMs > 0 && validLineupRatio < 0.95 ? 'medium' : 'high');
+
+      if (lineupConfidence === 'medium') {
+        confidenceReasons.push(`only ${(validLineupRatio * 100).toFixed(0)}% of tracked time had exactly 5 players on court`);
+      }
+
+      normalizedStats.players.forEach(player => {
+        const matchId = getPlayerMatchId(player);
+        const trackedMs = metricsByMatchId.get(matchId)?.trackedMs || 0;
+        const onCourtShare = trackedDurationMs > 0 ? (trackedMs / trackedDurationMs) : 0;
+        const estimatedMinutes = estimatedGameMinutes * onCourtShare;
+
+        player.onCourtShare = onCourtShare;
+        player.estimatedMinutes = estimatedMinutes;
+        player.gameScore36Estimated = estimatedMinutes >= MIN_ESTIMATED_MINUTES_FOR_RATE_STATS
+          ? ((player.gameScore * 36) / estimatedMinutes)
+          : null;
+      });
+
+      normalizedStats.meta = {
+        ...(normalizedStats.meta || {}),
+        estimatedGameMinutes,
+        trackedDurationMs,
+        validLineupRatio,
+        openingLineupCount,
+        lineupConfidence,
+        lineupConfidenceReasons: confidenceReasons,
+        hasSubstitutionTimeline: hasSubstitutionEvents
+      };
+
+      return normalizedStats;
+    }
+
+    function getCompatibleGameStats(storedStats, players = [], events = [], gameContext = state.game, periods = state.period) {
+      const hasStoredTeam = !!(storedStats && typeof storedStats.team === 'object');
+      const hasStoredPlayers = !!(storedStats && Array.isArray(storedStats.players) && storedStats.players.length > 0);
+      const hasInputPlayers = Array.isArray(players) && players.length > 0;
+      let stats;
+
+      if (hasStoredTeam && hasStoredPlayers) {
+        stats = normalizeStats(storedStats);
+      } else if (hasInputPlayers) {
+        stats = calculateStats(players, events, gameContext, periods);
+      } else if (hasStoredTeam) {
+        stats = normalizeStats(storedStats);
+      } else {
+        stats = calculateStats(players, events, gameContext, periods);
+      }
+
+      return applyEstimatedLineupMetrics(stats, players, events, gameContext, periods);
+    }
+
+    function calculateStats(players = state.players, events = state.events, gameContext = state.game, periods = state.period) {
+      const stats = createEmptyStats();
 
       // Initialize player stats
-      state.players.forEach(player => {
+      players.forEach(player => {
         stats.players.push({
-          id: player.id,
-          name: formatPlayerName(player),
+          id: getPlayerMatchId(player),
+          name: getPlayerDisplayName(player),
           jersey: player.jersey,
           points: 0,
           fgm: 0, fga: 0,
           threepm: 0, threepa: 0,
           ftm: 0, fta: 0,
-          rebounds: 0,
+          rebounds: 0, oreb: 0, dreb: 0,
           assists: 0, steals: 0, blocks: 0,
-          turnovers: 0, fouls: 0
+          turnovers: 0, fouls: 0,
+          gameScore: 0
         });
       });
 
       // Calculate stats from events
-      state.events.forEach(event => {
+      events.forEach(event => {
         const playerStat = stats.players.find(p => p.id === event.playerId);
         if (!playerStat) return;
 
@@ -5416,8 +5720,10 @@
           playerStat.rebounds++;
           if (event.subtype === 'offensive') {
             stats.team.oreb++;
+            playerStat.oreb++;
           } else {
             stats.team.dreb++;
+            playerStat.dreb++;
           }
         } else if (event.kind === 'assist') {
           stats.team.assists++;
@@ -5442,7 +5748,7 @@
       stats.team.threePct = stats.team.threepa > 0 ? ((stats.team.threepm / stats.team.threepa) * 100).toFixed(1) : '0.0';
       stats.team.ftPct = stats.team.fta > 0 ? ((stats.team.ftm / stats.team.fta) * 100).toFixed(1) : '0.0';
 
-      return stats;
+      return applyEstimatedLineupMetrics(normalizeStats(stats), players, events, gameContext, periods);
     }
 
     function makeExportFilename(gameInfo, suffix) {
@@ -5459,15 +5765,18 @@
       let content = '';
       let filename = '';
       let mimeType = '';
+      const reportWarning = stats.meta?.lineupConfidence === 'low'
+        ? `Warning: GameScore36 (estimated) has low confidence because ${stats.meta.lineupConfidenceReasons.join('; ')}.`
+        : '';
 
       if (format === 'csv') {
         // CSV export
-        content = 'Player,Jersey,Points,FGM,FGA,FG%,3PM,3PA,3P%,FTM,FTA,FT%,REB,AST,STL,BLK,TO,PF\n';
+        content = 'Player,Jersey,Points,GmSc,GmSc36Est,FGM,FGA,FG%,3PM,3PA,3P%,FTM,FTA,FT%,REB,AST,STL,BLK,TO,PF\n';
         stats.players.forEach(p => {
           const fgPct = p.fga > 0 ? ((p.fgm / p.fga) * 100).toFixed(1) : '0.0';
           const threePct = p.threepa > 0 ? ((p.threepm / p.threepa) * 100).toFixed(1) : '0.0';
           const ftPct = p.fta > 0 ? ((p.ftm / p.fta) * 100).toFixed(1) : '0.0';
-          content += `"${p.name}",${p.jersey},${p.points},${p.fgm},${p.fga},${fgPct},${p.threepm},${p.threepa},${threePct},${p.ftm},${p.fta},${ftPct},${p.rebounds},${p.assists},${p.steals},${p.blocks},${p.turnovers},${p.fouls}\n`;
+          content += `"${p.name}",${p.jersey},${p.points},${p.gameScore.toFixed(1)},${formatEstimatedMetricValue(p.gameScore36Estimated)},${p.fgm},${p.fga},${fgPct},${p.threepm},${p.threepa},${threePct},${p.ftm},${p.fta},${ftPct},${p.rebounds},${p.assists},${p.steals},${p.blocks},${p.turnovers},${p.fouls}\n`;
         });
         filename = makeExportFilename(state.game, 'csv');
         mimeType = 'text/csv';
@@ -5493,6 +5802,10 @@
         content += `Turnovers: ${stats.team.turnovers}\n`;
         content += `Fouls: ${stats.team.fouls}\n\n`;
 
+        if (reportWarning) {
+          content += `${reportWarning}\n\n`;
+        }
+
         content += `Player Statistics:\n`;
         content += `${'-'.repeat(50)}\n`;
         stats.players.forEach(p => {
@@ -5502,6 +5815,8 @@
 
           content += `\n#${p.jersey} ${p.name}\n`;
           content += `  Points: ${p.points}\n`;
+          content += `  Hollinger Game Score: ${p.gameScore.toFixed(1)}\n`;
+          content += `  GameScore36 (estimated): ${formatEstimatedMetricValue(p.gameScore36Estimated)}\n`;
           content += `  FG: ${p.fgm}/${p.fga} (${fgPct}%)  3P: ${p.threepm}/${p.threepa} (${threePct}%)  FT: ${p.ftm}/${p.fta} (${ftPct}%)\n`;
           content += `  REB: ${p.rebounds}  AST: ${p.assists}  STL: ${p.steals}  BLK: ${p.blocks}  TO: ${p.turnovers}  PF: ${p.fouls}\n`;
         });

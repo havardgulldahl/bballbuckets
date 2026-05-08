@@ -152,6 +152,149 @@ test.describe('Game Logic Validation - Simple Tests', () => {
     expect(hasFunctions).toBeTruthy();
   });
 
+  test('steal and turnover buttons are available in the event pad', async ({ page }) => {
+    await expect(page.locator('button[data-kind="steal"]')).toBeVisible();
+    await expect(page.locator('button[data-kind="turnover"]')).toBeVisible();
+  });
+
+  test('Shift+D maps to steal keyboard shortcut', async ({ page }) => {
+    const definition = await page.evaluate(() => {
+      return getKeyboardEventDefinition(new KeyboardEvent('keydown', { key: 'D', shiftKey: true }));
+    });
+
+    expect(definition).toEqual({ kind: 'steal', points: 0, result: null, subtype: null });
+  });
+
+  test('calculates Hollinger game score for player stats', async ({ page }) => {
+    await page.click('#setupGameBtn');
+    await page.waitForSelector('#gameSetupDialog', { state: 'visible' });
+    await page.fill('#opponentInput', 'Test Team');
+    await page.fill('#gameDateInput', '2024-01-01');
+    await page.click('button[type="submit"]:has-text("Continue to Roster")');
+    await page.waitForSelector('#rosterSetupSection', { state: 'visible' });
+    await page.click('#quickStartBtn');
+    await page.click('#finishSetupBtn');
+    await page.waitForTimeout(400);
+
+    const firstPlayer = page.locator('.player-chip').first();
+
+    await page.click('button[data-kind="ft"][data-result="made"]');
+    await firstPlayer.click();
+    await page.waitForTimeout(150);
+
+    await page.click('button[data-kind="rebound"][data-subtype="defensive"]');
+    await firstPlayer.click();
+    await page.waitForTimeout(150);
+
+    await page.click('button[data-kind="steal"]');
+    await firstPlayer.click();
+    await page.waitForTimeout(150);
+
+    await page.click('button[data-kind="turnover"]');
+    await firstPlayer.click();
+    await page.waitForTimeout(150);
+
+    const gameScore = await page.evaluate(() => {
+      const stats = calculateStats();
+      const player = stats.players.find(p => p.points === 1 && p.steals === 1 && p.turnovers === 1 && p.dreb === 1);
+      return player ? player.gameScore.toFixed(1) : null;
+    });
+
+    expect(gameScore).toBe('1.3');
+  });
+
+  test('normalizes legacy player stats without stored game score', async ({ page }) => {
+    const gameScore = await page.evaluate(() => {
+      const normalized = normalizeStats({
+        team: {
+          fgm: 0, fga: 0, fgPct: '0.0',
+          threepm: 0, threepa: 0, threePct: '0.0',
+          ftm: 1, fta: 1, ftPct: '100.0',
+          rebounds: 1, oreb: 0, dreb: 1,
+          assists: 0, steals: 1, blocks: 0,
+          turnovers: 1, fouls: 0
+        },
+        players: [{
+          id: 'p1',
+          name: 'Legacy Player',
+          jersey: '7',
+          points: 1,
+          fgm: 0, fga: 0,
+          threepm: 0, threepa: 0,
+          ftm: 1, fta: 1,
+          rebounds: 1,
+          assists: 0, steals: 1, blocks: 0,
+          turnovers: 1, fouls: 0
+        }]
+      });
+
+      return normalized.players[0].gameScore.toFixed(1);
+    });
+
+    expect(gameScore).toBe('1.3');
+  });
+
+  test('estimates GameScore36 from substitution timeline', async ({ page }) => {
+    const estimated = await page.evaluate(() => {
+      const players = [1, 2, 3, 4, 5].map(number => ({
+        id: `p${number}`,
+        name: `Player ${number}`,
+        jersey: String(number)
+      }));
+
+      const events = [
+        { id: 's1', kind: 'substitution', subtype: 'in', playerId: 'p1', timestamp: 0 },
+        { id: 's2', kind: 'substitution', subtype: 'in', playerId: 'p2', timestamp: 0 },
+        { id: 's3', kind: 'substitution', subtype: 'in', playerId: 'p3', timestamp: 0 },
+        { id: 's4', kind: 'substitution', subtype: 'in', playerId: 'p4', timestamp: 0 },
+        { id: 's5', kind: 'substitution', subtype: 'in', playerId: 'p5', timestamp: 0 },
+        { id: 'e1', kind: 'shot', playerId: 'p1', points: 2, result: 'made', timestamp: 600000 }
+      ];
+
+      const stats = calculateStats(players, events, { ruleSet: 'FIBA', periods: 4 }, 4);
+      const player = stats.players.find(p => p.id === 'p1');
+
+      return {
+        estimatedMinutes: player ? player.estimatedMinutes.toFixed(1) : null,
+        gameScore36Estimated: player ? player.gameScore36Estimated.toFixed(1) : null,
+        lineupConfidence: stats.meta?.lineupConfidence || null
+      };
+    });
+
+    expect(estimated).toEqual({
+      estimatedMinutes: '40.0',
+      gameScore36Estimated: '1.5',
+      lineupConfidence: 'high'
+    });
+  });
+
+  test('flags low-confidence GameScore36 when substitutions are missing', async ({ page }) => {
+    const result = await page.evaluate(() => {
+      const players = [1, 2].map(number => ({
+        id: `p${number}`,
+        name: `Player ${number}`,
+        jersey: String(number)
+      }));
+
+      const events = [
+        { id: 'e1', kind: 'shot', playerId: 'p1', points: 2, result: 'made', timestamp: 1000 },
+        { id: 'e2', kind: 'turnover', playerId: 'p2', timestamp: 2000 }
+      ];
+
+      const stats = calculateStats(players, events, { ruleSet: 'FIBA', periods: 4 }, 4);
+
+      return {
+        lineupConfidence: stats.meta?.lineupConfidence || null,
+        reasons: stats.meta?.lineupConfidenceReasons || [],
+        estimatedMetric: stats.players[0]?.gameScore36Estimated ?? null
+      };
+    });
+
+    expect(result.lineupConfidence).toBe('low');
+    expect(result.reasons).toContain('no substitution events were logged');
+    expect(result.estimatedMetric).toBeNull();
+  });
+
   test('can add player without last name', async ({ page }) => {
     // Setup game
     await page.click('#setupGameBtn');
