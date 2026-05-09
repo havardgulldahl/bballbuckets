@@ -6,6 +6,20 @@ Current app version: 1.3.3
 
 Live app: https://havardgulldahl.github.io/bballbuckets/
 
+## Screenshots
+
+### Desktop
+
+![bballbuckets desktop screenshot](docs/screenshots/app-desktop.png)
+
+### Tablet
+
+![bballbuckets tablet screenshot](docs/screenshots/app-tablet.png)
+
+### Mobile
+
+![bballbuckets mobile screenshot](docs/screenshots/app-mobile.png)
+
 ## What the app does today
 
 The app is a single-page PWA for recording one team during a game and reviewing the result afterward. It stores live data locally in IndexedDB, works without a backend for normal stat tracking, and keeps a separate history database for completed or imported games.
@@ -419,5 +433,4 @@ The app shell is cached by the service worker and the app prompts the user when 
 - The NIF integration depends on the worker/proxy configuration in `src/` and `wrangler.jsonc`.
 - Playwright covers viewport behavior, validation, roster ordering, and JSON import paths.
 - If you change the JSON export structure, bump `JSON_SCHEMA_VERSION` in the app and update this README.
-
 
